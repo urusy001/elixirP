@@ -1,0 +1,100 @@
+/* ---------------- CONTACT PAGE ---------------- */
+
+#contact-page {
+  display: none; /* toggled via JS */
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 12px;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+#contact-page h2 {
+  text-align: center;
+  color: #1E669E;
+  font-size: 1.4rem;
+  margin-bottom: 1.5rem;
+  user-select: none;
+}
+
+/* ---------------- FORM ---------------- */
+#contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+#contact-form input {
+  padding: 12px 16px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fafafa;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  user-select: text !important;
+  cursor: text;
+}
+
+#contact-form input:focus {
+  outline: none;
+  border-color: #1E669E;
+  background-color: #fff;
+}
+
+/* ---------------- SUBMIT BUTTON ---------------- */
+#submit-contact {
+  display: inline-block;
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #fff;
+  background-color: #1E669E;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.25s ease, transform 0.1s ease;
+  user-select: none;
+}
+
+#submit-contact:hover {
+  background-color: #17517D;
+}
+
+#submit-contact:active {
+  transform: scale(0.98);
+}
+
+#submit-contact:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---------------- RESPONSIVE ---------------- */
+@media (max-width: 600px) {
+  #contact-page {
+    margin: 1rem;
+    padding: 1rem;
+  }
+
+  #contact-page h2 {
+    font-size: 1.2rem;
+  }
+
+  #contact-form input {
+    font-size: 0.95rem;
+    padding: 10px 14px;
+  }
+
+  #submit-contact {
+    padding: 12px 16px;
+    font-size: 0.95rem;
+  }
+}
+
+/* ---------------- ANIMATIONS ---------------- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
