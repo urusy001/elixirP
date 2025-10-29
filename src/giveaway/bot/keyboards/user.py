@@ -6,7 +6,6 @@ class ViewGiveaways(InlineKeyboardMarkup):
     def __init__(self, giveaways: list[Giveaway]):
         buttons = [InlineKeyboardButton(text=giveaway.name, callback_data=f'user:view_giveaways:{giveaway.id}') for giveaway in giveaways]
         keyboard = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
-        keyboard.append([InlineKeyboardButton(text='📝 Главное меню', callback_data='user:main_menu')])
         super().__init__(inline_keyboard=keyboard)
 
 class GiveawayMenu(InlineKeyboardMarkup):
@@ -20,3 +19,14 @@ class GiveawayMenu(InlineKeyboardMarkup):
         keyboard.append([InlineKeyboardButton(text='📝 Главное меню', callback_data='user:main_menu')])
         super().__init__(inline_keyboard=keyboard)
 
+class Participate(InlineKeyboardMarkup):
+    def __init__(self, giveaway_id: int):
+        keyboard = [[InlineKeyboardButton(text='➕ Принять участие', callback_data=f'user:participate:{giveaway_id}'),
+                    InlineKeyboardButton(text='📝 Главное меню', callback_data='user:main_menu')]]
+
+        super().__init__(inline_keyboard=keyboard)
+
+class BackToGiveaway(InlineKeyboardMarkup):
+    def __init__(self, giveaway_id: int):
+        super().__init__(inline_keyboard=[[InlineKeyboardButton(text='🔙 Назад', callback_data=f'user:view_giveaways:{giveaway_id}')],
+                                          [InlineKeyboardButton(text='📝 Главное меню', callback_data='user:main_menu')]])

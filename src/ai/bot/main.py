@@ -6,14 +6,14 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message, FSInputFile, InputMediaPhoto, ReplyKeyboardRemove
 
-from config import AI_BOT_TOKEN as TELEGRAM_BOT_TOKEN
+from config import AI_BOT_TOKEN, AI_BOT_TOKEN2, ASSISTANT_ID2, OPENAI_API_KEY2, AI_BOT_TOKEN3, ASSISTANT_ID3
 from src.ai.client import ProfessorClient
 from src.ai.bot.middleware import ContextMiddleware
 from src.webapp import get_session
 from src.webapp.crud import get_users, create_user, update_user
 from src.webapp.schemas import UserUpdate, UserCreate
 from src.helpers import split_text, MAX_TG_MSG_LEN
-from src.ai.bot.handlers import user_router, admin_router
+from src.ai.bot.handlers import *
 
 
 class ProfessorBot(Bot):
@@ -121,16 +121,40 @@ class ProfessorBot(Bot):
         return await message.answer(re.sub(r"【[^】]*】", "", text), parse_mode=None, reply_markup=ReplyKeyboardRemove())
 
 
-bot = ProfessorBot(TELEGRAM_BOT_TOKEN)
+professor_bot = ProfessorBot(AI_BOT_TOKEN)
+dose_bot = ProfessorBot(AI_BOT_TOKEN2)
+new_bot = ProfessorBot(AI_BOT_TOKEN3)
+
 professor_client = ProfessorClient()
-dp = Dispatcher(storage=MemoryStorage())
+dose_client = ProfessorClient(OPENAI_API_KEY2, ASSISTANT_ID2)
+new_client = ProfessorClient(OPENAI_API_KEY2, ASSISTANT_ID3)
 
-dp.include_routers(user_router, admin_router)
-dp.message.middleware(ContextMiddleware(bot, professor_client))
-dp.callback_query.middleware(ContextMiddleware(bot, professor_client))
+professor_dp = Dispatcher(storage=MemoryStorage())
+professor_dp.include_routers(professor_user_router, professor_admin_router)
+professor_dp.message.middleware(ContextMiddleware(professor_bot, professor_client))
+professor_dp.callback_query.middleware(ContextMiddleware(professor_bot, professor_client))
 
+dose_dp = Dispatcher(storage=MemoryStorage())
+dose_dp.include_routers(dose_user_router, dose_admin_router)
+dose_dp.message.middleware(ContextMiddleware(dose_bot, dose_client))
+dose_dp.callback_query.middleware(ContextMiddleware(dose_bot, dose_client))
 
-async def run_bot():
-    await bot.delete_webhook(drop_pending_updates=False)
-    await bot.load_users()
-    await dp.start_polling(bot)
+new_dp = Dispatcher(storage=MemoryStorage())
+new_dp.include_routers(new_user_router, new_admin_router)
+new_dp.message.middleware(ContextMiddleware(new_bot, new_client))
+new_dp.callback_query.middleware(ContextMiddleware(new_bot, new_client))
+
+async def run_professor_bot():
+    await professor_bot.delete_webhook(drop_pending_updates=False)
+    await professor_bot.load_users()
+    await professor_dp.start_polling(professor_bot)
+
+async def run_dose_bot():
+    await dose_bot.delete_webhook(drop_pending_updates=False)
+    await dose_bot.load_users()
+    await dose_dp.start_polling(dose_bot)
+
+async def run_new_bot():
+    await new_bot.delete_webhook(drop_pending_updates=False)
+    await new_bot.load_users()
+    await new_dp.start_polling(new_bot)

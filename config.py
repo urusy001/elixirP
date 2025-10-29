@@ -8,12 +8,16 @@ from starlette.templating import Jinja2Templates
 
 load_dotenv()
 MOSCOW_TZ = timezone(timedelta(hours=3))
-
-AI_BOT_TOKEN = os.getenv("AI_BOT_TOKEN")
 ADMIN_TG_IDS = [int(i) for i in os.getenv("ADMIN_TG_IDS").split(",")]
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+AI_BOT_TOKEN = os.getenv("AI_BOT_TOKEN")
+AI_BOT_TOKEN2 = os.getenv("AI_BOT_TOKEN2")
+AI_BOT_TOKEN3 = os.getenv("AI_BOT_TOKEN3")
+ASSISTANT_ID3 = os.getenv("ASSISTANT_ID3")
+OPENAI_API_KEY2 = os.getenv("OPENAI_API_KEY2")
 ASSISTANT_ID = os.getenv("ASSISTANT_ID")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+ASSISTANT_ID2 = os.getenv("ASSISTANT_ID2")
 
 POSTGRES_USER = os.getenv("POSTGRES_USER")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")

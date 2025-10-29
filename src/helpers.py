@@ -115,3 +115,18 @@ def decypher_user_id(cyphered: str) -> int:
     """
     numeric = re.sub(r'[A-Z]', '', cyphered)
     return int(numeric)
+
+EMAIL_REGEX = re.compile(
+    r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
+)
+
+def extract_email(text: str) -> Optional[str]:
+    """
+    Extracts the first email address from the given string.
+    Returns None if no email is found.
+    """
+    if not text:
+        return None
+
+    match = EMAIL_REGEX.search(text)
+    return match.group(0) if match else None

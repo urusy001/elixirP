@@ -29,8 +29,8 @@ class ViewGiveaways(InlineKeyboardMarkup):
 class GiveawayMenu(InlineKeyboardMarkup):
     def __init__(self, giveaway_id):
         keyboard=[
-            [InlineKeyboardButton(text='👥 Посмотреть участников', callback_data=f'admin:view_participants:start'),
-             InlineKeyboardButton(text='Удалить розыгрыш 🗑️', callback_data=f'admin:delete_giveaway:{giveaway_id}')],
+            [InlineKeyboardButton(text='👥 Посмотреть участников', callback_data=f'admin:view_participants:{giveaway_id}'),
+             InlineKeyboardButton(text='🗑️ Удалить розыгрыш', callback_data=f'admin:delete_giveaway:{giveaway_id}')],
             [InlineKeyboardButton(text='🔙 Главное меню', callback_data='admin:main_menu')],
         ]
         super().__init__(inline_keyboard=keyboard)

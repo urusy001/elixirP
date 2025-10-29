@@ -25,14 +25,12 @@ engine = create_async_engine(
     pool_pre_ping=True,    # ensures dropped connections are refreshed
 )
 
-# Single global session factory
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     expire_on_commit=False,
     class_=AsyncSession,
 )
 
-# ---------------- BASE ----------------
 class BaseModelMixin:
     """Adds universal to_dict() and to_json() methods to SQLAlchemy models."""
 
@@ -47,10 +45,8 @@ class BaseModelMixin:
         """Convert the SQLAlchemy object to a JSON string."""
         return json.dumps(self.to_dict(), default=str)
 
-
 Base = declarative_base(cls=BaseModelMixin)
 
-# ------------------- ИНИЦИАЛИЗАЦИЯ -------------------
 async def init_db(recreate: bool):
     logger = getLogger(__name__)
     async with engine.begin() as conn:

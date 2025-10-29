@@ -23,7 +23,7 @@ class Giveaway(Base):
         default=lambda: datetime.now(MOSCOW_TZ),
         nullable=True
     )
-
+    channel_username = Column(String, nullable=False, default="peptides_ru")
     minimal_order_amount = Column(Numeric(precision=2), nullable=False, default=0.00)
     minimal_review_grade = Column(Integer, nullable=False, default=4)
     minimal_review_length = Column(Integer, nullable=False, default=100)

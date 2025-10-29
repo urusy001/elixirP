@@ -1,99 +1,96 @@
 from datetime import date
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional, Literal
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.webapp.models import UserTokenUsage, User
 
+BotLiteral = Literal["dose", "professor", "new"]
 
 async def get_usages(
     db: AsyncSession,
     start_date: date,
-    end_date: date | None = None,
+    end_date: Optional[date] = None,
+    bot: Optional[BotLiteral] = None,  # ⬅️ separate variable for bot
 ) -> Tuple[str, List[Dict[str, float]]]:
-    """
-    Get total usage grouped by user (joined with phone from users table)
-    between start_date and end_date (inclusive).
-
-    Args:
-        db: AsyncSession — active DB session
-        start_date: date — starting date (required)
-        end_date: date | None — optional, defaults to today
-
-    Returns:
-        (
-            period_label: str,  # e.g. "С 2025-10-01 по 2025-10-11"
-            [
-                {
-                    "Айди Телеграм": int,
-                    "Номер Телеграм": str,
-                    "Входящие токены": int,
-                    "Исходящие токены": int,
-                    "Всего токенов": int,
-                    "Стоимость входящих в $": float,
-                    "Стоимость исходящих в $": float,
-                    "Стоимость всего в $": float
-                }, ...
-            ]
-        )
-    """
 
     end_date = end_date or date.today()
-
-    # --- Validate date order ---
     if end_date < start_date:
         raise ValueError("end_date cannot be earlier than start_date")
 
-    # --- Base query with join to users ---
+    where_clauses = [
+        UserTokenUsage.date >= start_date,
+        UserTokenUsage.date <= end_date,
+    ]
+    if bot:
+        where_clauses.append(UserTokenUsage.bot == bot)
+
     stmt = (
         select(
             UserTokenUsage.user_id,
             User.tg_phone,
-            func.sum(UserTokenUsage.input_tokens).label("input_tokens"),
-            func.sum(UserTokenUsage.output_tokens).label("output_tokens"),
-            func.sum(UserTokenUsage.input_cost_usd).label("input_cost_usd"),
-            func.sum(UserTokenUsage.output_cost_usd).label("output_cost_usd"),
+            func.count(UserTokenUsage.id).label("total_requests"),
+            func.coalesce(func.sum(UserTokenUsage.input_tokens), 0).label("input_tokens"),
+            func.coalesce(func.sum(UserTokenUsage.output_tokens), 0).label("output_tokens"),
+            func.coalesce(func.sum(UserTokenUsage.input_cost_usd), 0).label("input_cost_usd"),
+            func.coalesce(func.sum(UserTokenUsage.output_cost_usd), 0).label("output_cost_usd"),
         )
         .join(User, UserTokenUsage.user_id == User.tg_id)
-        .where(
-            UserTokenUsage.date >= start_date,
-            UserTokenUsage.date <= end_date,
-        )
+        .where(*where_clauses)
         .group_by(UserTokenUsage.user_id, User.tg_phone)
     )
 
-    # --- Build label like "С 2025-10-01 по 2025-10-11" ---
-    period_label = f"С {start_date.strftime('%Y-%m-%d')} по {end_date.strftime('%Y-%m-%d')}"
+    period_label = f"С {start_date:%Y-%m-%d} по {end_date:%Y-%m-%d}" + (f" (бот: {bot})" if bot else "")
 
-    # --- Execute ---
     result = await db.execute(stmt)
     rows = result.all()
 
-    # --- Build list of dicts for Excel / reporting ---
-    usage_list = [
-        {
+    usage_list: List[Dict[str, float]] = []
+    for row in rows:
+        input_tokens = int(row.input_tokens)
+        output_tokens = int(row.output_tokens)
+        total_tokens = input_tokens + output_tokens
+
+        input_cost = float(row.input_cost_usd)
+        output_cost = float(row.output_cost_usd)
+        total_cost = input_cost + output_cost
+
+        total_requests = int(row.total_requests)
+        avg_cost = round(total_cost / total_requests, 4) if total_requests else 0.0
+
+        usage_list.append({
             "Айди Телеграм": row.user_id,
             "Номер Телеграм": row.tg_phone,
-            "Входящие токены": row.input_tokens or 0,
-            "Исходящие токены": row.output_tokens or 0,
-            "Всего токенов": (row.input_tokens or 0) + (row.output_tokens or 0),
-            "Стоимость входящих в $": round(row.input_cost_usd or 0, 2),
-            "Стоимость исходящих в $": round(row.output_cost_usd or 0, 2),
-            "Стоимость всего в $": round((row.input_cost_usd or 0) + (row.output_cost_usd or 0), 2),
-        }
-        for row in rows
-    ]
+            "Входящие токены": input_tokens,
+            "Исходящие токены": output_tokens,
+            "Всего токенов": total_tokens,
+            "Всего запросов": total_requests,
+            "Стоимость входящих в $": round(input_cost, 2),
+            "Стоимость исходящих в $": round(output_cost, 2),
+            "Стоимость всего в $": round(total_cost, 2),
+            "Средняя стоимость запроса": avg_cost,
+        })
 
     return period_label, usage_list
+
+from datetime import date
+from typing import Optional
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Literal
+from src.webapp.models import UserTokenUsage, BotEnum
+
+BotLiteral = Literal["dose", "professor", "new"]
 
 async def write_usage(
     db: AsyncSession,
     user_id: int,
     input_tokens: int,
     output_tokens: int,
-    usage_date: date | None = None,
+    bot: BotLiteral,  # ⬅️ separate param
+    usage_date: Optional[date] = None,
 ):
     """
-    Create or update (increment) token usage for a user on a given date.
+    Create or increment token usage for (user_id, date, bot).
     """
     usage_date = usage_date or date.today()
 
@@ -101,17 +98,20 @@ async def write_usage(
         select(UserTokenUsage).where(
             UserTokenUsage.user_id == user_id,
             UserTokenUsage.date == usage_date,
+            UserTokenUsage.bot == BotEnum(bot),  # Enum cast
         )
     )
     usage = result.scalar_one_or_none()
 
     if usage:
+        # triggers @validates to recompute costs
         usage.input_tokens += input_tokens
         usage.output_tokens += output_tokens
     else:
         usage = UserTokenUsage(
             user_id=user_id,
             date=usage_date,
+            bot=BotEnum(bot),
             input_tokens=input_tokens,
             output_tokens=output_tokens,
         )
