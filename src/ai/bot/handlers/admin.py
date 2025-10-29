@@ -101,46 +101,81 @@ async def handle_spends_time(message: Message):
 @router2.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS)
 @router3.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS)
 async def handle_admin_callback(call: CallbackQuery, state: FSMContext):
-    data = call.data.split(":")[1:]
-    current_state = await state.get_state()
-    state_data = await state.get_data()
-    if data[0] == 'spends':
-        if len(data) == 1:
-            await state.set_state(admin_states.MainMenu.spends_time)
-            await call.message.edit_text('Выберите <b>временной промежуток</b> за который будете смотреть расходы\n\nТакже можете отправить <i>количество дней цифрой или временной промежуток.</i>\nФормат промежутка: <code>22.09.2025 12.10.2025</code>', parse_mode="html", reply_markup=admin_keyboards.spend_times)
+    try:
+        await call.answer()
+    except Exception:
+        pass
 
-        elif len(data) >= 2 and current_state == admin_states.MainMenu.spends_time:
-            try:
-                date_parts = data[1:]
-                parsed_dates = [datetime.strptime(d, "%d.%m.%Y").date() for d in date_parts]
-                start_date = parsed_dates[0]
-                end_date = parsed_dates[1] if len(parsed_dates) > 1 else date.today()
+    data = (call.data or "").split(":")[1:]  # ["spends"] or ["spends","<n>"]
+    if not data or data[0] != "spends":
+        return
 
-            except Exception:
-                start_date = date.today()
-                end_date = date.today()
+    # 1) Just open the chooser
+    if len(data) == 1:
+        await state.set_state(admin_states.MainMenu.spends_time)
+        await call.message.edit_text(
+            'Выберите <b>временной промежуток</b> за который будете смотреть расходы\n\n'
+            'Также можете отправить <i>количество дней цифрой</i> или <i>промежуток</i> вида '
+            '<code>22.09.2025 12.10.2025</code>.',
+            parse_mode="HTML",
+            reply_markup=admin_keyboards.spend_times
+        )
+        return
 
-            bot_id = str(call.bot.id)
-            if bot_id == AI_BOT_TOKEN.split(':')[0]: bot = "professor"
-            elif bot_id == AI_BOT_TOKEN2.split(':')[0]: bot = "dose"
-            else: bot = "new"
+    # 2) Presets from keyboard: admin:spends:1 / 7 / 30 / 0
+    from datetime import date, timedelta
+    import os
+    import pandas as pd
+    from aiogram.types import FSInputFile
 
-            async with get_session() as session: period_label, usages = await get_usages(session, start_date, end_date, bot=bot)
+    preset = data[1]
+    today = date.today()
+    if preset == "0":
+        start_date, end_date = date(1970, 1, 1), today
+    else:
+        try:
+            days = max(1, int(preset))  # 1/7/30
+        except ValueError:
+            days = 1
+        end_date = today
+        start_date = end_date - timedelta(days=days - 1)
 
-            df = pd.DataFrame(usages)
-            safe_label = period_label.replace(":", "-").replace("/", "-")
-            file_path = os.path.join(SPENDS_DIR, f"Расходы {safe_label}.xlsx")
-            df.to_excel(file_path, index=False)
-            await call.message.answer_document(
-                FSInputFile(file_path),
-                caption=(
-                    f"📊 Файл со статистикой расходов всех пользователей "
-                    f"<b>{period_label}</b>"
-                ),
-                parse_mode="HTML",
-            )
-            os.remove(file_path)
-            await call.message.answer(
-                f'{call.from_user.full_name}, Добро пожаловать в <b>админ панель</b>\n\nВыберите действие кнопками ниже',
-                reply_markup=admin_keyboards.main_menu, parse_mode="html")
-            await call.message.delete()
+    # resolve bot per your tokens
+    bot_id = str(call.bot.id)
+    if bot_id == AI_BOT_TOKEN.split(":")[0]:
+        bot = "professor"
+    elif bot_id == AI_BOT_TOKEN2.split(":")[0]:
+        bot = "dose"
+    else:
+        bot = "new"
+
+    # query + export
+    async with get_session() as session:
+        period_label, usages = await get_usages(session, start_date, end_date, bot=bot)
+
+    df = pd.DataFrame(usages)
+    safe_label = (period_label or "").replace(":", "-").replace("/", "-")
+    file_path = os.path.join(SPENDS_DIR, f"Расходы {safe_label}.xlsx")
+    df.to_excel(file_path, index=False)
+
+    await call.message.answer_document(
+        FSInputFile(file_path),
+        caption=f"📊 Файл со статистикой расходов всех пользователей <b>{period_label}</b>",
+        parse_mode="HTML",
+    )
+    try:
+        os.remove(file_path)
+    except Exception:
+        pass
+
+    # back to main and clean up
+    await state.clear()
+    await call.message.answer(
+        f'{call.from_user.full_name}, Добро пожаловать в <b>админ панель</b>\n\nВыберите действие кнопками ниже',
+        reply_markup=admin_keyboards.main_menu,
+        parse_mode="HTML"
+    )
+    try:
+        await call.message.delete()
+    except Exception:
+        pass
