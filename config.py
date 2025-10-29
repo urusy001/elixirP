@@ -1,64 +1,136 @@
+from __future__ import annotations
+
 import os
+import logging
 import pathlib
 from datetime import timezone, timedelta
+from urllib.parse import quote_plus
 
 from dotenv import load_dotenv
 from starlette.templating import Jinja2Templates
 
+# ---------- env helpers ----------
+def env(name: str, default: str | None = None, *, strip: bool = True) -> str | None:
+    v = os.getenv(name, default)
+    if v is None:
+        return None
+    return v.strip() if strip else v
 
+def env_int(name: str, default: int | None = None) -> int | None:
+    v = env(name)
+    if v is None or v == "":
+        return default
+    try:
+        return int(v)
+    except ValueError:
+        return default
+
+def env_list_ints(name: str) -> list[int]:
+    raw = env(name, "")
+    if not raw:
+        return []
+    parts = [p.strip() for p in raw.split(",") if p.strip()]
+    out: list[int] = []
+    for p in parts:
+        try:
+            out.append(int(p))
+        except ValueError:
+            pass
+    return out
+
+def build_sync_dsn(user: str, password: str, host: str, port: int, db: str) -> str:
+    return (
+        f"postgresql+psycopg2://{quote_plus(user)}:{quote_plus(password)}"
+        f"@{host}:{port}/{quote_plus(db)}"
+    )
+
+def build_async_dsn(user: str, password: str, host: str, port: int, db: str) -> str:
+    return (
+        f"postgresql+asyncpg://{quote_plus(user)}:{quote_plus(password)}"
+        f"@{host}:{port}/{quote_plus(db)}"
+    )
+
+# ---------- load .env ----------
 load_dotenv()
+
+# ---------- timezones ----------
 MOSCOW_TZ = timezone(timedelta(hours=3))
-ADMIN_TG_IDS = [int(i) for i in os.getenv("ADMIN_TG_IDS").split(",")]
 
-AI_BOT_TOKEN = os.getenv("AI_BOT_TOKEN")
-AI_BOT_TOKEN2 = os.getenv("AI_BOT_TOKEN2")
-AI_BOT_TOKEN3 = os.getenv("AI_BOT_TOKEN3")
-ASSISTANT_ID3 = os.getenv("ASSISTANT_ID3")
-OPENAI_API_KEY2 = os.getenv("OPENAI_API_KEY2")
-ASSISTANT_ID = os.getenv("ASSISTANT_ID")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-ASSISTANT_ID2 = os.getenv("ASSISTANT_ID2")
+# ---------- admin / tokens ----------
+ADMIN_TG_IDS = env_list_ints("ADMIN_TG_IDS")
 
-POSTGRES_USER = os.getenv("POSTGRES_USER")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
-POSTGRES_DB = os.getenv("POSTGRES_DB")
-POSTGRES_HOST = os.getenv("POSTGRES_HOST")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT")
-SYNC_DATABASE_URL = f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
-ASYNC_DATABASE_URL = f"postgresql+asyncpg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+AI_BOT_TOKEN  = env("AI_BOT_TOKEN", "")
+AI_BOT_TOKEN2 = env("AI_BOT_TOKEN2", "")
+AI_BOT_TOKEN3 = env("AI_BOT_TOKEN3", "")
 
-WORKING_DIR = BASE_DIR = pathlib.Path(__file__).resolve().parent
-DATA_DIR = os.path.join(WORKING_DIR, "data")
-DOWNLOADS_DIR = os.path.join(DATA_DIR, "downloads")
-GIVEAWAYS_DIR = os.path.join(DATA_DIR, "giveaways")
-SPENDS_DIR = os.path.join(DATA_DIR, "spends")
-templates = Jinja2Templates(directory=BASE_DIR / "src" / "webapp" / "templates")
+ASSISTANT_ID  = env("ASSISTANT_ID", "")
+ASSISTANT_ID2 = env("ASSISTANT_ID2", "")
+ASSISTANT_ID3 = env("ASSISTANT_ID3", "")
 
-ENTERPRISE_LOGIN = os.getenv("ENTERPRISE_LOGIN")
-ENTERPRISE_PASSWORD = os.getenv("ENTERPRISE_PASSWORD")
-ENTERPRISE_URL = os.getenv("ENTERPRISE_URL")
+OPENAI_API_KEY  = env("OPENAI_API_KEY", "")
+OPENAI_API_KEY2 = env("OPENAI_API_KEY2", "")
 
-CDEK_ACCOUNT = os.getenv("CDEK_ACCOUNT")
-CDEK_SECURE_PASSWORD = os.getenv("CDEK_SECURE_PASSWORD")
-CDEK_API_URL = os.getenv("CDEK_API_URL")
+# ---------- postgres ----------
+POSTGRES_USER = env("POSTGRES_USER", "postgres") or "postgres"
+POSTGRES_PASSWORD = env("POSTGRES_PASSWORD", "") or ""
+POSTGRES_DB = env("POSTGRES_DB", "postgres") or "postgres"
+POSTGRES_HOST = env("POSTGRES_HOST", "localhost") or "localhost"
+POSTGRES_PORT = env_int("POSTGRES_PORT", 5432) or 5432
 
-YANDEX_MAP_TOKEN = os.getenv("YANDEX_MAP_TOKEN")
-YANDEX_GEOCODER_TOKEN = os.getenv("YANDEX_GEOCODER_TOKEN")
-YANDEX_DELIVERY_TOKEN = os.getenv("YANDEX_DELIVERY_TOKEN")
+SYNC_DATABASE_URL  = build_sync_dsn(POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB)
+ASYNC_DATABASE_URL = build_async_dsn(POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB)
 
-YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY")
-YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID")
-YOOKASSA_API_URL = os.getenv("YOOKASSA_API_URL")
+# ---------- paths / directories ----------
+BASE_DIR = pathlib.Path(__file__).resolve().parent
+WORKING_DIR = BASE_DIR  # alias if other modules expect it
 
-MANAGER_USER = os.getenv("MANAGER_USER")
-MANAGER_PASS = os.getenv("MANAGER_PASS")
+DATA_DIR      = BASE_DIR / "data"
+DOWNLOADS_DIR = DATA_DIR / "downloads"
+GIVEAWAYS_DIR = DATA_DIR / "giveaways"
+SPENDS_DIR    = DATA_DIR / "spends"
+TEMPLATES_DIR = BASE_DIR / "src" / "webapp" / "templates"
 
-PRIZEDRAW_BOT_TOKEN = os.getenv("PRIZEDRAW_BOT_TOKEN")
-AMOCRM_CLIENT_SECRET = os.getenv("AMOCRM_CLIENT_SECRET")
-AMOCRM_CLIENT_ID = os.getenv("AMOCRM_CLIENT_ID")
-AMOCRM_LONG_TOKEN = os.getenv("AMOCRM_LONG_TOKEN")
-AMOCRM_AUTH_CODE = os.getenv("AMOCRM_AUTH_CODE")
-AMOCRM_REDIRECT_URI = os.getenv("AMOCRM_REDIRECT_URI")
-AMOCRM_BASE_DOMAIN = os.getenv("AMOCRM_BASE_DOMAIN")
-AMOCRM_ACCESS_TOKEN = os.getenv("AMOCRM_ACCESS_TOKEN")
-AMOCRM_REFRESH_TOKEN = os.getenv("AMOCRM_REFRESH_TOKEN")
+# Ensure directories exist
+for d in (DATA_DIR, DOWNLOADS_DIR, GIVEAWAYS_DIR, SPENDS_DIR):
+    d.mkdir(parents=True, exist_ok=True)
+
+# Jinja2 templates
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+# ---------- external services ----------
+ENTERPRISE_LOGIN    = env("ENTERPRISE_LOGIN", "")
+ENTERPRISE_PASSWORD = env("ENTERPRISE_PASSWORD", "")
+ENTERPRISE_URL      = env("ENTERPRISE_URL", "")
+
+CDEK_ACCOUNT         = env("CDEK_ACCOUNT", "")
+CDEK_SECURE_PASSWORD = env("CDEK_SECURE_PASSWORD", "")
+CDEK_API_URL         = env("CDEK_API_URL", "")
+
+YANDEX_MAP_TOKEN      = env("YANDEX_MAP_TOKEN", "")
+YANDEX_GEOCODER_TOKEN = env("YANDEX_GEOCODER_TOKEN", "")
+YANDEX_DELIVERY_TOKEN = env("YANDEX_DELIVERY_TOKEN", "")
+
+YOOKASSA_SECRET_KEY = env("YOOKASSA_SECRET_KEY", "")
+YOOKASSA_SHOP_ID    = env("YOOKASSA_SHOP_ID", "")
+YOOKASSA_API_URL    = env("YOOKASSA_API_URL", "")
+
+MANAGER_USER = env("MANAGER_USER", "")
+MANAGER_PASS = env("MANAGER_PASS", "")
+
+PRIZEDRAW_BOT_TOKEN = env("PRIZEDRAW_BOT_TOKEN", "")
+
+AMOCRM_CLIENT_SECRET = env("AMOCRM_CLIENT_SECRET", "")
+AMOCRM_CLIENT_ID     = env("AMOCRM_CLIENT_ID", "")
+AMOCRM_LONG_TOKEN    = env("AMOCRM_LONG_TOKEN", "")
+AMOCRM_AUTH_CODE     = env("AMOCRM_AUTH_CODE", "")
+AMOCRM_REDIRECT_URI  = env("AMOCRM_REDIRECT_URI", "")
+AMOCRM_BASE_DOMAIN   = env("AMOCRM_BASE_DOMAIN", "")
+AMOCRM_ACCESS_TOKEN  = env("AMOCRM_ACCESS_TOKEN", "")
+AMOCRM_REFRESH_TOKEN = env("AMOCRM_REFRESH_TOKEN", "")
+
+# ---------- light sanity logs (optional) ----------
+_log = logging.getLogger("config")
+if not ADMIN_TG_IDS:
+    _log.warning("ADMIN_TG_IDS is empty or invalid; admin-only filters may not work.")
+if not AI_BOT_TOKEN:
+    _log.warning("AI_BOT_TOKEN is empty.")
