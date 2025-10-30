@@ -35,7 +35,6 @@ async def search(
             break
 
         for product in batch:
-            print(product.name)
             if not product.features:
                 continue
 
@@ -57,6 +56,4 @@ async def search(
     page_results = filtered[offset: offset + limit]
 
     total = len(filtered) if q else await db.scalar(select(func.count()).select_from(Product))
-    print()
-
     return {"results": page_results, "total": total}
