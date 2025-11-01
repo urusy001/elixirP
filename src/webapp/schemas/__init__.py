@@ -1,12 +1,11 @@
 from .category import *
 from .feature import *
-from .unit import *
-from .product import *
-from .user import *
-from .usertokenusage import *
 from .giveaway import *
 from .participant import *
-
+from .product import *
+from .unit import *
+from .user import *
+from .usertokenusage import *
 
 __all__ = [
     'CategoryUpdate', 'CategoryBase', 'CategoryRead', 'CategoryCreate',

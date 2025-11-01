@@ -1,4 +1,4 @@
-import {showLoader, hideLoader} from "../ui/loader.js?v=1";
+import {hideLoader, showLoader} from "../ui/loader.js?v=1";
 import {hideMainButton, showBackButton} from "../ui/telegram.js?v=1";
 import {navigateTo} from "../router.js?v=1";
 

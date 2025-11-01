@@ -16,7 +16,6 @@ from src.webapp.crud import create_feature, create_unit, create_product, create_
 from src.webapp.database import get_db_items
 from src.webapp.schemas import CategoryCreate, ProductCreate, UnitCreate, FeatureCreate
 
-
 BATCH_SIZE = 50  # how many rows per commit
 SLEEP_INTERVAL = 900  # seconds between syncs (15 min)
 
@@ -204,15 +203,17 @@ class OneCEnterprise:
             return
 
         self.log.info(f"🟢 Inserting {len(schema_list)} {name}...")
+
         async def __task(obj):
             async with get_session() as db:
                 await create_func(db, obj)
 
-
         for i in range(0, len(schema_list), BATCH_SIZE):
-            batch = schema_list[i : i + BATCH_SIZE]
-            try: await asyncio.gather(*[__task(obj) for obj in batch])
-            except Exception as e: self.log.error(e)
+            batch = schema_list[i: i + BATCH_SIZE]
+            try:
+                await asyncio.gather(*[__task(obj) for obj in batch])
+            except Exception as e:
+                self.log.error(e)
 
         self.log.info(f"✅ Finished inserting {name}.")
 

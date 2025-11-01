@@ -1,12 +1,12 @@
 import asyncio
 import json
+import logging
 import os
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
 import aiofiles
 import httpx
-import logging
-from typing import Any, Dict, List, Optional, Tuple
-from datetime import datetime
-
 from sqlalchemy import select
 
 from config import MANAGER_USER, MANAGER_PASS, DATA_DIR
@@ -19,6 +19,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 
+
 def _parse_pub_date(s: str) -> Optional[datetime]:
     if not s:
         return None
@@ -29,6 +30,7 @@ def _parse_pub_date(s: str) -> Optional[datetime]:
         except ValueError:
             continue
     return None
+
 
 def _naive(dt: datetime) -> datetime:
     return dt.replace(tzinfo=None) if dt.tzinfo else dt
@@ -94,12 +96,12 @@ class AsyncElixirClient(httpx.AsyncClient):
         return reviews
 
     async def get_valid_review(
-        self,
-        *,
-        email: str,
-        since_dt: datetime,
-        min_grade: int,
-        min_length: int, session
+            self,
+            *,
+            email: str,
+            since_dt: datetime,
+            min_grade: int,
+            min_length: int, session
     ) -> Dict[str, Any]:
         """
         Returns:
@@ -155,7 +157,8 @@ class AsyncElixirClient(httpx.AsyncClient):
             reason = "only_unpublished"
             msg = f"<b>Отзыв не опубликован.</b>\n<i>Найден отзыв по адресу {email}, но он еще не опубликован на сайте.</i>"
             self.__logger.info("Найден только неопубликованный отзыв для %s", email_norm)
-            return {"ok": False, "reason": reason, "details": {"email": email, "count": len(by_email)}, "review": None, "html_message": msg}
+            return {"ok": False, "reason": reason, "details": {"email": email, "count": len(by_email)}, "review": None,
+                    "html_message": msg}
 
         since_naive = _naive(since_dt)
         with_dates: List[Tuple[datetime, Dict[str, Any]]] = []
@@ -170,7 +173,8 @@ class AsyncElixirClient(httpx.AsyncClient):
             reason = "only_older_than_since"
             msg = f"<b>Отзыв слишком старый.</b>\n<i>Нет отзывов, опубликованных после {since_naive:%d.%m.%Y}.</i>"
             self.__logger.info("Нет опубликованных отзывов с датой >= since для %s", email_norm)
-            return {"ok": False, "reason": reason, "details": {"email": email, "since": since_naive.isoformat()}, "review": None, "html_message": msg}
+            return {"ok": False, "reason": reason, "details": {"email": email, "since": since_naive.isoformat()},
+                    "review": None, "html_message": msg}
 
         newer_or_equal = [(dt, r) for dt, r in with_dates if dt >= since_naive]
         if not newer_or_equal:
@@ -217,10 +221,12 @@ class AsyncElixirClient(httpx.AsyncClient):
                     f"<i>Длина {len(text)} символов, требуется минимум {min_length}. "
                     f"Дата публикации {dt:%d.%m.%Y}.</i>"
                 )
-                self.__logger.debug("Review fails length id=%s length=%s required=%s", r.get("id"), len(text), min_length)
+                self.__logger.debug("Review fails length id=%s length=%s required=%s", r.get("id"), len(text),
+                                    min_length)
                 last_failure = {
                     "ok": False, "reason": reason,
-                    "details": {"email": email, "length": len(text), "required": min_length, "pub_date": dt.isoformat()},
+                    "details": {"email": email, "length": len(text), "required": min_length,
+                                "pub_date": dt.isoformat()},
                     "review": r,
                     "html_message": msg
                 }
@@ -251,7 +257,10 @@ class AsyncElixirClient(httpx.AsyncClient):
         self.__logger.info("Нет подходящих отзывов для %s — низкая оценка или короткий текст", email_norm)
         return {"ok": False, "reason": reason, "details": {"email": email}, "review": None, "html_message": msg}
 
+
 client = AsyncElixirClient(MANAGER_USER, MANAGER_PASS)
+
+
 # ---------------- example runner ----------------
 
 async def main():

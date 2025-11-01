@@ -1,8 +1,9 @@
+from typing import List, Optional, Any
+
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.dialects.postgresql import insert
-from typing import List, Optional, Any
 
 from ..models import Feature, Product
 from ..schemas import FeatureCreate, FeatureUpdate
@@ -57,9 +58,11 @@ async def create_feature(db: AsyncSession, feature: FeatureCreate) -> Feature | 
         await db.rollback()
         return None
 
+
 async def get_features(db: AsyncSession) -> List[Feature]:
     result = await db.execute(select(Feature))
     return result.scalars().all()
+
 
 async def get_feature(db: AsyncSession, attr_name: str, value: Any) -> Optional[Feature]:
     if not hasattr(Feature, attr_name):
@@ -67,6 +70,7 @@ async def get_feature(db: AsyncSession, attr_name: str, value: Any) -> Optional[
     column = getattr(Feature, attr_name)
     result = await db.execute(select(Feature).where(column == value))
     return result.scalars().first()
+
 
 async def update_feature(db: AsyncSession, feature_id: int, feature_data: FeatureUpdate) -> Optional[Feature]:
     result = await db.execute(select(Feature).where(Feature.id == feature_id))

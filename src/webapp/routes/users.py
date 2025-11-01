@@ -1,19 +1,20 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from typing import List
+
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
-from src.webapp.database import get_db
-from src.webapp.models import User
-from src.webapp.schemas import UserRead
+
 from src.webapp.crud import get_user  # from your CRUD functions
+from src.webapp.database import get_db
+from src.webapp.schemas import UserRead
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("/", response_model=List[UserRead])
 async def get_users(
-    column_name: str = Query(..., description="Column name to filter by"),
-    value: str = Query(..., description="Value for the column"),
-    db: AsyncSession = Depends(get_db)
+        column_name: str = Query(..., description="Column name to filter by"),
+        value: str = Query(..., description="Value for the column"),
+        db: AsyncSession = Depends(get_db)
 ):
     """
     Dynamically fetch users filtered by any valid column name and value.

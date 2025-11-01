@@ -1,9 +1,11 @@
 from decimal import Decimal
-from typing import List, Dict, Any
+from typing import Any, Dict, Optional
+from typing import List
+
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from typing import Any, Dict, Optional
-from pydantic import BaseModel, EmailStr, Field
+
 
 async def enrich_cart_items(items: List[Dict], db: AsyncSession) -> Dict:
     from src.webapp.models import Feature
@@ -39,7 +41,7 @@ async def enrich_cart_items(items: List[Dict], db: AsyncSession) -> Dict:
             enriched.append({
                 "id": pid,
                 "featureId": fid,
-                "name": feature.name,       # ✅ feature name included
+                "name": feature.name,  # ✅ feature name included
                 "price": float(price),
                 "qty": qty,
                 "subtotal": float(subtotal)
@@ -49,6 +51,7 @@ async def enrich_cart_items(items: List[Dict], db: AsyncSession) -> Dict:
         "items": enriched,
         "total": float(total)
     }
+
 
 def build_receipt(enriched_cart: dict, delivery_sum: Decimal = Decimal("0.00")):
     """
@@ -93,11 +96,13 @@ def build_receipt(enriched_cart: dict, delivery_sum: Decimal = Decimal("0.00")):
         "tax_system_code": 1
     }
 
+
 class ContactInfo(BaseModel):
     name: str = Field(..., example="Paylak")
     surname: str = Field(..., example="Urusyan")
     phone: str = Field(..., example="+17632730385")
     email: EmailStr = Field(..., example="urusy001@umn.edu")
+
 
 class CheckoutData(BaseModel):
     checkout_data: Dict[str, Any]

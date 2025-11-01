@@ -1,5 +1,5 @@
-from datetime import datetime
 from sqlalchemy import Column, BigInteger, String, DateTime
+
 from src.webapp.database import Base
 
 

@@ -11,7 +11,8 @@ app = FastAPI(title="ElixirPeptides")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "src" / "webapp" / "static"), name="static")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000", "https://elixirpeptides.devsivanschostakov.org", "https://www.devsivanschostakov.org"],  # your frontend origin
+    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000", "https://elixirpeptides.devsivanschostakov.org",
+                   "https://www.devsivanschostakov.org"],  # your frontend origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,9 +27,11 @@ app.include_router(users_router)
 app.include_router(forwarding_router)
 app.include_router(webhooks_router)
 
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
 
 async def run_app():
     server = Server(Config(app, reload=True, log_config=None))

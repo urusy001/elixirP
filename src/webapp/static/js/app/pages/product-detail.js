@@ -1,31 +1,31 @@
-import { getProductDetail } from "../../services/productService.js?v=1";
-import { withLoader } from "../ui/loader.js?v=1";
-import { state, saveCart } from "../state.js?v=1";
+import {getProductDetail} from "../../services/productService.js?v=1";
+import {withLoader} from "../ui/loader.js?v=1";
+import {saveCart, state} from "../state.js?v=1";
 import {
-  showBackButton,
-  showMainButton,
-  updateMainButton,
-  hideMainButton,
-  hideBackButton,
-  isTelegramApp,
+    hideBackButton,
+    hideMainButton,
+    isTelegramApp,
+    showBackButton,
+    showMainButton,
+    updateMainButton,
 } from "../ui/telegram.js";
 
 export async function renderProductDetailPage(onec_id) {
-  const listEl = document.getElementById("product-list");
-  const detailEl = document.getElementById("product-detail");
-  const cartPageEl = document.getElementById("cart-page");
-  const checkoutEl = document.getElementById("checkout-page");
+    const listEl = document.getElementById("product-list");
+    const detailEl = document.getElementById("product-detail");
+    const cartPageEl = document.getElementById("cart-page");
+    const checkoutEl = document.getElementById("checkout-page");
 
-  listEl.style.display = "none";
-  cartPageEl.style.display = "none";
-  checkoutEl.style.display = "none";
-  detailEl.style.display = "block";
+    listEl.style.display = "none";
+    cartPageEl.style.display = "none";
+    checkoutEl.style.display = "none";
+    detailEl.style.display = "block";
 
-  const data = await withLoader(() => getProductDetail(onec_id));
-  if (data?.error) return;
+    const data = await withLoader(() => getProductDetail(onec_id));
+    if (data?.error) return;
 
-  const features = data.features || [];
-  const featuresTableHtml = `
+    const features = data.features || [];
+    const featuresTableHtml = `
     <div class="product-features">
       <h2>Вариации</h2>
       <table class="features-table">
@@ -41,7 +41,7 @@ export async function renderProductDetailPage(onec_id) {
     </div>
   `;
 
-  detailEl.innerHTML = `
+    detailEl.innerHTML = `
     <div class="product-detail-container">
       <div class="product-main">
         <div class="product-image">
@@ -56,91 +56,91 @@ export async function renderProductDetailPage(onec_id) {
     </div>
   `;
 
-  const tbody = detailEl.querySelector(".features-table tbody");
-  const headers = detailEl.querySelectorAll(".features-table th[data-key]");
-  let sortKey = "price";
-  let sortAsc = true;
+    const tbody = detailEl.querySelector(".features-table tbody");
+    const headers = detailEl.querySelectorAll(".features-table th[data-key]");
+    let sortKey = "price";
+    let sortAsc = true;
 
-  function renderTableBody() {
-    let sorted = [...features];
-    if (sortKey) {
-      sorted.sort((a, b) => {
-        if (typeof a[sortKey] === "string") {
-          return sortAsc
-            ? a[sortKey].localeCompare(b[sortKey])
-            : b[sortKey].localeCompare(a[sortKey]);
+    function renderTableBody() {
+        let sorted = [...features];
+        if (sortKey) {
+            sorted.sort((a, b) => {
+                if (typeof a[sortKey] === "string") {
+                    return sortAsc
+                        ? a[sortKey].localeCompare(b[sortKey])
+                        : b[sortKey].localeCompare(a[sortKey]);
+                }
+                return sortAsc ? a[sortKey] - b[sortKey] : b[sortKey] - a[sortKey];
+            });
         }
-        return sortAsc ? a[sortKey] - b[sortKey] : b[sortKey] - a[sortKey];
-      });
-    }
 
-    tbody.innerHTML = sorted
-      .map(
-        f => `
+        tbody.innerHTML = sorted
+            .map(
+                f => `
       <tr>
         <td>${f.name}</td>
         <td>${Number(f.price).toLocaleString("ru-RU")} ₽</td>
         <td>${f.balance}</td>
       </tr>`
-      )
-      .join("");
+            )
+            .join("");
+
+        headers.forEach(h => {
+            let label =
+                h.dataset.key === "name" ? "Вид" : h.dataset.key === "price" ? "Цена" : "Склад";
+            if (h.dataset.key === sortKey) label += sortAsc ? " ▲" : " ▼";
+            h.textContent = label;
+        });
+    }
 
     headers.forEach(h => {
-      let label =
-        h.dataset.key === "name" ? "Вид" : h.dataset.key === "price" ? "Цена" : "Склад";
-      if (h.dataset.key === sortKey) label += sortAsc ? " ▲" : " ▼";
-      h.textContent = label;
+        h.style.cursor = "pointer";
+        h.addEventListener("click", () => {
+            const key = h.dataset.key;
+            if (sortKey === key) sortAsc = !sortAsc;
+            else {
+                sortKey = key;
+                sortAsc = true;
+            }
+            renderTableBody();
+        });
     });
-  }
 
-  headers.forEach(h => {
-    h.style.cursor = "pointer";
-    h.addEventListener("click", () => {
-      const key = h.dataset.key;
-      if (sortKey === key) sortAsc = !sortAsc;
-      else {
-        sortKey = key;
-        sortAsc = true;
-      }
-      renderTableBody();
-    });
-  });
+    renderTableBody();
 
-  renderTableBody();
+    if (isTelegramApp()) {
+        const off = showBackButton(() => {
+            history.back();
+            hideBackButton();
+        });
+        const unsubscribe = showMainButton(
+            state.cart[onec_id] ? `В корзине (${state.cart[onec_id]})` : "В корзину",
+            () => {
+                state.cart[onec_id] = (state.cart[onec_id] || 0) + 1;
+                saveCart();
+                updateMainButton(`В корзине (${state.cart[onec_id]})`);
+            }
+        );
 
-  if (isTelegramApp()) {
-    const off = showBackButton(() => {
-      history.back();
-      hideBackButton();
-    });
-    const unsubscribe = showMainButton(
-      state.cart[onec_id] ? `В корзине (${state.cart[onec_id]})` : "В корзину",
-      () => {
-        state.cart[onec_id] = (state.cart[onec_id] || 0) + 1;
-        saveCart();
-        updateMainButton(`В корзине (${state.cart[onec_id]})`);
-      }
-    );
-
-    window.addEventListener(
-      "popstate",
-      () => {
-        off?.();
-        hideMainButton();
-      },
-      { once: true }
-    );
-  } else {
-    const fallbackBtn = document.createElement("button");
-    fallbackBtn.textContent = state.cart[onec_id]
-      ? `(${state.cart[onec_id]})`
-      : "В корзину";
-    fallbackBtn.className = "buy-btn";
-    fallbackBtn.onclick = () => {
-      state.cart[onec_id] = (state.cart[onec_id] || 0) + 1;
-      saveCart();
-      fallbackBtn.textContent = `(${state.cart[onec_id]})`;
-    };
-    detailEl.appendChild(fallbackBtn);
-  }
+        window.addEventListener(
+            "popstate",
+            () => {
+                off?.();
+                hideMainButton();
+            },
+            {once: true}
+        );
+    } else {
+        const fallbackBtn = document.createElement("button");
+        fallbackBtn.textContent = state.cart[onec_id]
+            ? `(${state.cart[onec_id]})`
+            : "В корзину";
+        fallbackBtn.className = "buy-btn";
+        fallbackBtn.onclick = () => {
+            state.cart[onec_id] = (state.cart[onec_id] || 0) + 1;
+            saveCart();
+            fallbackBtn.textContent = `(${state.cart[onec_id]})`;
+        };
+        detailEl.appendChild(fallbackBtn);
+    }
 }

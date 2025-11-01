@@ -1,22 +1,23 @@
 from typing import Optional
+
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.webapp.database import get_db
 from src.helpers import normalize
+from src.webapp.database import get_db
 from src.webapp.models import Product
-
 
 router = APIRouter(prefix="/search", tags=["search"])
 
+
 @router.get("/")
 async def search(
-    q: Optional[str] = Query(None),
-    page: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1),
-    db: AsyncSession = Depends(get_db),
+        q: Optional[str] = Query(None),
+        page: int = Query(0, ge=0),
+        limit: int = Query(10, ge=1),
+        db: AsyncSession = Depends(get_db),
 ):
     offset = page * limit
     filtered = []

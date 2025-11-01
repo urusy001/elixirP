@@ -1,18 +1,17 @@
 import os
-import pandas as pd
+from datetime import datetime
 
-from datetime import datetime, date
+import pandas as pd
 from aiogram import Router
+from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, FSInputFile
-from aiogram.filters import CommandStart
-from src.ai.bot.keyboards import admin_keyboards
-from src.ai.bot.states import admin_states
 
 from config import ADMIN_TG_IDS, SPENDS_DIR, AI_BOT_TOKEN, AI_BOT_TOKEN2
+from src.ai.bot.keyboards import admin_keyboards
+from src.ai.bot.states import admin_states
 from src.webapp import get_session
 from src.webapp.crud import get_usages
-
 
 router = Router(name="admin")
 router2 = Router(name="admin")
@@ -23,7 +22,10 @@ router3 = Router(name="admin")
 @router2.message(CommandStart(), lambda message: message.from_user.id in ADMIN_TG_IDS)
 @router3.message(CommandStart(), lambda message: message.from_user.id in ADMIN_TG_IDS)
 async def handle_admin_start(message: Message):
-    await message.answer(f'{message.from_user.full_name}, Добро пожаловать в <b>админ панель</b>\n\nВыберите действие кнопками ниже', reply_markup=admin_keyboards.main_menu, parse_mode="html")
+    await message.answer(
+        f'{message.from_user.full_name}, Добро пожаловать в <b>админ панель</b>\n\nВыберите действие кнопками ниже',
+        reply_markup=admin_keyboards.main_menu, parse_mode="html")
+
 
 @router.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in ADMIN_TG_IDS)
 @router2.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in ADMIN_TG_IDS)
@@ -68,10 +70,12 @@ async def handle_spends_time(message: Message):
         )
 
     bot_id = str(message.bot.id)
-    if bot_id == AI_BOT_TOKEN.split(':')[0]: bot = "professor"
-    elif bot_id == AI_BOT_TOKEN2.split(':')[0]: bot = "dose"
-    else: bot = "new"
-
+    if bot_id == AI_BOT_TOKEN.split(':')[0]:
+        bot = "professor"
+    elif bot_id == AI_BOT_TOKEN2.split(':')[0]:
+        bot = "dose"
+    else:
+        bot = "new"
 
     async with get_session() as session:
         period_label, usages = await get_usages(session, start_date, end_date, bot=bot)

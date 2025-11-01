@@ -1,8 +1,9 @@
-import httpx
-import logging
 import asyncio
+import logging
 import os
 from typing import Optional
+
+import httpx
 from fastapi import Request, Header, Response, HTTPException, APIRouter
 
 from src.helpers import verify_signature
@@ -16,6 +17,8 @@ FORWARD_TIMEOUT = 10.0
 MAX_RETRIES = 2
 RETRY_BACKOFF = 0.5
 router = APIRouter()
+
+
 @router.api_route("/yookassa-webhook", methods=["GET", "POST", "PUT", "HEAD", "OPTIONS"])
 async def yookassa_forward(request: Request, x_yookassa_signature: Optional[str] = Header(None)):
     raw_body = await request.body()

@@ -1,8 +1,9 @@
 from typing import Optional, Sequence, Dict, Any
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from sqlalchemy.exc import IntegrityError   # ✅ add this
+from sqlalchemy.exc import IntegrityError  # ✅ add this
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.webapp.models.participant import Participant
 from src.webapp.schemas.participant import ParticipantCreate, ParticipantUpdate
 
@@ -11,7 +12,6 @@ async def get_participants(db: AsyncSession, giveaway_id: int) -> list[Participa
     stmt = select(Participant).where(Participant.giveaway_id == giveaway_id)
     result = await db.execute(stmt)
     return result.scalars().all()
-
 
 
 async def get_participant(db: AsyncSession, giveaway_id: int, tg_id: int) -> Optional[Participant]:
@@ -25,12 +25,12 @@ async def get_participant(db: AsyncSession, giveaway_id: int, tg_id: int) -> Opt
 
 
 async def save_participant_review(
-    db: AsyncSession,
-    *,
-    giveaway_id: int,
-    tg_id: int,
-    review: Dict[str, Any],
-    mark_completed: bool = True,
+        db: AsyncSession,
+        *,
+        giveaway_id: int,
+        tg_id: int,
+        review: Dict[str, Any],
+        mark_completed: bool = True,
 ) -> Optional[Participant]:
     """
     Persist review details to participant and (optionally) set completed_review=True.
@@ -94,17 +94,18 @@ async def delete_participant(db: AsyncSession, giveaway_id: int, tg_id: int):
     await db.commit()
     return True
 
+
 async def get_refs_for_participant(
-    db: AsyncSession,
-    giveaway_id: int,
-    referrer_tg_id: int,
-    *,
-    completed_subscription: Optional[bool] = None,
-    completed_refs: Optional[bool] = None,
-    completed_deal: Optional[bool] = None,
-    completed_review: Optional[bool] = None,
-    limit: Optional[int] = None,
-    offset: int = 0,
+        db: AsyncSession,
+        giveaway_id: int,
+        referrer_tg_id: int,
+        *,
+        completed_subscription: Optional[bool] = None,
+        completed_refs: Optional[bool] = None,
+        completed_deal: Optional[bool] = None,
+        completed_review: Optional[bool] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
 ) -> Sequence[Participant]:
     """
     Return all participants who were referred by `referrer_tg_id` in this giveaway
@@ -136,14 +137,14 @@ async def get_refs_for_participant(
 
 
 async def count_refs_for_participant(
-    db: AsyncSession,
-    giveaway_id: int,
-    referrer_tg_id: int,
-    *,
-    completed_subscription: Optional[bool] = None,
-    completed_refs: Optional[bool] = None,
-    completed_deal: Optional[bool] = None,
-    completed_review: Optional[bool] = None,
+        db: AsyncSession,
+        giveaway_id: int,
+        referrer_tg_id: int,
+        *,
+        completed_subscription: Optional[bool] = None,
+        completed_refs: Optional[bool] = None,
+        completed_deal: Optional[bool] = None,
+        completed_review: Optional[bool] = None,
 ) -> int:
     """
     Count referrals for `referrer_tg_id` with the same optional filters as above.

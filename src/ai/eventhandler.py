@@ -1,10 +1,12 @@
+import os
+
 import aiofiles
 import httpx
-import os
 from openai import AsyncAssistantEventHandler
 from openai.types.beta.threads import ImageURLContentBlock, ImageFileContentBlock, TextContentBlock, Message
 from openai.types.beta.threads.runs import RunStep
 from typing_extensions import override
+
 from config import DOWNLOADS_DIR
 
 

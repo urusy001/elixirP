@@ -1,5 +1,6 @@
 import json
 import logging
+
 import httpx
 from fastapi import APIRouter, Request, Query
 from fastapi.responses import Response
@@ -12,29 +13,39 @@ logger = logging.getLogger(__name__)
 cdek_router = APIRouter(prefix="/delivery/cdek", tags=["cdek"])
 yandex_router = APIRouter(prefix="/delivery/yandex", tags=["yandex"])
 
+
 @cdek_router.api_route(path="", methods=["GET", "POST"])
 async def cdek_proxy(request: Request):
     headers = {"Authorization": f"Bearer {cdek_client._access_token}"}
 
     params = request.query_params
     raw_body = await request.body()
-    try: body = json.loads(raw_body.decode("utf-8"))
-    except json.JSONDecodeError: body = {}
+    try:
+        body = json.loads(raw_body.decode("utf-8"))
+    except json.JSONDecodeError:
+        body = {}
     method = request.method
 
     action = params.get("action") or body.get("action")
-    if action == "offices": endpoint = f"{CDEK_API_URL}/deliverypoints"
+    if action == "offices":
+        endpoint = f"{CDEK_API_URL}/deliverypoints"
     elif action == "calculate":
         if isinstance(body, dict):
             to_location = body.get("to_location", None)
-            if to_location and isinstance(to_location, dict): endpoint = f"{CDEK_API_URL}/calculator/tarifflist"
-            else: return Response(status_code=400, content='{"error": "Invalid to_location"}')
-        else: return Response(status_code=400, content='{"error": "Invalid body"}')
-    else: return Response(status_code=400, content='{"error": "Unknown action"}')
+            if to_location and isinstance(to_location, dict):
+                endpoint = f"{CDEK_API_URL}/calculator/tarifflist"
+            else:
+                return Response(status_code=400, content='{"error": "Invalid to_location"}')
+        else:
+            return Response(status_code=400, content='{"error": "Invalid body"}')
+    else:
+        return Response(status_code=400, content='{"error": "Unknown action"}')
 
     async with httpx.AsyncClient() as client:
-        if method == "GET": resp = await client.get(endpoint, params=params, headers=headers)
-        else: resp = await client.post(
+        if method == "GET":
+            resp = await client.get(endpoint, params=params, headers=headers)
+        else:
+            resp = await client.post(
                 endpoint,
                 content=raw_body,
                 headers={**headers, "Content-Type": "application/json"},
@@ -52,7 +63,7 @@ async def cdek_proxy(request: Request):
             filtered = [
                 t for t in tariffs
                 if isinstance(t, dict)
-                and t.get("tariff_name", "").lower().find("склад-") != -1
+                   and t.get("tariff_name", "").lower().find("склад-") != -1
             ]
 
             data["tariff_codes"] = filtered
@@ -72,6 +83,7 @@ async def cdek_proxy(request: Request):
         status_code=resp.status_code,
         media_type="application/json",
     )
+
 
 @yandex_router.get("/reverse-geocode")
 async def reverse_geocode(lat: float = Query(...), lon: float = Query(...)):

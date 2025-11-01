@@ -1,9 +1,11 @@
 import logging
 from datetime import datetime
+
 from openai import AsyncClient
 
 from config import OPENAI_API_KEY, ASSISTANT_ID
 from .eventhandler import ProfessorEventHandler
+
 
 class ProfessorClient(AsyncClient):
     def __init__(self, api_key: str | None = OPENAI_API_KEY, assistant_id: str | None = ASSISTANT_ID):
@@ -46,14 +48,14 @@ class ProfessorClient(AsyncClient):
 
         # Step 2 — run the assistant with tuned parameters
         async with self.beta.threads.runs.stream(
-            assistant_id=self.__assistant_id,
-            event_handler=event_handler,
-            thread_id=thread_id,
-            additional_instructions=system_context,
-            temperature=.3,
-            top_p=.15,
-            #reasoning_effort="high",
-            metadata={"origin": "telegram_bot", "lang": "ru"},
+                assistant_id=self.__assistant_id,
+                event_handler=event_handler,
+                thread_id=thread_id,
+                additional_instructions=system_context,
+                temperature=.3,
+                top_p=.15,
+                # reasoning_effort="high",
+                metadata={"origin": "telegram_bot", "lang": "ru"},
         ) as stream: await stream.until_done()
 
         return event_handler.response

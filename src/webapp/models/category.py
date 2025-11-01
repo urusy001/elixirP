@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 
 from src.webapp.database import Base
 
+
 class Category(Base):
     __tablename__ = "categories"
 

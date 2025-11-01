@@ -1,7 +1,8 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.future import select
 from typing import List, Optional, Any
+
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 from ..models import Category
 from ..schemas import CategoryCreate, CategoryUpdate
@@ -21,9 +22,11 @@ async def create_category(db: AsyncSession, category: CategoryCreate) -> Categor
     await db.commit()
     return result.scalar_one_or_none()
 
+
 async def get_categories(db: AsyncSession) -> List[Category]:
     result = await db.execute(select(Category))
     return result.scalars().all()
+
 
 async def get_category(db: AsyncSession, attr_name: str, value: Any) -> Optional[Category]:
     if not hasattr(Category, attr_name):
@@ -31,6 +34,7 @@ async def get_category(db: AsyncSession, attr_name: str, value: Any) -> Optional
     column = getattr(Category, attr_name)
     result = await db.execute(select(Category).where(column == value))
     return result.scalars().first()
+
 
 async def update_category(db: AsyncSession, category_id: int, category_data: CategoryUpdate) -> Optional[Category]:
     result = await db.execute(select(Category).where(Category.id == category_id))

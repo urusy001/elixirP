@@ -6,9 +6,9 @@ from datetime import datetime, timedelta, UTC
 from urllib.parse import urlparse, parse_qs
 
 import httpx
+from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 from sqlalchemy import select
-from dotenv import load_dotenv
 
 from src.webapp.models import Participant
 
@@ -30,13 +30,13 @@ AMOCRM_LOGIN_PASSWORD = os.getenv("AMOCRM_LOGIN_PASSWORD")
 
 class AsyncAmoCRM:
     def __init__(
-        self,
-        base_domain: str,
-        client_id: str,
-        client_secret: str,
-        redirect_uri: str,
-        access_token: str | None = None,
-        refresh_token: str | None = None,
+            self,
+            base_domain: str,
+            client_id: str,
+            client_secret: str,
+            redirect_uri: str,
+            access_token: str | None = None,
+            refresh_token: str | None = None,
     ):
         self.COMPLETE_STATUS_IDS = [75784946, 75784942, 76566302, 76566306, 142]
         self.PIPELINE_ID = 9280278

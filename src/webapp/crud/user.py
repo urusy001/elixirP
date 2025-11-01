@@ -1,6 +1,6 @@
-from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.webapp.models import User
 from src.webapp.schemas import UserCreate, UserUpdate
 
@@ -23,6 +23,7 @@ async def get_user(db: AsyncSession, by: str, value) -> User | None:
     result = await db.execute(select(User).where(column == value))
     return result.scalar_one_or_none()
 
+
 async def get_tg_refs(db: AsyncSession, value, by: str = 'tg_ref_id') -> User | None:
     if not hasattr(User, by):
         raise AttributeError(f"User model has no attribute '{by}'")
@@ -30,6 +31,7 @@ async def get_tg_refs(db: AsyncSession, value, by: str = 'tg_ref_id') -> User | 
     column = getattr(User, by)
     result = await db.execute(select(User).where(column == value))
     return result.scalars().all()
+
 
 async def get_users(db: AsyncSession) -> list[User]:
     result = await db.execute(select(User))

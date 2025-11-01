@@ -1,15 +1,15 @@
 import asyncio
 
 from aiogram import Router
+from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
-from aiogram.filters import Command, CommandStart
 from aiogram.utils.deep_linking import create_start_link
 
 from config import ADMIN_TG_IDS
-from src.giveaway.bot.texts import user_texts, get_giveaway_text
 from src.giveaway.bot.keyboards import user_keyboards
 from src.giveaway.bot.states import user_states
+from src.giveaway.bot.texts import user_texts, get_giveaway_text
 from src.helpers import extract_email, cypher_user_id
 from src.webapp import get_session
 from src.webapp.crud import (
@@ -23,10 +23,13 @@ from src.webapp.crud import (
 from src.webapp.models import Participant
 from src.webapp.schemas import ParticipantUpdate, ParticipantCreate
 
-user_message_filter = lambda message: message.from_user and message.from_user.id not in ADMIN_TG_IDS and message and message.chat.type == "private"
-user_call_filter = lambda call: call.data.startswith("user") and call.from_user.id not in ADMIN_TG_IDS and call.message.chat.type == "private"
+user_message_filter = lambda \
+    message: message.from_user and message.from_user.id not in ADMIN_TG_IDS and message and message.chat.type == "private"
+user_call_filter = lambda call: call.data.startswith(
+    "user") and call.from_user.id not in ADMIN_TG_IDS and call.message.chat.type == "private"
 
 router = Router(name="user")
+
 
 async def _notify_user(message: Message, text: str, timer: float | None = None):
     x = await message.answer(text)
@@ -129,17 +132,21 @@ async def handle_email(message: Message, state: FSMContext):
             participant = await update_participant(session, giveaway_id, message.from_user.id, update_data)
             await check_completion(session, giveaway_id, message.from_user.id, participant, message)
         prefix = "✅ "
-    else: prefix = "❌ "
+    else:
+        prefix = "❌ "
 
     text = f"{prefix}{result.get('html_message', 'Ошибка в обработке запроса')}"
     return asyncio.create_task(_notify_user(message, text))
 
-@router.message(lambda message: message.from_user and message.from_user.id not in ADMIN_TG_IDS and message.contact and message.chat.type == "private")
+
+@router.message(
+    lambda message: message.from_user and message.from_user.id not in ADMIN_TG_IDS and message.contact and message.chat.type == "private")
 async def handle_contact(message: Message):
     phone_number = message.contact.phone_number
     full_name = message.from_user.full_name
     await message.answer('Спасибо, с вами скоро свяжутся')
     [await message.bot.send_message(i, f'Номер тг {full_name}: {phone_number}') for i in ADMIN_TG_IDS]
+
 
 @router.message(
     user_states.Requirements.order_code,
@@ -186,7 +193,8 @@ async def handle_order_code(message: Message, state: FSMContext):
 async def handle_user_call(call: CallbackQuery, state: FSMContext, giveaway_bot):
     data = call.data.split(":")[1:]
     user_id = call.from_user.id
-    if data[0] == "main_menu": await handle_start(call.message, state)
+    if data[0] == "main_menu":
+        await handle_start(call.message, state)
     elif data[0] == "view_giveaways" and data[1].isdigit():
         giveaway_id = int(data[1])
         async with get_session() as session1, get_session() as session2:

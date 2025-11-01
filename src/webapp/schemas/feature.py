@@ -1,5 +1,6 @@
-from pydantic import BaseModel
 from typing import Optional
+
+from pydantic import BaseModel
 
 
 class FeatureBase(BaseModel):
@@ -11,8 +12,10 @@ class FeatureBase(BaseModel):
     price: float = 0
     balance: int = 0
 
+
 class FeatureCreate(FeatureBase):
     pass
+
 
 class FeatureUpdate(BaseModel):
     onec_id: Optional[str] = None
@@ -22,6 +25,7 @@ class FeatureUpdate(BaseModel):
     file_id: Optional[str] = None
     price: Optional[float] = None
     balance: Optional[int] = None
+
 
 class FeatureRead(FeatureBase):
     id: int

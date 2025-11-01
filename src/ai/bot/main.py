@@ -1,19 +1,20 @@
-import re
 import logging
+import re
 from datetime import datetime, timedelta
+
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message, FSInputFile, InputMediaPhoto, ReplyKeyboardRemove
 
 from config import AI_BOT_TOKEN, AI_BOT_TOKEN2, ASSISTANT_ID2, OPENAI_API_KEY2, AI_BOT_TOKEN3, ASSISTANT_ID3
-from src.ai.client import ProfessorClient
+from src.ai.bot.handlers import *
 from src.ai.bot.middleware import ContextMiddleware
+from src.ai.client import ProfessorClient
+from src.helpers import split_text, MAX_TG_MSG_LEN
 from src.webapp import get_session
 from src.webapp.crud import get_users, create_user, update_user
 from src.webapp.schemas import UserUpdate, UserCreate
-from src.helpers import split_text, MAX_TG_MSG_LEN
-from src.ai.bot.handlers import *
 
 
 class ProfessorBot(Bot):
@@ -103,7 +104,8 @@ class ProfessorBot(Bot):
         # 🔹 Handle files
         if files:
             if len(files) == 1:
-                return await message.answer_photo(FSInputFile(files[0]), caption=re.sub(r"【[^】]*】", "", text[:1024]) or None)
+                return await message.answer_photo(FSInputFile(files[0]),
+                                                  caption=re.sub(r"【[^】]*】", "", text[:1024]) or None)
             else:
                 media = [InputMediaPhoto(media=FSInputFile(f)) for f in files]
                 if text:
@@ -144,15 +146,18 @@ new_dp.include_routers(new_user_router, new_admin_router)
 new_dp.message.middleware(ContextMiddleware(new_bot, new_client))
 new_dp.callback_query.middleware(ContextMiddleware(new_bot, new_client))
 
+
 async def run_professor_bot():
     await professor_bot.delete_webhook(drop_pending_updates=False)
     await professor_bot.load_users()
     await professor_dp.start_polling(professor_bot)
 
+
 async def run_dose_bot():
     await dose_bot.delete_webhook(drop_pending_updates=False)
     await dose_bot.load_users()
     await dose_dp.start_polling(dose_bot)
+
 
 async def run_new_bot():
     await new_bot.delete_webhook(drop_pending_updates=False)

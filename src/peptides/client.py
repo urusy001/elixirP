@@ -1,10 +1,10 @@
 import asyncio
 import json
+import logging
 import os
 
 import aiofiles
 import httpx
-import logging
 
 from config import MANAGER_USER, MANAGER_PASS, DATA_DIR
 from src.peptides import endpoints
@@ -14,6 +14,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S"
 )
+
 
 class AsyncElixirClient(httpx.AsyncClient):
     def __init__(self, username: str, password: str):
@@ -52,13 +53,15 @@ class AsyncElixirClient(httpx.AsyncClient):
             self.__logger.info(f"Failed to fetch reviews: {resp.text}")
             self.__logger.info(resp.text[:300])
             return None
-        try: return resp.json()
+        try:
+            return resp.json()
 
         except Exception:
             self.__logger.info("⚠️ Non-JSON response:")
             self.__logger.info(resp.text[:300])
             return None
-        
+
+
 async def main():
     client = AsyncElixirClient(MANAGER_USER, MANAGER_PASS)
     await client.authorize()

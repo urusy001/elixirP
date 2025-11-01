@@ -1,10 +1,13 @@
 import json
+from contextlib import asynccontextmanager
 from logging import getLogger, Logger
+
+from sqlalchemy import text, inspect
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import text, inspect
+
 from config import ASYNC_DATABASE_URL
-from contextlib import asynccontextmanager
+
 
 @asynccontextmanager
 async def get_session():
@@ -15,14 +18,15 @@ async def get_session():
             await session.rollback()
             raise
 
+
 engine = create_async_engine(
     ASYNC_DATABASE_URL,
     echo=False,
-    pool_size=10,          # realistic default for async apps
-    max_overflow=20,       # allow up to 30 concurrent (10 + 20 overflow)
-    pool_timeout=60,       # seconds to wait before raising TimeoutError
-    pool_recycle=1800,     # recycle every 30 mins to avoid stale sockets
-    pool_pre_ping=True,    # ensures dropped connections are refreshed
+    pool_size=10,  # realistic default for async apps
+    max_overflow=20,  # allow up to 30 concurrent (10 + 20 overflow)
+    pool_timeout=60,  # seconds to wait before raising TimeoutError
+    pool_recycle=1800,  # recycle every 30 mins to avoid stale sockets
+    pool_pre_ping=True,  # ensures dropped connections are refreshed
 )
 
 AsyncSessionLocal = async_sessionmaker(
@@ -30,6 +34,7 @@ AsyncSessionLocal = async_sessionmaker(
     expire_on_commit=False,
     class_=AsyncSession,
 )
+
 
 class BaseModelMixin:
     """Adds universal to_dict() and to_json() methods to SQLAlchemy models."""
@@ -45,7 +50,9 @@ class BaseModelMixin:
         """Convert the SQLAlchemy object to a JSON string."""
         return json.dumps(self.to_dict(), default=str)
 
+
 Base = declarative_base(cls=BaseModelMixin)
+
 
 async def init_db(recreate: bool):
     logger = getLogger(__name__)
@@ -60,6 +67,7 @@ async def init_db(recreate: bool):
             logger.info("All tables checked/created successfully.")
 
     logger.info("DB initialization complete.")
+
 
 # ---------------- GET ASYNC SESSION ----------------
 async def get_db() -> AsyncSession:
@@ -82,11 +90,11 @@ async def clear_tables(logger: Logger) -> None:
         async with engine.execution_options(isolation_level="AUTOCOMMIT").connect() as conn:
             # Fetch all public tables
             result = await conn.execute(text("""
-                SELECT tablename
-                FROM pg_tables
-                WHERE schemaname = 'public'
-                  AND tablename != 'alembic_version';
-            """))
+                                             SELECT tablename
+                                             FROM pg_tables
+                                             WHERE schemaname = 'public'
+                                               AND tablename != 'alembic_version';
+                                             """))
             tables = [row[0] for row in result]
 
             if not tables:
@@ -106,14 +114,15 @@ async def clear_tables(logger: Logger) -> None:
         logger.error(f"Failed to clear tables: {e}")
         raise
 
+
 async def get_db_items(logger: Logger) -> None:
     async with engine.connect() as conn:
         result = await conn.execute(text("""
-            SELECT tablename
-            FROM pg_tables
-            WHERE schemaname = 'public'
-            ORDER BY tablename;
-        """))
+                                         SELECT tablename
+                                         FROM pg_tables
+                                         WHERE schemaname = 'public'
+                                         ORDER BY tablename;
+                                         """))
         tables = [row[0] for row in result.fetchall()]
 
         if not tables:

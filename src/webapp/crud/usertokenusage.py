@@ -12,13 +12,13 @@ from src.webapp.models import UserTokenUsage, BotEnum
 
 BotLiteral = Literal["dose", "professor", "new"]
 
-async def get_usages(
-    db: AsyncSession,
-    start_date: date,
-    end_date: Optional[date] = None,
-    bot: Optional[BotLiteral] = None,  # ⬅️ separate variable for bot
-) -> Tuple[str, List[Dict[str, float]]]:
 
+async def get_usages(
+        db: AsyncSession,
+        start_date: date,
+        end_date: Optional[date] = None,
+        bot: Optional[BotLiteral] = None,  # ⬅️ separate variable for bot
+) -> Tuple[str, List[Dict[str, float]]]:
     end_date = end_date or date.today()
     if end_date < start_date:
         raise ValueError("end_date cannot be earlier than start_date")
@@ -52,13 +52,13 @@ async def get_usages(
 
     usage_list: List[Dict[str, float]] = []
     if bot == "new":  # gpt-4.1
-        input_per_m  = 2.00
+        input_per_m = 2.00
         output_per_m = 8.00
     elif bot in ["dose", "professor"]:  # gpt-4.1-mini
-        input_per_m  = 0.40
+        input_per_m = 0.40
         output_per_m = 1.60
     else:
-        input_per_m  = 0.40
+        input_per_m = 0.40
         output_per_m = 1.60
 
     for row in rows:
@@ -66,9 +66,9 @@ async def get_usages(
         output_tokens = int(row.output_tokens)
         total_tokens = input_tokens + output_tokens
 
-        input_cost  = (input_tokens  / 1_000_000) * input_per_m
+        input_cost = (input_tokens / 1_000_000) * input_per_m
         output_cost = (output_tokens / 1_000_000) * output_per_m
-        total_cost  = input_cost + output_cost
+        total_cost = input_cost + output_cost
 
         total_requests = int(row.total_requests)
         avg_cost = round(total_cost / total_requests, 4) if total_requests else 0.0
@@ -88,15 +88,17 @@ async def get_usages(
 
     return period_label, usage_list
 
+
 BotLiteral = Literal["dose", "professor", "new"]
 
+
 async def write_usage(
-    db: AsyncSession,
-    user_id: int,
-    input_tokens: int,
-    output_tokens: int,
-    bot: BotLiteral,  # ⬅️ separate param
-    usage_date: Optional[date] = None,
+        db: AsyncSession,
+        user_id: int,
+        input_tokens: int,
+        output_tokens: int,
+        bot: BotLiteral,  # ⬅️ separate param
+        usage_date: Optional[date] = None,
 ):
     """
     Create or increment token usage for (user_id, date, bot).

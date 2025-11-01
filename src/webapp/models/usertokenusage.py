@@ -1,10 +1,12 @@
 from datetime import date
 from enum import Enum
+
 from sqlalchemy import (
-    Column, BigInteger, Date, Float, ForeignKey, String, Enum as SAEnum,
+    Column, BigInteger, Date, Float, ForeignKey, Enum as SAEnum,
     UniqueConstraint
 )
 from sqlalchemy.orm import relationship, validates
+
 from src.webapp.database import Base
 
 

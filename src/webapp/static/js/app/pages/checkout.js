@@ -1,6 +1,6 @@
-import {showLoader, hideLoader} from "../ui/loader.js?v=1";
+import {hideLoader, showLoader} from "../ui/loader.js?v=1";
 import {hideCartIcon} from "../ui/cart-icon.js?v=1";
-import {isTelegramApp} from "../ui/telegram.js?v=1";
+import {isTelegramApp, showBackButton} from "../ui/telegram.js?v=1";
 import {navigateTo} from "../router.js?v=1";
 import {handleCheckout} from "./cart.js?v=1";
 
@@ -321,6 +321,10 @@ export function createProceedButton(label = "Перейти к оплате") {
         tg.MainButton.setText(label);
         tg.MainButton.onClick(handleProceedClick);
         tg.MainButton.show();
+        showBackButton(() => {
+            navigateTo("/");
+            tg.MainButton.offClick(handleProceedClick);
+        })
     } else {
         let btn = document.querySelector(".checkout-proceed-btn");
         if (!btn) {

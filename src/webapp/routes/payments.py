@@ -1,8 +1,8 @@
 import uuid
-import httpx
-
 from datetime import datetime
 from decimal import Decimal
+
+import httpx
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +12,7 @@ from src.webapp.models.checkout import CheckoutData, build_receipt
 from src.webapp.routes.cart import cart_json
 
 router = APIRouter(prefix="/payments", tags=["payments"])
+
 
 @router.post("/create", response_model=None)
 async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_db)):
@@ -62,4 +63,3 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
             "confirmation_url": data["confirmation"]["confirmation_url"],
             "order_id": order_id
         }
-

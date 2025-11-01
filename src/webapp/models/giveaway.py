@@ -1,14 +1,16 @@
 import random
 from datetime import datetime
+
 from sqlalchemy import Column, Integer, String, Text, DateTime, Numeric, JSON
 from sqlalchemy.orm import relationship
 
-from src.webapp.database import Base
 from config import MOSCOW_TZ
+from src.webapp.database import Base
 
 
 def random_id():
-    return random.randint(10**6, 10**7 - 1)
+    return random.randint(10 ** 6, 10 ** 7 - 1)
+
 
 class Giveaway(Base):
     __tablename__ = "giveaways"

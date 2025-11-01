@@ -4,22 +4,24 @@ import hmac
 import random
 import re
 import string
-
+from functools import wraps
 from typing import Optional
+
+from aiogram import Bot
 from aiogram.types import Message
 from transliterate import translit
-from functools import wraps
-from aiogram import Bot
 
 from config import YOOKASSA_SECRET_KEY
 
 MAX_TG_MSG_LEN = 4096  # Telegram limit
+
 
 def with_typing(func):
     """
     Decorator that sends 'typing...' action while the wrapped handler is running.
     Automatically detects Bot from handler args.
     """
+
     @wraps(func)
     async def wrapper(*args, **kwargs):
         bot: Bot | None = None
@@ -64,6 +66,7 @@ def with_typing(func):
 
     return wrapper
 
+
 async def split_text(text: str, limit: int = MAX_TG_MSG_LEN) -> list[str]:
     """
     Splits long text into chunks safe for Telegram.
@@ -83,6 +86,7 @@ async def split_text(text: str, limit: int = MAX_TG_MSG_LEN) -> list[str]:
         chunks.append(text)
     return chunks
 
+
 async def verify_signature(raw_body: bytes, signature_header: Optional[str]) -> bool:
     if not YOOKASSA_SECRET_KEY:
         return True
@@ -91,11 +95,13 @@ async def verify_signature(raw_body: bytes, signature_header: Optional[str]) -> 
     expected = hmac.new(YOOKASSA_SECRET_KEY.encode(), raw_body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, signature_header)
 
+
 async def normalize(text: str) -> str:
     try:
         return translit(text, "ru", reversed=True).lower()
     except Exception:
         return text.lower()
+
 
 def cypher_user_id(user_id: int) -> str:
     """
@@ -116,9 +122,11 @@ def decypher_user_id(cyphered: str) -> int:
     numeric = re.sub(r'[A-Z]', '', cyphered)
     return int(numeric)
 
+
 EMAIL_REGEX = re.compile(
     r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
 )
+
 
 def extract_email(text: str) -> Optional[str]:
     """

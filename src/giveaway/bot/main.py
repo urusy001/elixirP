@@ -1,4 +1,5 @@
 import logging
+
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode, ChatMemberStatus
@@ -39,11 +40,13 @@ class GiveawayBot(Bot):
             self.__logger.error(f"Error checking subscription: {e}")
             return False
 
+
 bot = GiveawayBot()
 dp = Dispatcher(storage=MemoryStorage())
 dp.include_routers(user_router, admin_router)
 dp.message.middleware(GiveawayMiddleware(bot))
 dp.callback_query.middleware(GiveawayMiddleware(bot))
+
 
 async def run_bot():
     await bot.delete_webhook(drop_pending_updates=False)

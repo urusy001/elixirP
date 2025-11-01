@@ -1,15 +1,15 @@
-from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List, Optional, Any
+
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.dialects.postgresql import insert
-from typing import List, Optional, Type, Any
+from sqlalchemy.orm import selectinload
 
-from sqlalchemy.orm import DeclarativeMeta, selectinload
-
-from ..models import Feature
 from ..models.product import Product
 from ..schemas import ProductUpdate
 from ..schemas.product import ProductCreate
+
 
 async def create_product(db: AsyncSession, product: ProductCreate) -> Product:
     stmt = insert(Product).values(**product.dict())
@@ -26,9 +26,11 @@ async def create_product(db: AsyncSession, product: ProductCreate) -> Product:
     await db.commit()
     return result.scalar_one_or_none()
 
+
 async def get_products(db: AsyncSession) -> List[Product]:
     result = await db.execute(select(Product))
     return result.scalars().all()
+
 
 async def get_product_with_features(db: AsyncSession, onec_id: str) -> Optional[Product]:
     """
@@ -41,12 +43,14 @@ async def get_product_with_features(db: AsyncSession, onec_id: str) -> Optional[
     )
     return result.scalars().first()
 
+
 async def get_product(db: AsyncSession, attr_name: str, value: Any) -> Optional[Product]:
     if not hasattr(Product, attr_name):
         raise AttributeError(f"Product has no attribute '{attr_name}'")
     column = getattr(Product, attr_name)
     result = await db.execute(select(Product).where(column == value))
     return result.scalars().first()
+
 
 async def update_product(db: AsyncSession, product_id: int, product_data: ProductUpdate) -> Optional[Product]:
     result = await db.execute(select(Product).where(Product.id == product_id))

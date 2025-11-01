@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import templates
 from src.webapp.crud import get_product_with_features
 from src.webapp.database import get_db
-from config import templates
-
 
 router = APIRouter(prefix="/product")
+
 
 @router.get("/{onec_id}/json", response_class=JSONResponse)
 async def product_json(onec_id: str, db: AsyncSession = Depends(get_db)):

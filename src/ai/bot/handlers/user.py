@@ -2,18 +2,17 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from aiogram import Router
+from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
-from aiogram.filters import CommandStart, Command
 
-from src.helpers import with_typing
-from src.ai.bot.states import user_states
+from config import ADMIN_TG_IDS, AI_BOT_TOKEN, AI_BOT_TOKEN2
 from src.ai.bot.keyboards import user_keyboards
+from src.ai.bot.states import user_states
+from src.helpers import with_typing
+from src.webapp import get_session
 from src.webapp.crud import update_user, increment_tokens, write_usage
 from src.webapp.schemas import UserUpdate
-from src.webapp import get_session
-from config import ADMIN_TG_IDS, AI_BOT_TOKEN, AI_BOT_TOKEN2
-
 
 router = Router(name="user")
 router2 = Router(name="user2")
@@ -58,9 +57,12 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens'])
 
         bot_id = str(message.bot.id)
-        if bot_id == AI_BOT_TOKEN.split(':')[0]: bot = "professor"
-        elif bot_id == AI_BOT_TOKEN2.split(':')[0]: bot = "dose"
-        else: bot = "new"
+        if bot_id == AI_BOT_TOKEN.split(':')[0]:
+            bot = "professor"
+        elif bot_id == AI_BOT_TOKEN2.split(':')[0]:
+            bot = "dose"
+        else:
+            bot = "new"
         await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], bot=bot)
 
     return await professor_bot.parse_response(response, message)
@@ -84,18 +86,20 @@ async def handle_user_registration(message: Message, state: FSMContext, professo
         thread_id=thread_id,
     )
 
-
     bot_id = str(message.bot.id)
-    if bot_id == AI_BOT_TOKEN.split(':')[0]: bot = "professor"
-    elif bot_id == AI_BOT_TOKEN2.split(':')[0]: bot = "dose"
-    else: bot = "new"
+    if bot_id == AI_BOT_TOKEN.split(':')[0]:
+        bot = "professor"
+    elif bot_id == AI_BOT_TOKEN2.split(':')[0]:
+        bot = "dose"
+    else:
+        bot = "new"
 
     async with get_session() as session:
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens'])
         await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], bot=bot)
 
-
     return await professor_bot.parse_response(response, message)
+
 
 @router.message(Command('new_chat'))
 @router2.message(Command('new_chat'))
@@ -132,9 +136,12 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
     response = await professor_client.send_message(message.text, thread_id)
 
     bot_id = str(message.bot.id)
-    if bot_id == AI_BOT_TOKEN.split(':')[0]: bot = "professor"
-    elif bot_id == AI_BOT_TOKEN2.split(':')[0]: bot = "dose"
-    else: bot = "new"
+    if bot_id == AI_BOT_TOKEN.split(':')[0]:
+        bot = "professor"
+    elif bot_id == AI_BOT_TOKEN2.split(':')[0]:
+        bot = "dose"
+    else:
+        bot = "new"
 
     async with get_session() as session:
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens']),

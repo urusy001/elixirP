@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from decimal import Decimal
+
 
 # Shared fields
 class ProductBase(BaseModel):
@@ -11,9 +11,11 @@ class ProductBase(BaseModel):
     usage: str | None = None
     expiration: str | None = None
 
+
 # For creating a new product
 class ProductCreate(ProductBase):
     pass
+
 
 # For updating a product
 class ProductUpdate(BaseModel):
@@ -24,6 +26,7 @@ class ProductUpdate(BaseModel):
     description: str | None = None
     usage: str | None = None
     expiration: str | None = None
+
 
 # For reading from DB (includes ID)
 class ProductRead(ProductBase):
