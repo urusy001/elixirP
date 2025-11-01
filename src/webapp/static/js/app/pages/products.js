@@ -1,9 +1,9 @@
-import { searchProducts } from "../../services/productService.js";
-import { withLoader } from "../ui/loader.js";
-import { navigateTo } from "../router.js";
-import { state, saveCart } from "../state.js";
+import { searchProducts } from "../../services/productService.js?v=1";
+import { withLoader } from "../ui/loader.js?v=1";
+import { navigateTo } from "../router.js?v=1";
+import { state, saveCart } from "../state.js?v=1";
 
-let page = 1;
+let page = 0;
 let loading = false;
 
 function productCardHTML(p) {

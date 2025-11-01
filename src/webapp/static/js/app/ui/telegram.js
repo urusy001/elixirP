@@ -1,4 +1,4 @@
-import { state } from "../state.js";
+import { state } from "../state.js?v=1";
 
 export function isTelegramApp() {
   const tg = window.Telegram?.WebApp;
@@ -59,6 +59,5 @@ export function hideBackButton(showClose = true, onClose = null) {
 }
 
 export function hideMainButton() {
-  alert('hiding')
   state.telegram?.MainButton?.hide?.();
 }

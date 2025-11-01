@@ -1,5 +1,5 @@
-import { renderProductDetailPage } from "./product-detail.js";
-import { searchProducts } from "../../services/productService.js";
+import { renderProductDetailPage } from "./product-detail.js?v=1";
+import { searchProducts } from "../../services/productService.js?v=1";
 
 function debounce(fn, delay) {
   let t;

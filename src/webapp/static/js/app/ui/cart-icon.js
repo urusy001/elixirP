@@ -1,6 +1,6 @@
 // app/ui/cart-icon.js
-import { state } from "../state.js";
-import { navigateTo } from "../router.js";
+import { state } from "../state.js?v=1";
+import { navigateTo } from "../router.js?v=1";
 
 let cartIcon = null;
 let badge = null;

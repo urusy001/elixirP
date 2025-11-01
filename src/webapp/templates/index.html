@@ -3,9 +3,9 @@
 {% block title %}ElixirPeptides{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ request.url_for('static', path='css/toolbar.css') }}">
-<link rel="stylesheet" href="{{ request.url_for('static', path='css/products.css') }}">
-<link rel="stylesheet" href="{{ request.url_for('static', path='css/checkout.css') }}">
+<link rel="stylesheet" href="{{ request.url_for('static', path='css/toolbar.css?v=1') }}">
+<link rel="stylesheet" href="{{ request.url_for('static', path='css/products.css?v=1') }}">
+<link rel="stylesheet" href="{{ request.url_for('static', path='css/checkout.css?v=1') }}">
 {% endblock %}
 
 {% block content %}
@@ -64,7 +64,7 @@
       <input type="text" name="surname" placeholder="Фамилия" required />
       <input type="tel" name="phone" placeholder="Телефон" required />
       <input type="email" name="email" placeholder="Email" required />
-      <button id="submit-contact" type="submit">Продолжить</button>
+      <button id="submit-contact" style="display:none;" type="submit">Продолжить</button>
     </form>
   </div>
 

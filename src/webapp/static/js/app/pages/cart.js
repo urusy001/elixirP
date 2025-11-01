@@ -1,15 +1,15 @@
-import { withLoader } from "../ui/loader.js";
-import { state, saveCart, setCheckoutData } from "../state.js";
-import { navigateTo } from "../router.js";
-import { apiPost, apiGet } from "../../services/api.js";
+import { withLoader } from "../ui/loader.js?v=1";
+import { state, saveCart, setCheckoutData } from "../state.js?v=1";
+import { navigateTo } from "../router.js?v=1";
+import { apiPost, apiGet } from "../../services/api.js?v=1";
 import {
   hideMainButton,
   showBackButton,
   hideBackButton,
   isTelegramApp,
   showMainButton,
-} from "../ui/telegram.js";
-import { hideCartIcon, showCartIcon } from "../ui/cart-icon.js";
+} from "../ui/telegram.js?v=1";
+import { hideCartIcon, showCartIcon } from "../ui/cart-icon.js?v=1";
 
 const productListEl = document.getElementById("product-list");
 const productDetailEl = document.getElementById("product-detail");
@@ -162,6 +162,7 @@ export async function renderCartPage() {
   const tg = state.telegram;
   showBackButton(() => {
     navigateTo("/");
+    hideMainButton();
     showCartIcon();
     hideBackButton();
   });

@@ -1,6 +1,6 @@
-import { getProductDetail } from "../../services/productService.js";
-import { withLoader } from "../ui/loader.js";
-import { state, saveCart } from "../state.js";
+import { getProductDetail } from "../../services/productService.js?v=1";
+import { withLoader } from "../ui/loader.js?v=1";
+import { state, saveCart } from "../state.js?v=1";
 import {
   showBackButton,
   showMainButton,

@@ -29,12 +29,7 @@ async def main():
 
     # Track all created tasks
     tasks = [
-        asyncio.create_task(run_giveaway_bot(), name="giveaway_bot"),
-        asyncio.create_task(run_professor_bot(), name="professor_bot"),
-        asyncio.create_task(run_dose_bot(), name="dose_bot"),
-        asyncio.create_task(run_new_bot(), name="new_bot"),
         asyncio.create_task(client.token_worker(), name="sdek_token_worker"),
-        asyncio.create_task(OneCEnterprise().postgre_worker(), name="onec_worker"),
         asyncio.create_task(run_app(), name="webapp")
     ]
 

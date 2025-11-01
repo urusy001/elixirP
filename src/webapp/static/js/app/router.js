@@ -1,8 +1,8 @@
-import { renderProductsPage } from "./pages/products.js";
-import { renderProductDetailPage } from "./pages/product-detail.js";
-import { renderCartPage } from "./pages/cart.js";
-import { renderCheckoutPage } from "./pages/checkout.js";
-import { renderContactPage } from "./pages/contact.js";
+import { renderProductsPage } from "./pages/products.js?v=1";
+import { renderProductDetailPage } from "./pages/product-detail.js?v=1";
+import { renderCartPage } from "./pages/cart.js?v=1";
+import { renderCheckoutPage } from "./pages/checkout.js?v=1";
+import { renderContactPage } from "./pages/contact.js?v=1";
 
 const routes = [
   { match: p => p === "/" || p === "", action: renderProductsPage },

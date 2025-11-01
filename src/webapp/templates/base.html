@@ -6,13 +6,13 @@
   <title>{% block title %}ElixirPeptides{% endblock %}</title>
 
   <!-- Base styles -->
-  <link rel="stylesheet" href="{{ request.url_for('static', path='css/base.css') }}">
-  <link rel="stylesheet" href="{{ request.url_for('static', path='css/responsive.css') }}">
-  <link rel="stylesheet" href="{{ request.url_for('static', path='css/product_detail.css') }}">
-  <link rel="stylesheet" href="{{ request.url_for('static', path='css/search.css') }}">
-  <link rel="stylesheet" href="{{ request.url_for('static', path='css/loading.css') }}">
-  <link rel="stylesheet" href="{{ request.url_for('static', path='css/cart-page.css') }}">
-  <link rel="stylesheet" href="{{ request.url_for('static', path='css/contact.css') }}">
+  <link rel="stylesheet" href="{{ request.url_for('static', path='css/base.css?v=1') }}">
+  <link rel="stylesheet" href="{{ request.url_for('static', path='css/responsive.css?v=1') }}">
+  <link rel="stylesheet" href="{{ request.url_for('static', path='css/product_detail.css?v=1') }}">
+  <link rel="stylesheet" href="{{ request.url_for('static', path='css/search.css?v=1') }}">
+  <link rel="stylesheet" href="{{ request.url_for('static', path='css/loading.css?v=1') }}">
+  <link rel="stylesheet" href="{{ request.url_for('static', path='css/cart-page.css?v=1') }}">
+  <link rel="stylesheet" href="{{ request.url_for('static', path='css/contact.css?v=1') }}">
   {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -43,8 +43,8 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <!-- Single modern SPA entry -->
-  <script type="module" src="{{ request.url_for('static', path='js/app/main.js') }}"></script>
-
+  <script type="module" src="{{ request.url_for('static', path='js/app/main.js?v=1') }}"></script>
+  <script>window.__BUILD__="1";</script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

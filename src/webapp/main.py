@@ -11,7 +11,7 @@ app = FastAPI(title="ElixirPeptides")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "src" / "webapp" / "static"), name="static")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000", "https://elixirpeptides.devsivanschostakov.org"],  # your frontend origin
+    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000", "https://elixirpeptides.devsivanschostakov.org", "https://www.devsivanschostakov.org"],  # your frontend origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

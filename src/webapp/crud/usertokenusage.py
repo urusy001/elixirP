@@ -1,8 +1,14 @@
 from datetime import date
-from typing import List, Dict, Tuple, Optional, Literal
-from sqlalchemy import select, func
+from typing import List, Dict, Tuple
+from typing import Literal
+from typing import Optional
+
+from sqlalchemy import func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.webapp.models import UserTokenUsage, User
+
+from src.webapp.models import User
+from src.webapp.models import UserTokenUsage, BotEnum
 
 BotLiteral = Literal["dose", "professor", "new"]
 
@@ -45,14 +51,24 @@ async def get_usages(
     rows = result.all()
 
     usage_list: List[Dict[str, float]] = []
+    if bot == "new":  # gpt-4.1
+        input_per_m  = 2.00
+        output_per_m = 8.00
+    elif bot in ["dose", "professor"]:  # gpt-4.1-mini
+        input_per_m  = 0.40
+        output_per_m = 1.60
+    else:
+        input_per_m  = 0.40
+        output_per_m = 1.60
+
     for row in rows:
         input_tokens = int(row.input_tokens)
         output_tokens = int(row.output_tokens)
         total_tokens = input_tokens + output_tokens
 
-        input_cost = float(row.input_cost_usd)
-        output_cost = float(row.output_cost_usd)
-        total_cost = input_cost + output_cost
+        input_cost  = (input_tokens  / 1_000_000) * input_per_m
+        output_cost = (output_tokens / 1_000_000) * output_per_m
+        total_cost  = input_cost + output_cost
 
         total_requests = int(row.total_requests)
         avg_cost = round(total_cost / total_requests, 4) if total_requests else 0.0
@@ -71,13 +87,6 @@ async def get_usages(
         })
 
     return period_label, usage_list
-
-from datetime import date
-from typing import Optional
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Literal
-from src.webapp.models import UserTokenUsage, BotEnum
 
 BotLiteral = Literal["dose", "professor", "new"]
 

@@ -37,4 +37,4 @@ async def product_json(onec_id: str, db: AsyncSession = Depends(get_db)):
 @router.get("{path:path}", response_class=HTMLResponse)
 async def spa_product(request: Request, path: str):
     # Always return the SPA template
-    return templates.TemplateResponse("index1.html", {"request": request})
+    return templates.TemplateResponse("index.html", {"request": request})
