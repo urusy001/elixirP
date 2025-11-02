@@ -1,14 +1,15 @@
-import {getProductDetail} from "../../services/productService.js?v=1";
-import {withLoader} from "../ui/loader.js?v=1";
-import {saveCart, state} from "../state.js?v=1";
+import { getProductDetail } from "../../services/productService.js?v=1";
+import { withLoader } from "../ui/loader.js?v=1";
+import { saveCart, state } from "../state.js?v=1";
 import {
-    hideBackButton,
     hideMainButton,
+    hideBackButton,
     isTelegramApp,
     showBackButton,
     showMainButton,
     updateMainButton,
 } from "../ui/telegram.js";
+import { navigateTo } from "../router.js?v=1";
 
 export async function renderProductDetailPage(onec_id) {
     const listEl = document.getElementById("product-list");
@@ -25,21 +26,7 @@ export async function renderProductDetailPage(onec_id) {
     if (data?.error) return;
 
     const features = data.features || [];
-    const featuresTableHtml = `
-    <div class="product-features">
-      <h2>Вариации</h2>
-      <table class="features-table">
-        <thead>
-          <tr>
-            <th data-key="name">Вид</th>
-            <th data-key="price">Цена</th>
-            <th data-key="balance">Склад</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  `;
+    let selectedFeature = null;
 
     detailEl.innerHTML = `
     <div class="product-detail-container">
@@ -52,95 +39,119 @@ export async function renderProductDetailPage(onec_id) {
           <p>${data.product.description || "Нет описания"}</p>
         </div>
       </div>
-      ${featuresTableHtml}
+      <div class="product-features">
+        <h2>Вариации</h2>
+        <table class="features-table">
+          <thead>
+            <tr>
+              <th>Вид</th>
+              <th>Цена</th>
+              <th>Склад</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${features.map(f => `
+              <tr data-feature-id="${f.onec_id}">
+                <td>${f.name}</td>
+                <td>${Number(f.price).toLocaleString("ru-RU")} ₽</td>
+                <td>${f.balance}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
     </div>
   `;
 
     const tbody = detailEl.querySelector(".features-table tbody");
-    const headers = detailEl.querySelectorAll(".features-table th[data-key]");
-    let sortKey = "price";
-    let sortAsc = true;
 
-    function renderTableBody() {
-        let sorted = [...features];
-        if (sortKey) {
-            sorted.sort((a, b) => {
-                if (typeof a[sortKey] === "string") {
-                    return sortAsc
-                        ? a[sortKey].localeCompare(b[sortKey])
-                        : b[sortKey].localeCompare(a[sortKey]);
-                }
-                return sortAsc ? a[sortKey] - b[sortKey] : b[sortKey] - a[sortKey];
-            });
-        }
+    // Highlight + selection logic
+    tbody.addEventListener("click", e => {
+        const row = e.target.closest("tr[data-feature-id]");
+        if (!row) return;
 
-        tbody.innerHTML = sorted
-            .map(
-                f => `
-      <tr>
-        <td>${f.name}</td>
-        <td>${Number(f.price).toLocaleString("ru-RU")} ₽</td>
-        <td>${f.balance}</td>
-      </tr>`
-            )
-            .join("");
+        tbody.querySelectorAll("tr.selected").forEach(r => r.classList.remove("selected"));
+        row.classList.add("selected");
 
-        headers.forEach(h => {
-            let label =
-                h.dataset.key === "name" ? "Вид" : h.dataset.key === "price" ? "Цена" : "Склад";
-            if (h.dataset.key === sortKey) label += sortAsc ? " ▲" : " ▼";
-            h.textContent = label;
-        });
-    }
+        const featureId = row.dataset.featureId;
+        selectedFeature = features.find(f => f.onec_id === featureId);
 
-    headers.forEach(h => {
-        h.style.cursor = "pointer";
-        h.addEventListener("click", () => {
-            const key = h.dataset.key;
-            if (sortKey === key) sortAsc = !sortAsc;
-            else {
-                sortKey = key;
-                sortAsc = true;
-            }
-            renderTableBody();
-        });
+        const key = `${onec_id}_${featureId}`;
+        const count = state.cart[key] || 0;
+        const label = count > 0 ? `В корзине (${count})` : "В корзину";
+        updateMainButton(label);
     });
 
-    renderTableBody();
-
+    // Setup Telegram buttons
     if (isTelegramApp()) {
-        const off = showBackButton(() => {
-            history.back();
-            hideBackButton();
+        showBackButton(() => navigateTo("/"));
+
+        // Initial MainButton → scroll to table
+        showMainButton("Выбрать дозировку", () => {
+            const table = detailEl.querySelector(".features-table");
+            if (table) table.scrollIntoView({ behavior: "smooth", block: "start" });
         });
-        const unsubscribe = showMainButton(
-            state.cart[onec_id] ? `В корзине (${state.cart[onec_id]})` : "В корзину",
-            () => {
-                state.cart[onec_id] = (state.cart[onec_id] || 0) + 1;
-                saveCart();
-                updateMainButton(`В корзине (${state.cart[onec_id]})`);
+
+        let selectedFeature = null;
+        let key = null;
+
+        const tg = state.telegram;
+
+        function updateSplitButton(count) {
+            tg.MainButton.setText(`[-]   ${count}   [+]`);
+        }
+
+        tg.MainButton.onClick(async ev => {
+            if (!selectedFeature) {
+                const table = detailEl.querySelector(".features-table");
+                table.scrollIntoView({ behavior: "smooth" });
+                return;
             }
-        );
+
+            // Determine tap position (approximate split zones)
+            const btnWidth = tg.viewportWidth || window.innerWidth;
+            const clickX = ev?.clientX || 0;
+            const zone = clickX < btnWidth * 0.33 ? "minus" : clickX > btnWidth * 0.66 ? "plus" : "center";
+
+            const count = state.cart[key] || 0;
+            if (zone === "minus") {
+                if (count > 1) state.cart[key] = count - 1;
+                else delete state.cart[key];
+                saveCart();
+            } else if (zone === "plus") {
+                state.cart[key] = count + 1;
+                saveCart();
+            }
+            const newCount = state.cart[key] || 0;
+            updateSplitButton(newCount > 0 ? newCount : "+ В корзину");
+        });
+
+        // Handle row click for feature selection
+        const tbody = detailEl.querySelector(".features-table tbody");
+        tbody.addEventListener("click", e => {
+            const row = e.target.closest("tr[data-feature-id]");
+            if (!row) return;
+            tbody.querySelectorAll("tr.selected").forEach(r => r.classList.remove("selected"));
+            row.classList.add("selected");
+            const featureId = row.dataset.featureId;
+            selectedFeature = features.find(f => f.onec_id === featureId);
+            key = `${onec_id}_${featureId}`;
+
+            const currentCount = state.cart[key] || 0;
+            if (currentCount === 0) {
+                tg.MainButton.setText("+ В корзину");
+            } else {
+                updateSplitButton(currentCount);
+            }
+        });
 
         window.addEventListener(
             "popstate",
             () => {
-                off?.();
                 hideMainButton();
+                hideBackButton();
             },
-            {once: true}
+            { once: true }
         );
-    } else {
-        const fallbackBtn = document.createElement("button");
-        fallbackBtn.textContent = state.cart[onec_id]
-            ? `(${state.cart[onec_id]})`
-            : "В корзину";
-        fallbackBtn.className = "buy-btn";
-        fallbackBtn.onclick = () => {
-            state.cart[onec_id] = (state.cart[onec_id] || 0) + 1;
-            saveCart();
-            fallbackBtn.textContent = `(${state.cart[onec_id]})`;
-        };
-        detailEl.appendChild(fallbackBtn);
     }
 }

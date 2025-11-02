@@ -3,7 +3,7 @@ import {withLoader} from "../ui/loader.js?v=1";
 import {navigateTo} from "../router.js?v=1";
 import {saveCart, state} from "../state.js?v=1";
 import {showCartIcon} from "../ui/cart-icon.js?v=1   ";
-import {hideBackButton, hideMainButton} from "../ui/telegram";
+import {hideBackButton, hideMainButton} from "../ui/telegram.js";
 
 let page = 0;
 let loading = false;

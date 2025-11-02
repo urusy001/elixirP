@@ -135,7 +135,7 @@ export async function handleCheckout() {
         console.error("Checkout failed:", err);
         alert("Ошибка при оформлении заказа. Попробуйте ещё раз.");
     } finally {
-        tg?.MainButton?.hide();
+        hideMainButton();
         if (checkoutBtn) {
             checkoutBtn.disabled = false;
             checkoutBtn.textContent = "Оформить заказ";
@@ -161,14 +161,7 @@ export async function renderCartPage() {
             hideBackButton();
         });
 
-        tg.MainButton.hideProgress();
-        tg.MainButton.enable();
-        tg.MainButton.setText("Оформить заказ");
-        tg.MainButton.show();
-
-        // Important: remove any existing handlers first
-        tg.MainButton.offClick(handleCheckout);
-        tg.MainButton.onClick(handleCheckout);
+        showMainButton("Оформить заказ", handleCheckout)
     } else {
         let btn = document.getElementById("checkout-btn");
         if (!btn) {

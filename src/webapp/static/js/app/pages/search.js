@@ -1,5 +1,5 @@
-import {renderProductDetailPage} from "./product-detail.js?v=1";
-import {searchProducts} from "../../services/productService.js?v=1";
+import { renderProductDetailPage } from "./product-detail.js?v=1";
+import { searchProducts } from "../../services/productService.js?v=1";
 
 function debounce(fn, delay) {
     let t;
@@ -16,41 +16,55 @@ export function initSearchOverlay() {
     const closeSearch = document.getElementById("close-search");
     const historyList = document.getElementById("history-list");
 
+    // --- Open overlay
     searchBtn?.addEventListener("click", () => {
         searchOverlay.classList.add("active");
         searchInput.focus();
     });
 
+    // --- Close overlay (X button)
     closeSearch?.addEventListener("click", () => {
+        closeOverlay();
+    });
+
+    // --- Helper to close overlay and reset
+    function closeOverlay() {
         searchOverlay.classList.remove("active");
         searchInput.value = "";
         historyList.innerHTML = "";
+    }
+
+    // --- Click outside (blank area) closes overlay
+    searchOverlay?.addEventListener("click", e => {
+        // If user clicked directly on the overlay (not on child elements)
+        if (e.target === searchOverlay) {
+            closeOverlay();
+        }
     });
 
+    // --- Perform search
     async function performSearch(query) {
         if (!query) {
             historyList.innerHTML = "";
             return;
         }
         try {
-            const data = await searchProducts({q: query, limit: 50});
+            const data = await searchProducts({ q: query, limit: 50 });
             historyList.innerHTML = (data.results || [])
                 .map(
                     p => `
-          <li data-onec-id="${p.url.split("/product/")[1]}">
-            <div>${p.name}</div>
-          </li>`
+            <li data-onec-id="${p.url.split("/product/")[1]}">
+              <div>${p.name}</div>
+            </li>`
                 )
                 .join("");
 
             historyList.querySelectorAll("li").forEach(li => {
                 li.addEventListener("click", async () => {
                     const id = li.dataset.onecId;
-                    history.pushState({productId: id}, "", `/product/${id}`);
+                    history.pushState({ productId: id }, "", `/product/${id}`);
                     await renderProductDetailPage(id);
-                    searchOverlay.classList.remove("active");
-                    searchInput.value = "";
-                    historyList.innerHTML = "";
+                    closeOverlay();
                 });
             });
         } catch (e) {
@@ -58,5 +72,9 @@ export function initSearchOverlay() {
         }
     }
 
-    searchInput?.addEventListener("input", debounce(e => performSearch(e.target.value), 300));
+    // --- Debounced search input
+    searchInput?.addEventListener(
+        "input",
+        debounce(e => performSearch(e.target.value), 300)
+    );
 }
