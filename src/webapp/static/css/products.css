@@ -1,203 +1,167 @@
-/* ---------------- GRID ---------------- */
-.product-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* bigger cards */
-    gap: 0.6rem; /* less spacing between cards */
-    justify-items: center;
-    padding: 0.5rem;
+/* ==========================================================================
+   PRODUCTS GRID & CARD — Telegram-themed
+   Uses Telegram WebApp CSS vars with safe fallbacks
+   ========================================================================== */
+
+:root{
+    --brand: var(--tg-theme-button-color, #1E669E);
+    --brand-600: var(--tg-theme-button-color, #17517D); /* hover via filter; fallback */
+    --text: var(--tg-theme-text-color, #222);
+    --muted: var(--tg-theme-hint-color, #888);
+    --bg: var(--tg-theme-bg-color, #fff);
+    --bg-soft: var(--tg-theme-secondary-bg-color, #f5f5f5);
+    --btn-text: var(--tg-theme-button-text-color, #fff);
+    --ring: color-mix(in oklab, var(--brand) 25%, transparent);
+    --radius: 12px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.10);
+    --shadow-md: 0 2px 6px rgba(0,0,0,.12);
 }
 
-/* ---------------- PRODUCT CARD ---------------- */
+/* Grid */
+#product-list {
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    justify-items: stretch;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: var(--bg);
+}
+
+/* Card */
 .product-card {
-    background: #fff;
-    border-radius: 12px;
+    background: var(--bg);
+    border-radius: var(--radius);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    transition: transform .25s ease, box-shadow .25s ease, filter .15s ease;
     width: 100%;
-    max-width: 260px; /* larger cards */
+    max-width: none;
     text-decoration: none;
-    color: inherit;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
 }
-
 .product-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    filter: brightness(.99);
 }
 
-/* ---------------- IMAGE ---------------- */
+/* Image */
 .product-image {
     width: 100%;
-    aspect-ratio: 1 / 1;
+    aspect-ratio: 1/1;
     overflow: hidden;
-    background: #f5f5f5;
+    background: var(--bg-soft);
 }
-
 .product-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s ease;
 }
 
-.product-image img.loaded {
-    transform: scale(1);
-}
-
-/* ---------------- PRODUCT INFO ---------------- */
+/* Info */
 .product-info {
-    padding: 0.5rem 0.75rem;
+    padding: .5rem .75rem;
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: .35rem;
     width: 100%;
 }
-
 .product-name {
-    font-size: 1rem;
+    font-size: .95rem;
     font-weight: 600;
-    color: #222;
-
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
+    color: var(--text);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-
     line-height: 1.2rem;
-    height: 2.4rem; /* 2 lines max */
+    min-height: 2.4rem;
 }
 
-/* ---------------- FEATURE SELECT ---------------- */
+/* Feature select */
 .feature-select {
     width: 100%;
     padding: 6px 8px;
     border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 0.85rem;
-    background: #fff;
+    border: 1px solid color-mix(in oklab, var(--text) 15%, transparent);
+    font-size: .85rem;
+    background: var(--bg);
+    color: var(--text);
     cursor: pointer;
-    box-sizing: border-box;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color .2s, box-shadow .2s, filter .15s;
 }
-
 .feature-select:hover {
-    border-color: #1E669E;
+    border-color: var(--brand);
 }
-
 .feature-select:focus {
     outline: none;
-    border-color: #1E669E;
-    box-shadow: 0 0 0 2px rgba(30, 102, 158, 0.2);
+    border-color: var(--brand);
+    box-shadow: 0 0 0 2px var(--ring);
 }
 
-/* ---------------- BUY BUTTON ---------------- */
+/* Buy CTA strip */
 .buy-btn, .buy-counter {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
     height: 44px;
-    background: #1E669E;
-    color: #fff;
+    background: var(--brand);
+    color: var(--btn-text);
     border: none;
-    border-radius: 0 0 12px 12px;
+    border-radius: 0 0 var(--radius) var(--radius);
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     overflow: hidden;
-    transition: all 0.3s ease;
+    transition: filter .2s ease, transform .05s ease;
 }
+.buy-btn:hover, .buy-counter:hover { filter: brightness(.95); }
+.buy-btn:active, .buy-counter:active { transform: scale(.997); }
 
+/* Initial “+ to cart” button style */
 .buy-btn-initial {
     display: flex;
     justify-content: center;
     align-items: center;
     width: 100%;
     height: 44px;
-    font-size: 0.85rem;
+    font-size: .9rem;
     font-weight: 600;
-    background: #1E669E;
-    color: #fff;
+    background: var(--brand);
+    color: var(--btn-text);
     border: none;
-    border-radius: 0 0 12px 12px;
+    border-radius: 0 0 var(--radius) var(--radius);
     cursor: pointer;
+    transition: filter .2s ease, transform .05s ease;
 }
+.buy-btn-initial:hover { filter: brightness(.95); }
+.buy-btn-initial:active { transform: scale(.997); }
 
-/* Counter buttons (- / +) */
+/* Buttons inside the CTA strip */
 .buy-btn button, .buy-counter button {
     flex: 1;
     height: 100%;
     background: transparent;
     border: none;
-    color: #fff;
+    color: var(--btn-text);
     font-size: 1.2rem;
     cursor: pointer;
-    transition: background 0.2s ease;
 }
-
-.buy-btn button:hover, .buy-counter button:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-/* Count number in middle */
 .buy-btn span, .buy-counter span {
     flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
     font-size: 1rem;
-}
-
-.buy-counter {
-    justify-content: space-between;
-    padding: 0 4px;
-}
-
-/* ---------------- LINKS ---------------- */
-a {
-    text-decoration: none;
-    color: inherit;
-}
-
-/* ---------------- RESPONSIVE ---------------- */
-@media (max-width: 768px) {
-    .product-grid {
-        gap: 0.5rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .product-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.4rem;
-    }
-
-    .product-card {
-        max-width: 180px;
-    }
-
-    .product-name {
-        font-size: 0.95rem;
-    }
-
-    .product-info {
-        padding: 0.3rem 0.4rem;
-    }
-
-    .feature-select {
-        font-size: 0.8rem;
-    }
-}
-
-@media (max-width: 400px) {
-    .product-card {
-        max-width: 170px;
-    }
-
-    .product-name {
-        font-size: 0.9rem;
-    }
+    color: var(--btn-text);
 }

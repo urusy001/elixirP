@@ -1,5 +1,5 @@
-import { renderProductDetailPage } from "./product-detail.js?v=1";
 import { searchProducts } from "../../services/productService.js?v=1";
+import { navigateTo } from "../router.js?v=1";
 
 function debounce(fn, delay) {
     let t;
@@ -60,11 +60,10 @@ export function initSearchOverlay() {
                 .join("");
 
             historyList.querySelectorAll("li").forEach(li => {
-                li.addEventListener("click", async () => {
+                li.addEventListener("click", () => {
                     const id = li.dataset.onecId;
-                    history.pushState({ productId: id }, "", `/product/${id}`);
-                    await renderProductDetailPage(id);
                     closeOverlay();
+                    navigateTo(`/product/${id}`);
                 });
             });
         } catch (e) {

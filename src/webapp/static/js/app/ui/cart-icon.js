@@ -1,93 +1,154 @@
-// app/ui/cart-icon.js
-import {state} from "../state.js?v=1";
-import {navigateTo} from "../router.js?v=1";
+import { navigateTo } from "../router.js";
 
 let cartIcon = null;
 let badge = null;
 
-/**
- * Create or update the floating cart icon
- */
+/* -----------------------------------------------------------
+   Smooth FAB animations (injected once)
+----------------------------------------------------------- */
+function ensureCartIconStyles() {
+    if (document.getElementById("cart-fab-anim-styles")) return;
+    const style = document.createElement("style");
+    style.id = "cart-fab-anim-styles";
+    style.textContent = `
+    /* Smooth show/hide for the cart FAB */
+    #cart-icon{
+      opacity: 0;
+      transform: translateY(8px) scale(.98);
+      visibility: hidden;
+      transition:
+        opacity .18s ease,
+        transform .18s ease,
+        visibility 0s linear .18s; /* delay visibility toggle so fade-out can play */
+    }
+    #cart-icon.is-visible{
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      visibility: visible;
+      transition:
+        opacity .18s ease,
+        transform .18s ease,
+        visibility 0s; /* immediate once visible */
+    }
+  `;
+    document.head.appendChild(style);
+}
+
+/* -----------------------------------------------------------
+   Create (once) the floating cart icon
+----------------------------------------------------------- */
 export function createCartIcon() {
-    if (cartIcon) return cartIcon; // already exists
+    ensureCartIconStyles();
 
-    cartIcon = document.createElement("div");
-    cartIcon.id = "cart-icon";
-    Object.assign(cartIcon.style, {
-        position: "fixed",
-        bottom: "32px",
-        right: "32px",
-        width: "60px",
-        height: "60px",
-        borderRadius: "50%",
-        background: "#1E669E",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        cursor: "pointer",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-        zIndex: "9999",
-        color: "#fff",
-        fontSize: "1.5rem",
-    });
+    cartIcon = document.getElementById("cart-icon");
+    if (!cartIcon) {
+        cartIcon = document.createElement("div");
+        cartIcon.id = "cart-icon";
+        cartIcon.setAttribute("aria-label", "Open cart");
+        cartIcon.textContent = "🛒";
+        document.body.appendChild(cartIcon);
+    }
 
-    cartIcon.textContent = "🛒";
-    cartIcon.addEventListener("click", () => navigateTo("/cart"));
-    document.body.appendChild(cartIcon);
-
-    badge = document.createElement("span");
-    badge.className = "cart-count";
-    Object.assign(badge.style, {
-        position: "absolute",
-        top: "-4px",
-        right: "-4px",
-        background: "red",
-        color: "white",
-        fontSize: "0.7rem",
-        width: "18px",
-        height: "18px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: "50%",
-    });
-    cartIcon.appendChild(badge);
+    // Ensure badge exists
+    badge = cartIcon.querySelector(".cart-count");
+    if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "cart-count";
+        cartIcon.appendChild(badge);
+    }
 
     updateCartIconCount();
     return cartIcon;
 }
 
-/**
- * Update badge count based on state.cart
- */
-export function updateCartIconCount() {
-    if (!badge) return;
-    const total = Object.values(state.cart).reduce((a, b) => a + b, 0);
-    badge.textContent = total > 0 ? total : "";
+/* -----------------------------------------------------------
+   Helpers to read cart totals
+----------------------------------------------------------- */
+function getCartTotal() {
+    const s = (window.state && window.state.cart) || null;
+    const cart = s ?? JSON.parse(localStorage.getItem("cart") || "{}");
+    return Object.values(cart).reduce((a, n) => a + Number(n || 0), 0);
+}
+function hasItems() {
+    return getCartTotal() > 0;
 }
 
-/**
- * Show / hide control
- */
+/* -----------------------------------------------------------
+   Update badge + enabled/disabled visual state
+----------------------------------------------------------- */
+export function updateCartIconCount(e) {
+    if (!cartIcon) cartIcon = document.getElementById("cart-icon");
+    if (!badge && cartIcon) badge = cartIcon.querySelector(".cart-count");
+    if (!badge || !cartIcon) return;
+
+    const total = getCartTotal();
+
+    // Badge content/visibility
+    if (total > 0) {
+        badge.textContent = String(total);
+        badge.classList.add("show");
+    } else {
+        badge.textContent = "";
+        badge.classList.remove("show");
+    }
+
+    // Interactivity & subtle dim when empty (but keep visible if shown)
+    const enabled = total > 0;
+    cartIcon.setAttribute("aria-disabled", String(!enabled));
+    cartIcon.dataset.disabled = String(!enabled);
+    cartIcon.style.pointerEvents = enabled ? "auto" : "none";
+    cartIcon.style.cursor = enabled ? "pointer" : "default";
+    // Keep a slight dim when empty (do not hide completely)
+    cartIcon.style.opacity = cartIcon.classList.contains("is-visible")
+        ? (enabled ? "1" : "0")
+        : cartIcon.style.opacity;
+    cartIcon.title = enabled ? "Открыть корзину" : "Корзина пуста";
+}
+
+/* -----------------------------------------------------------
+   Smooth show/hide API
+----------------------------------------------------------- */
 export function showCartIcon() {
-    if (!cartIcon) createCartIcon();
-    cartIcon.style.opacity = "1";
-    cartIcon.style.pointerEvents = "auto";
-    cartIcon.style.display = "flex";
+    cartIcon = document.getElementById("cart-icon") || createCartIcon();
+    // Add visible class to trigger CSS transition
+    cartIcon.classList.add("is-visible");
+    // Set interactivity/opacity according to items
+    const enabled = hasItems();
+    cartIcon.style.pointerEvents = enabled ? "auto" : "none";
+    cartIcon.style.cursor = enabled ? "pointer" : "default";
+    cartIcon.style.opacity = enabled ? "1" : "0";
 }
 
 export function hideCartIcon() {
+    cartIcon = document.getElementById("cart-icon");
     if (!cartIcon) return;
-    cartIcon.style.opacity = "0";
+    // Remove visible class to fade/slide out
+    cartIcon.classList.remove("is-visible");
+    // Also prevent clicks during the fade-out
     cartIcon.style.pointerEvents = "none";
-    cartIcon.style.display = "none";
 }
 
-/**
- * Listen for cart updates
- */
+/* -----------------------------------------------------------
+   Init
+----------------------------------------------------------- */
 export function initCartIcon() {
+    // Ensure the icon & badge exist before binding
     createCartIcon();
+
+    // Prevent duplicate listeners, then bind
+    window.removeEventListener("cart:updated", updateCartIconCount);
     window.addEventListener("cart:updated", updateCartIconCount);
+
+    // Click only works when cart has items
+    cartIcon.onclick = (e) => {
+        if (!hasItems()) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+        navigateTo("/cart");
+    };
+
+    // Initial render from current state
     updateCartIconCount();
 }

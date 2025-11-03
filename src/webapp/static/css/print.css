@@ -1,0 +1,21 @@
+/* --- Search overlay results cleanup --- */
+#history-list {
+    list-style: none;          /* remove bullets */
+    margin: 0;                 /* remove default ul margins */
+    padding: 0;                /* remove default ul padding */
+}
+
+#history-list li {
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background .15s;
+}
+
+#history-list li:hover {
+    background: var(--bg-soft, #f8f8f8);
+}
+
+@media print {
+  #global-loading-screen, .search-overlay, #cart-icon { display: none !important; }
+}

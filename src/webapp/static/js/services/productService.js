@@ -1,4 +1,4 @@
-import {apiGet} from "./api.js";
+import { apiGet } from "./api.js";
 
 export async function searchProducts({q = "", page = 0, limit} = {}) {
     const url = new URL("/search", location.origin);

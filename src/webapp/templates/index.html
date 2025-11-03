@@ -2,14 +2,8 @@
 
 {% block title %}ElixirPeptides{% endblock %}
 
-{% block extra_css %}
-<link href="{{ request.url_for('static', path='css/toolbar.css?v=1') }}" rel="stylesheet">
-<link href="{{ request.url_for('static', path='css/products.css?v=1') }}" rel="stylesheet">
-<link href="{{ request.url_for('static', path='css/checkout.css?v=1') }}" rel="stylesheet">
-{% endblock %}
-
+{% block extra_css %}{% endblock %}
 {% block content %}
-<!-- 🔍 Search overlay -->
 <div class="search-overlay" id="search-overlay">
     <div class="search-header">
         <input id="search-input" placeholder="Поиск продуктов..." type="text"/>
@@ -18,22 +12,12 @@
     <ul id="history-list"></ul>
 </div>
 
-<!-- Toolbar -->
-<div class="toolbar">
-    <button class="toolbar-btn" id="sort-btn">Sort</button>
-    <button class="toolbar-btn" id="filter-btn">Категории</button>
-</div>
 
-<!-- Root App container -->
 <div id="app">
+    <div class="product-grid scroll-area" id="product-list"></div>
 
-    <!-- Product list view -->
-    <div class="product-grid" id="product-list"></div>
+    <div class="scroll-area" id="product-detail" style="display:none;"></div>
 
-    <!-- Product detail view -->
-    <div id="product-detail" style="display:none;"></div>
-
-    <!-- 🛒 Cart page view -->
     <div id="cart-page" style="display:none;">
         <h3 id="cart-title">Корзина</h3>
         <div id="cart-items"></div>
@@ -72,7 +56,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- Optional delivery service widgets -->
-<script charset="utf-8" src="https://cdn.jsdelivr.net/npm/@cdek-it/widget@3"></script>
-<script async src="https://ndd-widget.landpro.site/widget.js"></script>
+<script src="{{ url_for('static', path='js/app/main.js') }}"></script>
 {% endblock %}
