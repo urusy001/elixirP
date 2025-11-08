@@ -26,6 +26,7 @@ logger = logging.getLogger("main")
 # -------------------- Main runner --------------------
 async def main():
     await init_db(False)
+    await OneCEnterprise().update_db("postgre")
 
     # Track all created tasks
     tasks = [

@@ -1,0 +1,16 @@
+{
+    "requests": [
+        {
+            "type": "AUTH",
+            "date_time": "2025-11-08T22:09:04+0000",
+            "state": "INVALID",
+            "errors": [
+                {
+                    "code": "v2_token_expired",
+                    "message": "An error occurred while attempting to decode the Jwt: Jwt expired at 2025-11-08T15:10:54Z"
+                }
+            ]
+        }
+    ],
+    "related_entities": []
+}
