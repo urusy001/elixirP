@@ -32,6 +32,9 @@ app.include_router(webhooks_router)
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+@app.get("/test", response_class=HTMLResponse)
+async def test(request: Request):
+    return templates.TemplateResponse("test.html", {"request": request})
 
 async def run_app():
     server = Server(Config(app, reload=True, log_config=None))

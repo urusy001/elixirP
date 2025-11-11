@@ -5,19 +5,21 @@ import {apiPost, apiGet} from "../../services/api.js";
 import {
     hideMainButton,
     showBackButton,
-    hideBackButton,
     isTelegramApp,
     showMainButton, updateMainButton,
 } from "../ui/telegram.js";
-import {hideCartIcon, showCartIcon} from "../ui/cart-icon.js";
+import {hideCartIcon} from "../ui/cart-icon.js";
 
-const productListEl = document.getElementById("product-list");
-const productDetailEl = document.getElementById("product-detail");
-const cartPageEl = document.getElementById("cart-page");
-const cartItemsEl = document.getElementById("cart-items");
-const cartTotalEl = document.getElementById("summary-label");
-const toolbarEl = document.getElementById("toolbar");
+const listEl = document.getElementById("product-list");
+const detailEl = document.getElementById("product-detail");
+const checkoutEl = document.getElementById("checkout-page");
+const contactPageEl = document.getElementById("contact-page");
 const headerTitle = document.getElementById("header-left");
+const toolbarEl = document.getElementById("toolbar");
+
+const cartPageEl = document.getElementById("cart-page");
+const cartTotalEl = document.getElementById("summary-label");
+const cartItemsEl = document.getElementById("cart-items");
 
 let cartRows = {};
 
@@ -118,7 +120,6 @@ async function renderCart() {
 }
 
 export async function handleCheckout() {
-    const tg = state.telegram;
     const checkoutBtn = document.getElementById("checkout-btn");
     updateMainButton("Обработка…", true, true)
 
@@ -135,7 +136,6 @@ export async function handleCheckout() {
 
         const data = await apiPost("/cart/json", {items: payload});
         setCheckoutData(data);
-        cartPageEl.style.display = "none";
         navigateTo("/checkout");
     } catch (err) {
         console.error("Checkout failed:", err);
@@ -153,19 +153,18 @@ export async function handleCheckout() {
 export async function renderCartPage() {
     hideCartIcon();
     toolbarEl.style.display = "none";
-    productListEl.style.display = "none";
-    productDetailEl.style.display = "none";
+    listEl.style.display = "none";
+    detailEl.style.display = "none";
     cartPageEl.style.display = "block";
     headerTitle.textContent = "Корзина";
+    checkoutEl.style.display = "none";
+    contactPageEl.style.display = "none";
 
     await withLoader(renderCart);
 
     if (isTelegramApp()) {
         showBackButton(() => {
             navigateTo("/");
-            hideMainButton();
-            showCartIcon();
-            hideBackButton();
         });
 
         showMainButton('Оформить заказ', () => handleCheckout());

@@ -1,54 +1,114 @@
-import {showLoader, hideLoader} from "../ui/loader.js";
-import {hideCartIcon} from "../ui/cart-icon.js";
-import {isTelegramApp} from "../ui/telegram.js";
-import {navigateTo} from "../router.js";
-import {handleCheckout} from "./cart.js";
+// ============================================================================
+// checkout.js — Unified Delivery Checkout (CDEK + Yandex auto-locating PVZ widget)
+// ============================================================================
+import { showLoader, hideLoader } from "../ui/loader.js";
+import { hideCartIcon } from "../ui/cart-icon.js";
+import { isTelegramApp, showMainButton } from "../ui/telegram.js";
+import { navigateTo } from "../router.js";
+import { fetchPVZByCode, getSelectedPVZCode } from "../../services/pvzService.js";
+import { YandexPvzWidget } from "./yandex-pvz-widget.js";
 
+// ---------------------------------------------------------------------------
+// DOM references
+// ---------------------------------------------------------------------------
 const checkoutPageEl = document.getElementById("checkout-page");
+const listEl = document.getElementById("product-list");
+const detailEl = document.getElementById("product-detail");
+const cartPageEl = document.getElementById("cart-page");
+const contactPageEl = document.getElementById("contact-page");
+const headerTitle = document.getElementById("header-left");
+const toolbarEl = document.getElementById("toolbar");
 
-async function getUserLocation() {
-    const defaultCoords = [55.7558, 37.6173]; // Москва fallback
+// Map container IDs
+const CDEK_ID = "cdek-map-container";
+const YANDEX_ID = "yandex-map-container";
+const YANDEX_LIST_ID = "yandex-list";
 
-    if (!navigator.geolocation) {
-        return {city: "Москва", coords: defaultCoords, source: "default"};
+let _toggleLock = false;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+function ensureMapContainer(id) {
+    let el = document.getElementById(id);
+    if (!el) {
+        el = document.createElement("div");
+        el.id = id;
+        Object.assign(el.style, {
+            width: "100%",
+            height: "500px",
+            marginTop: "12px",
+            display: "none",
+            borderRadius: "12px",
+            border: "1px solid #ccc",
+            overflow: "hidden",
+        });
+        checkoutPageEl.appendChild(el);
     }
-
-    try {
-        const pos = await new Promise((resolve, reject) =>
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-                enableHighAccuracy: false,
-                timeout: 5000,
-                maximumAge: 60000,
-            })
-        );
-
-        const {latitude: lat, longitude: lon} = pos.coords;
-        const res = await fetch(`/delivery/yandex/reverse-geocode?lat=${lat}&lon=${lon}`);
-        if (res.ok) {
-            const data = await res.json();
-            const city = data?.city || "Москва";
-            return {city, coords: [lat, lon], source: "geolocation"};
-        }
-    } catch (err) {
-        console.warn("📍 Geolocation failed:", err.message);
-    }
-
-    return {city: "Москва", coords: defaultCoords, source: "fallback"};
+    return el;
 }
 
-/* -------------------------------------------------------------------------- */
-/*                              HEADER SWITCH UI                              */
+function ensureListContainer(id, afterEl) {
+    let el = document.getElementById(id);
+    if (!el) {
+        el = document.createElement("div");
+        el.id = id;
+        Object.assign(el.style, {
+            marginTop: "8px",
+            border: "1px solid #e5e7eb",
+            borderRadius: "12px",
+            overflow: "hidden",
+            background: "#fff",
+        });
+        afterEl.insertAdjacentElement("afterend", el);
+    }
+    return el;
+}
 
-/* -------------------------------------------------------------------------- */
-function createDeliveryHeader(city, coords, currentService = "CDEK") {
-    const oldHeader = document.querySelector(".delivery-toggle-container");
-    if (oldHeader) oldHeader.remove();
+// ---------------------------------------------------------------------------
+// Yandex Maps API Loader
+// ---------------------------------------------------------------------------
+let _ymapsReady;
+async function ensureYmapsReady() {
+    if (window.ymaps?.Map) {
+        await new Promise((res) => ymaps.ready(res));
+        return;
+    }
+    if (!_ymapsReady) {
+        _ymapsReady = new Promise((resolve, reject) => {
+            const existing = document.getElementById("ymaps-api");
+            const onLoad = () => ymaps.ready(resolve);
+            const onError = () => reject(new Error("Failed to load Yandex Maps"));
+            if (existing) {
+                existing.addEventListener("load", onLoad, { once: true });
+                existing.addEventListener("error", onError, { once: true });
+            } else {
+                const s = document.createElement("script");
+                s.id = "ymaps-api";
+                s.src =
+                    "https://api-maps.yandex.ru/2.1/?apikey=bb7d36f8-1e64-415c-80d2-12d77317718d&lang=ru_RU";
+                s.async = true;
+                s.defer = true;
+                s.onload = onLoad;
+                s.onerror = onError;
+                document.head.appendChild(s);
+            }
+            setTimeout(() => reject(new Error("Yandex Maps load timeout")), 20000);
+        });
+    }
+    await _ymapsReady;
+}
+
+// ---------------------------------------------------------------------------
+// Delivery service toggle header
+// ---------------------------------------------------------------------------
+function createDeliveryHeader(currentService = "CDEK") {
+    document.querySelector(".delivery-toggle-container")?.remove();
 
     const header = document.createElement("div");
     header.className = "delivery-toggle-container";
     Object.assign(header.style, {
         display: "flex",
-        flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "stretch",
         width: "100%",
@@ -61,7 +121,7 @@ function createDeliveryHeader(city, coords, currentService = "CDEK") {
         whiteSpace: "nowrap",
     });
 
-    const makeButton = label => {
+    const makeButton = (label) => {
         const btn = document.createElement("div");
         btn.textContent = label;
         Object.assign(btn.style, {
@@ -95,21 +155,35 @@ function createDeliveryHeader(city, coords, currentService = "CDEK") {
     header.append(cdekBtn, yandexBtn, indicator);
     checkoutPageEl.prepend(header);
 
-    const cdekContainer = ensureMapContainer("cdek-map-container");
-    const yandexContainer = ensureMapContainer("yandex-map-container");
+    const cdekContainer = ensureMapContainer(CDEK_ID);
+    const yandexContainer = ensureMapContainer(YANDEX_ID);
+    const yandexList = ensureListContainer(YANDEX_LIST_ID, yandexContainer);
 
-    async function updateSelection(service) {
+    const updateSelection = async (service) => {
+        if (_toggleLock) return;
+        _toggleLock = true;
+
         sessionStorage.setItem("selected_delivery_service", service);
         indicator.style.left = service === "CDEK" ? "0" : "50%";
-        cdekBtn.style.background = service === "CDEK" ? "" : "transparent";
-        yandexBtn.style.background = service === "Yandex" ? "" : "transparent";
+        cdekBtn.style.background = service === "CDEK" ? "#17517D" : "transparent";
+        yandexBtn.style.background = service === "Yandex" ? "#17517D" : "transparent";
 
         cdekContainer.style.display = service === "CDEK" ? "block" : "none";
         yandexContainer.style.display = service === "Yandex" ? "block" : "none";
+        yandexList.style.display = service === "Yandex" ? "block" : "none";
 
-        if (service === "CDEK") await initCDEKWidget(coords);
-        else await initYandexWidget(city);
-    }
+        await new Promise((r) => requestAnimationFrame(r));
+
+        try {
+            if (service === "CDEK") {
+                await initCDEKWidget();
+            } else {
+                await initYandexWidget();
+            }
+        } finally {
+            _toggleLock = false;
+        }
+    };
 
     cdekBtn.onclick = () => updateSelection("CDEK");
     yandexBtn.onclick = () => updateSelection("Yandex");
@@ -117,48 +191,30 @@ function createDeliveryHeader(city, coords, currentService = "CDEK") {
     updateSelection(currentService);
 }
 
-/* -------------------------------------------------------------------------- */
-/*                             MAP CONTAINER HELPER                           */
-
-/* -------------------------------------------------------------------------- */
-function ensureMapContainer(id) {
-    let el = document.getElementById(id);
-    if (!el) {
-        el = document.createElement("div");
-        el.id = id;
-        Object.assign(el.style, {
-            width: "100%",
-            height: "500px",
-            marginTop: "12px",
-            display: "none",
-        });
-        checkoutPageEl.appendChild(el);
-    }
-    return el;
-}
-
-/* -------------------------------------------------------------------------- */
-/*                                CDEK WIDGET                                 */
-
-/* -------------------------------------------------------------------------- */
-async function initCDEKWidget(coords) {
+// ---------------------------------------------------------------------------
+// CDEK Widget initialization
+// ---------------------------------------------------------------------------
+async function initCDEKWidget(coords = [55.75, 37.61]) {
     if (!window.CDEKWidget) {
-        console.error("❌ CDEK Widget not loaded!");
+        hideLoader();
         return;
     }
 
     if (window.cdekWidgetInstance) {
-        console.log("♻️ Reusing existing CDEK widget");
+        hideLoader();
         return window.cdekWidgetInstance;
     }
 
-    const id = "cdek-map-container";
-    const container = document.getElementById(id);
+    const container = document.getElementById(CDEK_ID);
+    if (!container) return;
+
     container.style.display = "block";
+    if (!container.style.height) container.style.height = "500px";
+    await new Promise((r) => requestAnimationFrame(r));
 
     try {
         window.cdekWidgetInstance = new window.CDEKWidget({
-            root: id,
+            root: CDEK_ID,
             apiKey: "bb7d36f8-1e64-415c-80d2-12d77317718d",
             servicePath: "/delivery/cdek",
             from: {
@@ -171,171 +227,141 @@ async function initCDEKWidget(coords) {
             },
             defaultLocation: coords,
             canChoose: true,
-            hideFilters: {have_cashless: false, have_cash: false, is_dressing_room: false},
-            hideDeliveryOptions: {office: false, door: false},
-            goods: [{width: 10, height: 10, length: 10, weight: 10}],
-
+            hideFilters: { have_cashless: false, have_cash: false, is_dressing_room: false },
+            hideDeliveryOptions: { office: false, door: false },
+            goods: [{ width: 10, height: 10, length: 10, weight: 10 }],
             onReady: () => {
-                hideLoader();
                 container.style.display = "block";
+                hideLoader();
             },
-
             onChoose: (mode, tariff, address) => {
                 sessionStorage.setItem(
                     "selected_delivery",
-                    JSON.stringify({deliveryMode: mode, tariff, address})
+                    JSON.stringify({ deliveryMode: mode, tariff, address }),
                 );
-                createProceedButton("Продолжить оформление");
                 if (address?.code) fetchPVZByCode(address.code);
+                createProceedButton("Продолжить оформление");
             },
-
             onCalculate: async () => {
                 const pvzCode = getSelectedPVZCode();
                 if (pvzCode) fetchPVZByCode(pvzCode);
             },
         });
     } catch (err) {
-        console.error("❌ Failed to initialize CDEK Widget:", err);
+        console.error("CDEK widget init failed:", err);
     }
-
     return window.cdekWidgetInstance;
 }
 
-/* -------------------------------------------------------------------------- */
-/*                               YANDEX WIDGET                                */
+// ---------------------------------------------------------------------------
+// Yandex PVZ Widget initialization (auto-locating)
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Yandex PVZ Widget initialization (show/reopen without re-init on toggle)
+// ---------------------------------------------------------------------------
+let ydwInstance = null;
 
-/* -------------------------------------------------------------------------- */
-async function initYandexWidget(city = "Москва") {
-    const id = "yandex-map-container";
-    const container = document.getElementById(id);
-    if (!container) return console.error("❌ Yandex container not found!");
+async function initYandexWidget() {
+    const container = document.getElementById(YANDEX_ID);
+    if (!container) return;
+
+    // make visible & ensure height
     container.style.display = "block";
+    if (!container.style.height) container.style.height = "500px";
+    await new Promise((r) => requestAnimationFrame(r));
 
-    if (!window.YaDelivery?.createWidget)
-        return console.error("❌ Yandex Delivery widget script not loaded!");
+    if (!ydwInstance) {
+        // first time only: load API + init widget
+        await ensureYmapsReady();
 
-    if (window.yandexWidgetInstance) {
-        console.log("♻️ Reusing existing Yandex widget");
-        return window.yandexWidgetInstance;
-    }
-
-    try {
-        window.yandexWidgetInstance = window.YaDelivery.createWidget({
-            containerId: id,
-            params: {
-                city,
-                size: {height: "450px", width: "100%"},
-                filter: {
-                    type: ["pickup_point", "terminal"],
-                    is_yandex_branded: false,
-                    payment_methods: ["already_paid", "card_on_receipt"],
-                    payment_methods_filter: "or",
-                },
-                delivery_options: {
-                    physical_dims_weight_gross: 1000,
-                    delivery_term: 3,
-                    delivery_price: price => `${price} ₽`,
-                },
-                show_select_button: true,
+        ydwInstance = new YandexPvzWidget(YANDEX_ID, {
+            listContainerId: YANDEX_LIST_ID,
+            radiusMeters: 12000,
+            autoLocate: true,
+            autoSearch: true,
+            onReady: () => {},
+            onChoose: (_pvz, payload) => {
+                sessionStorage.setItem(
+                    "selected_delivery",
+                    JSON.stringify({
+                        deliveryMode: "pickup_point",
+                        tariff: null,
+                        address: {
+                            code: payload.code,
+                            address: payload.address,
+                            coords: payload.coords,
+                            name: payload.name,
+                            phone: payload.phone,
+                            schedule: payload.schedule,
+                        },
+                    }),
+                );
+                createProceedButton("Продолжить оформление");
             },
         });
-    } catch (err) {
-        console.error("❌ Error initializing Yandex widget:", err);
-    }
 
-    return window.yandexWidgetInstance;
-}
-
-/* -------------------------------------------------------------------------- */
-/*                             PVZ INFO HELPERS                               */
-
-/* -------------------------------------------------------------------------- */
-function getSelectedPVZCode() {
-    const els = Array.from(document.querySelectorAll(".cdek-1smek3"));
-    for (const el of els) {
-        const match = el.textContent.trim().match(/- (\S+)$/);
-        if (match) return match[1];
-    }
-    return null;
-}
-
-async function fetchPVZByCode(code) {
-    try {
-        const res = await fetch(`/delivery/cdek?action=offices&code=${encodeURIComponent(code)}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (data?.length) renderPVZInfo(data[0]);
-    } catch (err) {
-        console.error("❌ Error fetching PVZ info:", err);
-    }
-}
-
-function renderPVZInfo(pvz) {
-    if (!pvz) return;
-    let infoDiv = document.querySelector(".my-pvz-info");
-    if (!infoDiv) {
-        infoDiv = document.createElement("div");
-        infoDiv.className = "my-pvz-info";
-        infoDiv.style.marginTop = "10px";
-        infoDiv.style.fontSize = "14px";
-        infoDiv.style.color = "#333";
-        document.querySelector(".cdek-2ew9g8")?.appendChild(infoDiv);
-    }
-    infoDiv.innerHTML = `
-    ${pvz.phones?.length ? `<p><b>Телефон:</b> ${pvz.phones.map(p => p.number).join(", ")}</p>` : ""}
-    ${pvz.email ? `<p><b>Email:</b> ${pvz.email}</p>` : ""}
-    ${pvz.note ? `<p><b>Примечание:</b> ${pvz.note}</p>` : ""}
-  `;
-}
-
-/* -------------------------------------------------------------------------- */
-/*                           PROCEED TO CONTACT PAGE                           */
-
-/* -------------------------------------------------------------------------- */
-export function createProceedButton(label = "Перейти к оплате") {
-    const tg = window.Telegram?.WebApp;
-
-    const handleProceedClick = async () => {
+        await ydwInstance.init(); // first load only
+    } else {
+        // subsequent toggles: DO NOT re-init — just reopen/refresh
         try {
-            showLoader();
-            navigateTo("/contact");
-            // ❌ Removed tg?.MainButton?.hide?.() — keeps button visible
-        } finally {
-            hideLoader();
-        }
-    };
+            // if the map exists, refresh sizing after container became visible
+            ydwInstance.map?.container.fitToViewport?.();
 
+            // reopen last UI state (door placemark balloon > selected PVZ balloon)
+            if (ydwInstance._doorPlacemark) {
+                ydwInstance._doorPlacemark.balloon?.open?.();
+            } else if (ydwInstance._selectedId) {
+                try { ydwInstance.manager?.objects.balloon.close(); } catch {}
+                ydwInstance.manager?.objects.balloon.open(ydwInstance._selectedId);
+            }
+        } catch (e) {
+            console.warn("Yandex widget reopen failed, falling back to init:", e);
+            // fallback: if something went wrong (e.g., map was destroyed), re-init once
+            try { await ydwInstance.init(); } catch {}
+        }
+    }
+
+    hideLoader();
+}
+
+// ---------------------------------------------------------------------------
+// Proceed button
+// ---------------------------------------------------------------------------
+export function createProceedButton(
+    label = "Продолжить оформление",
+    onClick = () => navigateTo("/contact"),
+) {
     if (isTelegramApp()) {
-        tg?.MainButton?.hideProgress?.();
-        tg.MainButton.offClick(handleCheckout);
-        tg.MainButton.offClick(handleProceedClick);
-        tg.MainButton.setText(label);
-        tg.MainButton.onClick(handleProceedClick);
-        tg.MainButton.show();
+        showMainButton(label, onClick);
     } else {
         let btn = document.querySelector(".checkout-proceed-btn");
         if (!btn) {
             btn = document.createElement("button");
             btn.className = "checkout-proceed-btn";
-            btn.textContent = label;
-            btn.onclick = handleProceedClick;
             checkoutPageEl.appendChild(btn);
         }
+        btn.textContent = label;
+        btn.onclick = onClick;
     }
 }
 
-/* -------------------------------------------------------------------------- */
-/*                                MAIN ENTRY                                  */
-
-/* -------------------------------------------------------------------------- */
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
 export async function renderCheckoutPage() {
-    hideCartIcon();
     showLoader();
 
-    const {city, coords} = await getUserLocation();
-    checkoutPageEl.style.display = "block";
-    createDeliveryHeader(city, coords, "CDEK");
+    cartPageEl.style.display = "none";
+    detailEl.style.display = "none";
+    listEl.style.display = "none";
+    toolbarEl.style.display = "none";
+    contactPageEl.style.display = "none";
+    headerTitle.textContent = "Доставка";
+    hideCartIcon();
 
-    await initCDEKWidget(coords);
-    console.log(`✅ Checkout initialized for ${city}`);
+    checkoutPageEl.style.display = "block";
+    await new Promise((r) => requestAnimationFrame(r));
+
+    createDeliveryHeader("CDEK");
+    console.log("✅ Checkout initialized");
 }

@@ -1,6 +1,6 @@
-import { getProductDetail } from "../../services/productService.js";
-import { withLoader } from "../ui/loader.js";
-import { state, saveCart } from "../state.js";
+import {getProductDetail} from "../../services/productService.js";
+import {withLoader} from "../ui/loader.js";
+import {state, saveCart} from "../state.js";
 import {
     showBackButton,
     showMainButton,
@@ -9,7 +9,7 @@ import {
     hideBackButton,
     isTelegramApp,
 } from "../ui/telegram.js";
-import { navigateTo } from "../router.js";
+import {navigateTo} from "../router.js";
 
 /* ============================ Public ============================ */
 
@@ -17,15 +17,17 @@ const listEl = document.getElementById("product-list");
 const detailEl = document.getElementById("product-detail");
 const cartPageEl = document.getElementById("cart-page");
 const checkoutEl = document.getElementById("checkout-page");
-const contactEl = document.getElementById("contact-page");
+const contactPageEl = document.getElementById("contact-page");
+const headerTitle = document.getElementById("header-left");
 const toolbarEl = document.getElementById("toolbar");
 
 export async function renderProductDetailPage(onec_id) {
     toolbarEl.style.display = "none";
     listEl.style.display = "none";
-    contactEl.style.display = "none";
+    contactPageEl.style.display = "none";
     cartPageEl.style.display = "none";
     checkoutEl.style.display = "none";
+    headerTitle.textContent = "Информация о продукте";
     detailEl.style.display = "block";
 
     const data = await withLoader(() => getProductDetail(onec_id));
@@ -39,10 +41,8 @@ export async function renderProductDetailPage(onec_id) {
             hideMainButton();
             const offBack = showBackButton(() => {
                 navigateTo('/');
-                hideBackButton();
-                hideMainButton();
             });
-            window.addEventListener("popstate", () => offBack?.(), { once: true });
+            window.addEventListener("popstate", () => offBack?.(), {once: true});
         }
         return;
     }
@@ -219,8 +219,6 @@ export async function renderProductDetailPage(onec_id) {
             offBack = showBackButton(() => {
                 if (sheet.isOpen()) sheet.close(true);
                 navigateTo('/');
-                hideBackButton();
-                hideMainButton();
             });
         };
 
@@ -253,7 +251,7 @@ export async function renderProductDetailPage(onec_id) {
                 hideMainButton();
                 sheet.close(true);
             },
-            { once: true }
+            {once: true}
         );
     } else {
         const openSheetBtn = document.createElement("button");
@@ -290,7 +288,10 @@ function createBottomSheet(innerHTML) {
     const markClosed = () => {
         opened = false;
         closeCallbacks.forEach((fn) => {
-            try { fn(); } catch {}
+            try {
+                fn();
+            } catch {
+            }
         });
     };
 
@@ -353,10 +354,10 @@ function createBottomSheet(innerHTML) {
         "touchstart",
         (e) => {
             startDrag(e.touches[0].clientY);
-            window.addEventListener("touchmove", dragMove, { passive: true });
-            window.addEventListener("touchend", dragEnd, { passive: true });
+            window.addEventListener("touchmove", dragMove, {passive: true});
+            window.addEventListener("touchend", dragEnd, {passive: true});
         },
-        { passive: true }
+        {passive: true}
     );
 
     panel.addEventListener("mousedown", (e) => {
@@ -371,5 +372,5 @@ function createBottomSheet(innerHTML) {
     };
     const isOpen = () => opened;
 
-    return { root, open, close, onClose, isOpen };
+    return {root, open, close, onClose, isOpen};
 }
