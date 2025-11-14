@@ -66,16 +66,19 @@ async def handle_ref_start(message: Message, command: CommandStart, state: FSMCo
         await message.answer("Ошибка реферальной ссылки, начато без реферала")
         return await handle_start(message, state)
 
-    ref_id, giveaway_id = parts[0], parts[1]
-    async with get_session() as session1, get_session() as session2:
-        create_data = ParticipantCreate(
-            tg_id=message.from_user.id,
-            ref_id=ref_id,
-            giveaway_id=giveaway_id,
-        )
-        participant_task = create_participant(session1, create_data)
-        giveaway_task = get_giveaway(session2, giveaway_id)
-        participant, giveaway = await asyncio.gather(participant_task, giveaway_task)
+    ref_id, giveaway_id = parts[0], int(parts[1])
+    async with get_session() as session: participant = await get_participant(session, giveaway_id, message.from_user.id)
+    if participant:
+        await message.answer('Данный аккаунт уже был зарегистрирован в базе розыгрышей, повторно записать его не получиться')
+        return await handle_start(message, state)
+
+    create_data = ParticipantCreate(
+        tg_id=message.from_user.id,
+        ref_id=ref_id,
+        giveaway_id=giveaway_id,
+    )
+    async with get_session() as session: participant = await create_participant(session, create_data)
+    async with get_session() as session: giveaway = await get_giveaway(session, giveaway_id)
 
     return await message.answer(f'💬 Подпишитесь на чат @{giveaway.channel_username}\nПосле подписки, пожалуйста, <b>воспользуйтесь кнопкой ниже ⬇️ для проверки</b>', reply_markup=user_keyboards.ChatSubscription(giveaway.id))
 
