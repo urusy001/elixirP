@@ -23,6 +23,14 @@ async def get_participant(db: AsyncSession, giveaway_id: int, tg_id: int) -> Opt
     res = await db.execute(stmt)
     return res.scalar_one_or_none()
 
+async def get_participant_no_giveaway(db: AsyncSession, tg_id: int) -> Optional[Participant]:
+    stmt = (
+        select(Participant)
+        .where(Participant.tg_id == tg_id)
+    )
+    res = await db.execute(stmt)
+    return res.scalar_one_or_none()
+
 
 async def save_participant_review(
         db: AsyncSession,

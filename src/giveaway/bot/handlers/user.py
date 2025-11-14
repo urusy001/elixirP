@@ -20,7 +20,7 @@ from src.webapp.crud import (
     get_participant,
     update_participant,
     create_participant,
-    count_refs_for_participant,
+    count_refs_for_participant, get_participant_no_giveaway,
 )
 from src.webapp.models import Participant
 from src.webapp.schemas import ParticipantUpdate, ParticipantCreate
@@ -67,7 +67,7 @@ async def handle_ref_start(message: Message, command: CommandStart, state: FSMCo
         return await handle_start(message, state)
 
     ref_id, giveaway_id = parts[0], int(parts[1])
-    async with get_session() as session: participant = await get_participant(session, giveaway_id, message.from_user.id)
+    async with get_session() as session: participant = await get_participant_no_giveaway(session, message.from_user.id)
     if participant:
         await message.answer('Данный аккаунт уже был зарегистрирован в базе розыгрышей, повторно записать его не получиться')
         return await handle_start(message, state)

@@ -14,5 +14,5 @@ __all__ = [
     'create_feature', 'get_feature', 'get_features', 'update_feature', 'get_product_with_features',
     'update_user', 'get_users', 'get_user', 'create_user', 'delete_user',
     'get_usages', 'write_usage', 'get_giveaway', 'get_participant', 'get_tg_refs',
-    'create_giveaway', 'update_participant', 'create_participant', 'count_refs_for_participant', 'get_giveaways',
+    'create_giveaway', 'update_participant', 'create_participant', 'count_refs_for_participant', 'get_giveaways', 'get_participant_no_giveaway',
 ]
