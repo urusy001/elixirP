@@ -15,6 +15,8 @@ const checkoutEl = document.getElementById("checkout-page");
 const contactPageEl = document.getElementById("contact-page");
 const headerTitle = document.getElementById("header-left");
 const toolbarEl = document.getElementById("toolbar");
+const paymentPageEl = document.getElementById("payment-page");
+const searchBtnEl = document.getElementById("search-btn");
 
 function productCardHTML(p) {
     const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
@@ -153,10 +155,12 @@ export async function renderHomePage() {
     headerTitle.textContent = "Магазин ElixirPeptide";
     listEl.style.display = "grid";
     toolbarEl.style.display = "flex";
+    searchBtnEl.style.display = "flex";
     detailEl.style.display = "none";
     cartPageEl.style.display = "none";
     checkoutEl.style.display = "none";
     contactPageEl.style.display = "none";
+    paymentPageEl.style.display = "none";
 
     page = 1;
     await loadMore(listEl, false);

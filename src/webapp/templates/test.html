@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <title>Yandex PVZ Widget – Minimal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=bb7d36f8-1e64-415c-80d2-12d77317718d&lang=ru_RU"></script>
+    <link rel="stylesheet" href="{{ request.url_for('static', path='css/style.css') }}">
+</head>
+<body>
+
+<div class="pvz-demo">
+    <div class="controls">
+        <label for="city-select">Город</label>
+        <select id="city-select">
+            <option value="Москва" selected>Москва</option>
+            <option value="Санкт-Петербург">Санкт-Петербург</option>
+            <option value="Казань">Казань</option>
+
+            <option value="Екатеринбург">Екатеринбург</option>
+            <option value="Новосибирск">Новосибирск</option>
+        </select>
+
+        <button id="search-button" class="primary" disabled>Искать ПВЗ</button>
+    </div>
+
+    <div class="widget-wrap">
+        <div id="widget-container"></div>
+        <button id="fab-search" class="fab-search" aria-label="Искать ПВЗ">Искать ПВЗ</button>
+    </div>
+</div>
+
+<script type="module" src="{{ request.url_for('static', path='js/test-env.js') }}"></script>
+</body>
+</html>

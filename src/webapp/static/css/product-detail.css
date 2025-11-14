@@ -11,6 +11,44 @@
     margin-bottom: 0.5em;
 }
 
+/* Product description with clamp + "ещё..." toggle */
+.product-description {
+    position: relative;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* Collapsed: only first N lines (set as 4 here) */
+.product-description.product-description--clamp {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
+}
+
+/* Expanded: show full text */
+.product-description.product-description--expanded {
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+}
+
+/* "ещё..." / "скрыть" toggle */
+.product-description-toggle {
+    margin-top: 4px;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font: inherit;
+    color: #1E669E;
+    opacity: 0.9;
+}
+
+.product-description-toggle:active {
+    opacity: 0.7;
+}
+
 /* --- Features table with clear row borders --- */
 .features-table {
     width: 100%;
@@ -28,7 +66,7 @@
 .features-table td {
     padding: 8px 12px;
     text-align: left;
-    vertical-align: middle;                /* ⬅ center content vertically */
+    vertical-align: middle;                /* center content vertically */
     word-break: break-word;
     overflow-wrap: anywhere;
     background-clip: padding-box;          /* clean borders on rounded table */
@@ -60,7 +98,7 @@
 
 /* --- Qty controls inside features table --- */
 
-/* container (in case inline styles are removed later) */
+/* container */
 .cart-qty-ctrl {
     display: flex;
     align-items: center;                   /* center buttons & value */
@@ -68,16 +106,11 @@
     gap: .4rem;
 }
 
-/* size token: scales with text, but never below a good touch target */
-:root {
-    --qty-size: 2.2em;                     /* proportional square size */
-    --qty-min: 40px;                        /* minimum tap size */
-}
-
+/* buttons size & style (no CSS vars) */
 .features-table .qty-dec,
 .features-table .qty-inc {
-    width: max(var(--qty-size), var(--qty-min)) !important;  /* override inline */
-    height: max(var(--qty-size), var(--qty-min)) !important; /* override inline */
+    width: 40px !important;
+    height: 40px !important;
     border: none;
     border-radius: 6px;
     background: #2AABEE;
@@ -96,6 +129,16 @@
     font-weight: 500;
 }
 
+.cart-qty-ctrl button {
+    padding: 2px 2px 2px 2px !important;
+}
+
+/* (fixed) separate selectors for dec / inc if needed */
+.qty-dec,
+.qty-inc {
+    padding: 0 !important;
+}
+
 /* Buy button */
 .buy-btn {
     background-color: #2381cc;
@@ -111,35 +154,68 @@
 }
 
 /* Bottom sheet */
-.sheet-root{position:fixed;inset:0;z-index:var(--z-overlay,2147483647);display:none}
-.sheet-root.open{display:block}
-.sheet-backdrop{
-    position:absolute;inset:0;background:rgba(0,0,0,.25);
-    -webkit-backdrop-filter:none;backdrop-filter:none;
-    opacity:0;transition:opacity var(--dur-base) var(--easing)
+.sheet-root {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    display: none;
 }
-.sheet-root.open .sheet-backdrop{opacity:1}
-.sheet-panel{
-    position:absolute;left:50%;bottom:0;transform:translate(-50%,100%);
-    width:min(100%, var(--size-app-width,390px));max-height:80vh;
-    background:var(--card-bg,#fff);
-    border-top-left-radius:16px;border-top-right-radius:16px;
-    box-shadow:var(--shadow-lg,0 6px 12px rgba(0,0,0,.12));
-    transition:transform var(--dur-base) var(--easing)
+
+.sheet-root.open {
+    display: block;
 }
-.sheet-root.open .sheet-panel{transform:translate(-50%,0)}
-.sheet-handle{width:44px;height:5px;border-radius:999px;background:var(--color-border,#ddd);margin:10px auto}
-.sheet-content{padding:12px 12px 16px 12px;overflow:auto;max-height:calc(80vh - 28px)}
+
+.sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, .25);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    opacity: 0;
+    transition: opacity 220ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.sheet-root.open .sheet-backdrop {
+    opacity: 1;
+}
+
+.sheet-panel {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translate(-50%, 100%);
+    width: min(100%, 390px);
+    max-height: 80vh;
+    background: #ffffff;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, .12);
+    transition: transform 220ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.sheet-root.open .sheet-panel {
+    transform: translate(-50%, 0);
+}
+
+.sheet-handle {
+    width: 44px;
+    height: 5px;
+    border-radius: 999px;
+    background: #dddddd;
+    margin: 10px auto;
+}
+
+.sheet-content {
+    padding: 12px 12px 16px 12px;
+    overflow: auto;
+    max-height: calc(80vh - 28px);
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .sheet-backdrop, .sheet-panel {
-        transition: none
+    .sheet-backdrop,
+    .sheet-panel {
+        transition: none;
     }
-}
-.cart-qty-ctrl button {
-    padding: 2px 2px 2px 2px !important;
-}
-.qty-dec .qty-inc {
-    padding: 0 !important;
 }
 
 /* Out-of-stock badge — higher contrast, pill shape, not full-width */
@@ -158,7 +234,7 @@
     white-space: nowrap;
     pointer-events: none;
     margin: 2px auto;                      /* center in cell */
-    box-shadow: 0 1px 0 rgba(0,0,0,.03);   /* subtle depth */
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .03);   /* subtle depth */
 }
 
 /* Center the badge inside the balance cell */
@@ -168,7 +244,9 @@
 }
 
 /* Keep the row slightly dimmed but readable */
-.oos-row { opacity: .75; }
+.oos-row {
+    opacity: .75;
+}
 
 /* Dark theme */
 [data-theme="dark"] .features-table .oos-badge {

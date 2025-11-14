@@ -11,7 +11,6 @@ from src.webapp.main import run_app
 from src.webapp.database import init_db
 
 
-# -------------------- Logging setup --------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -19,14 +18,11 @@ logging.basicConfig(
 )
 logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
-
 logger = logging.getLogger("main")
 
 
-# -------------------- Main runner --------------------
 async def main():
     await init_db(False)
-
     # Track all created tasks
     tasks = [
         asyncio.create_task(client.token_worker(), name="sdek_token_worker"),

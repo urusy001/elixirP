@@ -35,6 +35,8 @@ export function showMainButton(text, onClick) {
 
     // 2. Set the new handler and button properties
     _mainButtonHandler = onClick;
+    tg.MainButton.hideProgress();
+    tg.MainButton.enable();
     tg.MainButton.setText(text);
     tg.MainButton.show();
     tg.onEvent?.("mainButtonClicked", _mainButtonHandler);

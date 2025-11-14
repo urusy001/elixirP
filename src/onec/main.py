@@ -1,10 +1,9 @@
 import asyncio
 import json
 import logging
-import time
 import xml.etree.ElementTree as ET
 from datetime import datetime
-from typing import List, Dict, Any, Literal
+from typing import Any, Literal
 
 import aiofiles
 import httpx
@@ -39,7 +38,7 @@ class OneCEnterprise:
     #                          FETCHING FROM 1C
     # --------------------------------------------------------------------------
 
-    async def __fetch_odata(self, endpoint: str, save: bool = False) -> List[Dict[str, Any]]:
+    async def __fetch_odata(self, endpoint: str, save: bool = True) -> list[dict[str, Any]]:
         """Fetch OData XML feed and parse <entry> records including ДополнительныеРеквизиты."""
         url = f"{self.__url}{endpoint}"
         response = None
@@ -57,14 +56,14 @@ class OneCEnterprise:
             raise Exception(f"❌ Failed to fetch {url} after 3 attempts")
 
         root = ET.fromstring(response.content)
-        entries: List[Dict[str, Any]] = []
+        entries: list[dict[str, Any]] = []
 
         for entry in root.findall("atom:entry", self.NS):
             content = entry.find("atom:content/m:properties", self.NS)
             if content is None:
                 continue
 
-            record: Dict[str, Any] = {}
+            record: dict[str, Any] = {}
             for elem in content:
                 tag = elem.tag.split("}", 1)[1] if "}" in elem.tag else elem.tag
 
@@ -80,12 +79,13 @@ class OneCEnterprise:
             entries.append(record)
 
         if save:
+            print(f"{endpoint.split('?')[0]}.json")
             async with aiofiles.open(f"{endpoint.split('?')[0]}.json", "w", encoding="utf-8") as f:
                 await f.write(json.dumps(entries, ensure_ascii=False, indent=4))
 
         return entries
 
-    async def get_units_1c(self, save: bool = False) -> Dict[str, Dict[str, Any]]:
+    async def get_units_1c(self, save: bool = False) -> dict[str, dict[str, Any]]:
         units = await self.__fetch_odata(endpoints.UNITS, save)
         return {
             u.get("Ref_Key"): {
@@ -93,10 +93,10 @@ class OneCEnterprise:
                 "name": u.get("Description"),
                 "description": u.get("НаименованиеПолное"),
             }
-            for u in units
+            for u in units if u.get("DeletionMark") not in [True, "true"]
         }
 
-    async def get_categories_1c(self, save: bool = False) -> Dict[str, Dict[str, Any]]:
+    async def get_categories_1c(self, save: bool = False) -> dict[str, dict[str, Any]]:
         cats = await self.__fetch_odata(endpoints.CATEGORIES, save)
         return {
             c.get("Ref_Key"): {
@@ -109,12 +109,12 @@ class OneCEnterprise:
                 "name": c.get("Description", "Без категории"),
                 "code": c.get("Code"),
             }
-            for c in cats
+            for c in cats if c.get("DeletionMark") not in [True, "true"]
         }
 
-    async def get_prices_1c(self, save: bool = False) -> Dict[str, Dict[str, Any]]:
+    async def get_prices_1c(self, save: bool = False) -> dict[str, dict[str, Any]]:
         prices = await self.__fetch_odata(endpoints.PRICES, save)
-        latest: Dict[tuple[str, str], Dict[str, Any]] = {}
+        latest: dict[tuple[str, str], dict[str, Any]] = {}
         for entry in prices:
             key = (entry["Номенклатура_Key"], entry["Характеристика_Key"])
             entry_period = datetime.fromisoformat(entry["Period"])
@@ -130,7 +130,7 @@ class OneCEnterprise:
             for v in latest.values()
         }
 
-    async def get_balances_1c(self, save: bool = False) -> Dict[str, Dict[str, Any]]:
+    async def get_balances_1c(self, save: bool = False) -> dict[str, dict[str, Any]]:
         balances = await self.__fetch_odata(endpoints.BALANCES, save)
         return {
             f"{b['Номенклатура_Key']}_{b['Характеристика_Key']}": {
@@ -141,7 +141,7 @@ class OneCEnterprise:
             for b in balances
         }
 
-    async def get_features_1c(self, save: bool = False) -> Dict[str, Dict[str, Any]]:
+    async def get_features_1c(self, save: bool = False) -> dict[str, dict[str, Any]]:
         features_task = self.__fetch_odata(endpoints.FEATURES, save)
         prices_task = self.get_prices_1c(save)
         balances_task = self.get_balances_1c(save)
@@ -159,10 +159,10 @@ class OneCEnterprise:
                 "price": prices_map.get(f"{f.get('Owner')}_{f.get('Ref_Key')}", {}).get("price", "0"),
                 "balance": balances_map.get(f"{f.get('Owner')}_{f.get('Ref_Key')}", {}).get("balance", "0"),
             }
-            for f in features
+            for f in features if f.get("DeletionMark") not in [True, "true"]
         }
 
-    async def get_products_1c(self, save: bool = False) -> Dict[str, Dict[str, Any]]:
+    async def get_products_1c(self, save: bool = False) -> dict[str, dict[str, Any]]:
         products = await self.__fetch_odata(endpoints.PRODUCTS, save)
         return {
             p.get("Ref_Key"): {
@@ -189,7 +189,7 @@ class OneCEnterprise:
                 ),
             }
             for p in products
-            if p.get("КатегорияНоменклатуры_Key") and p.get("Недействителен") != "true"
+            if p.get("КатегорияНоменклатуры_Key") and p.get("Недействителен") != "true" and p.get("DeletionMark") not in [True, "true"]
         }
 
     # --------------------------------------------------------------------------
@@ -217,7 +217,7 @@ class OneCEnterprise:
 
         self.log.info(f"✅ Finished inserting {name}.")
 
-    async def update_db(self, approach: Literal["json", "postgre"]) -> None:
+    async def update_db(self, approach: Literal["json", "postgres"]) -> None:
         save = approach == "json"
 
         # --- 1️⃣ Fetch all data ---
@@ -231,7 +231,7 @@ class OneCEnterprise:
         )
 
         # --- 2️⃣ Save ---
-        if approach == "postgre":
+        if approach == "postgres":
             await self.batched_insert(create_unit, [UnitCreate(**u) for u in units.values()], "units")
             await self.batched_insert(create_category, [CategoryCreate(**c) for c in categories.values()], "categories")
             await self.batched_insert(create_product, [ProductCreate(**p) for p in products.values()], "products")
@@ -267,18 +267,5 @@ class OneCEnterprise:
     async def close(self):
         await self.__client.aclose()
 
-
-# --------------------------------------------------------------------------
-#                                   MAIN
-# --------------------------------------------------------------------------
-async def main():
-    start = time.perf_counter()
-    onec = OneCEnterprise()
-    await onec.update_db("postgre")
-    end = time.perf_counter()
-    print(f"⏱ Initialization took {end - start:.2f} seconds")
-    await onec.close()
-
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(OneCEnterprise().update_db("json"))

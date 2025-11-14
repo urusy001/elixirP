@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import Any, Dict, Optional
 from typing import List
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -105,7 +105,11 @@ class ContactInfo(BaseModel):
 
 
 class CheckoutData(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    user_id: int
     checkout_data: Dict[str, Any]
     selected_delivery: Dict[str, Any]
     selected_delivery_service: str
-    contact_info: Optional[ContactInfo] = None  # <-- added field
+    contact_info: Optional[ContactInfo] = None
+    source: Optional[str] = None  # accepts "telegram"
+    payment_method: str

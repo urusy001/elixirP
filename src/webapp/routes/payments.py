@@ -1,27 +1,121 @@
 import uuid
+import json
+import httpx
+import logging
 from datetime import datetime
 from decimal import Decimal
-
-import httpx
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import (
+    YANDEX_DELIVERY_BASE_URL,
+    YANDEX_DELIVERY_TOKEN,
+    YANDEX_DELIVERY_WAREHOUSE_ID,
+)
+
 from config import YOOKASSA_API_URL, YOOKASSA_SECRET_KEY, YOOKASSA_SHOP_ID
+from src.delivery.sdek import client as cdek_client
+from src.helpers import format_order_for_amocrm
+from src.webapp import get_session
+from src.webapp.crud import update_user
 from src.webapp.database import get_db
 from src.webapp.models.checkout import CheckoutData, build_receipt
 from src.webapp.routes.cart import cart_json
+from src.webapp.schemas import UserUpdate
+from src.amocrm.client import amocrm
+
 
 router = APIRouter(prefix="/payments", tags=["payments"])
+log = logging.getLogger(__name__)
 
 
 @router.post("/create", response_model=None)
 async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_db)):
-    enriched_cart = await cart_json(payload.checkout_data, db=db)
-    total_amount = Decimal(enriched_cart.get("total", 0))
-    delivery_fee = Decimal(payload.selected_delivery.get("tariff", {}).get("delivery_sum", 0))
-    receipt = build_receipt(enriched_cart, delivery_fee)
+    cart = await cart_json(payload.checkout_data, db=db)
 
-    # Attach customer data
+    delivery_service = payload.selected_delivery_service.lower()
+    delivery_data = payload.selected_delivery
+    tariff = delivery_data["deliveryMode"]
+    contact_info = payload.contact_info
+    user_id = payload.user_id
+    checkout_data = payload.checkout_data
+    total = checkout_data["total"]
+    payment_method = payload.payment_method
+
+    payload_dict = payload.model_dump()
+
+    user_update = UserUpdate(**contact_info.model_dump())
+    async with get_session() as session: user = await update_user(session, user_id, user_update)
+
+    log.info("Create payment payload: %s", ())
+    order_number = str(datetime.now().timestamp())
+    if delivery_service == "yandex":
+        url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/pricing-calculator"
+
+        addr = delivery_data["address"]
+
+        if tariff == "time_interval": destination = {"address": addr["address"]}
+        else: destination = {"platform_station_id": addr["code"]}
+
+        body = {
+            "source": {"platform_station_id": YANDEX_DELIVERY_WAREHOUSE_ID},
+            "destination": destination,
+            "tariff": tariff,
+            "total_weight": 100,
+            "payment_method": "already_paid",
+            "client_price": 200000,
+            "total_assessed_price": 200000,
+            "places": [
+                {"physical_dims": {"dx": 25, "dy": 15, "dz": 10, "weight_gross": 100}}
+            ],
+        }
+        params = {"is_oversized": False}
+        headers = {
+            "Authorization": f"Bearer {YANDEX_DELIVERY_TOKEN}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(url, params=params, json=body, headers=headers)
+            try: resp.raise_for_status()
+            except httpx.HTTPError as e:
+                log.exception("Yandex Delivery error: %s", resp.text)
+                raise HTTPException(status_code=502, detail="Yandex Delivery API error")
+
+            data = resp.json()
+            with open("receipt_yandex.json", "w", encoding="utf-8") as f: json.dump(data, f, indent=4, ensure_ascii=False)
+
+        delivery_status = "ok"
+
+    elif delivery_service == "cdek":
+        try: cdek_result = await cdek_client.create_order_from_payload(payload_dict, order_number)
+        except HTTPException: raise
+        except Exception as e:
+            log.exception("CDEK create_order failed: %s", e)
+            raise HTTPException(status_code=502, detail="CDEK API error")
+
+        delivery_status = "ok"
+
+    else: raise HTTPException(status_code=400, detail="Unsupported delivery service")
+    if delivery_status == "ok":
+        order_lead_kwargs = {
+            "lead_name": f"{contact_info.name} {contact_info.surname}",
+            "phone": contact_info.phone,
+            "email": contact_info.email,
+            "address": delivery_data["address"],
+            "delivery_service": delivery_service,
+            "price": total,
+            "order_number": order_number,
+            "note_text": format_order_for_amocrm(order_number, payload_dict, delivery_service, tariff),
+            "payment_method": payment_method.upper(),
+        }
+        print(11111, json.dumps(order_lead_kwargs, indent=4, ensure_ascii=False))
+        await amocrm.create_lead_with_contact_and_note(**order_lead_kwargs)
+
+
+async def yookassa(payload, enriched_cart, delivery_fee, order_number):
+    receipt = build_receipt(enriched_cart, delivery_fee)
     receipt["customer"] = {
         "full_name": f"{payload.contact_info.name} {payload.contact_info.surname}",
         "phone": payload.contact_info.phone,
@@ -36,15 +130,13 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
             "amount": {"value": f"{total_amount:.2f}", "currency": "RUB"}
         }
     ]
-    order_id = f"{int(datetime.utcnow().timestamp())}"
     payment_payload = {
         "amount": {"value": f"{total_amount:.2f}", "currency": "RUB"},
         "confirmation": {"type": "redirect", "return_url": "http://localhost:3000/checkout-success"},
         "capture": True,
-        "description": f"Заказ #{order_id}",
+        "description": f"Заказ #{order_number}",
         "receipt": receipt
     }
-    print(payment_payload)
 
     async with httpx.AsyncClient(auth=(YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY)) as client:
         response = await client.post(
@@ -54,12 +146,10 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
         )
 
         if response.status_code not in (200, 201):
-            print(response.json())
             raise HTTPException(status_code=500, detail=f"YooKassa error: {response.text}")
 
         data = response.json()
-        print(data)
         return {
             "confirmation_url": data["confirmation"]["confirmation_url"],
-            "order_id": order_id
+            "order_id": order_number
         }

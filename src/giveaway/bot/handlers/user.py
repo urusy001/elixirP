@@ -1,9 +1,9 @@
 import asyncio
 
 from aiogram import Router
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, ChatMemberUpdatedFilter, JOIN_TRANSITION
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.deep_linking import create_start_link
 
 from config import ADMIN_TG_IDS
@@ -65,16 +65,17 @@ async def handle_ref_start(message: Message, command: CommandStart, state: FSMCo
         return await handle_start(message, state)
 
     ref_id, giveaway_id = parts[0], parts[1]
-    async with get_session() as session:
+    async with get_session() as session1, get_session() as session2:
         create_data = ParticipantCreate(
             tg_id=message.from_user.id,
             ref_id=ref_id,
             giveaway_id=giveaway_id,
         )
-        await create_participant(session, create_data)
+        participant_task = create_participant(session1, create_data)
+        giveaway_task = get_giveaway(session2, giveaway_id)
+        participant, giveaway = await asyncio.gather(participant_task, giveaway_task)
 
-    return await handle_start(message, state)
-
+    return await message.answer(f'💬 Подпишитесь на чат @{giveaway.channel_username}\nПосле подписки, пожалуйста, <b>воспользуйтесь кнопкой ниже ⬇️ для проверки</b>', reply_markup=user_keyboards.ChatSubscription(giveaway.id))
 
 @router.message(
     CommandStart(deep_link=False),

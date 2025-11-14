@@ -1,6 +1,7 @@
-from sqlalchemy import select, update
+from sqlalchemy import select, update, bindparam
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.helpers import normalize_user_value
 from src.webapp.models import User
 from src.webapp.schemas import UserCreate, UserUpdate
 
@@ -15,12 +16,14 @@ async def create_user(db: AsyncSession, data: UserCreate) -> User:
 
 
 # ---------------- READ ----------------
-async def get_user(db: AsyncSession, by: str, value) -> User | None:
-    if not hasattr(User, by):
-        raise AttributeError(f"User model has no attribute '{by}'")
+async def get_user(db, column_name: str, raw_value: str):
+    column = getattr(User, column_name, None)
+    if column is None:
+        return None
 
-    column = getattr(User, by)
-    result = await db.execute(select(User).where(column == value))
+    value = normalize_user_value(column_name, raw_value)
+    stmt = select(User).where(column == bindparam("v", value, type_=column.type))
+    result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
 

@@ -33,3 +33,10 @@
     text-align: center;
     font-weight: 500;
 }
+
+.cart-icon {
+    /* Makes the icon's height match the text's line-height */
+    height: 1.2em;
+    /* Makes the width scale automatically */
+    width: 1.2em;
+}

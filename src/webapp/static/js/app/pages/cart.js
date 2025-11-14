@@ -16,6 +16,8 @@ const checkoutEl = document.getElementById("checkout-page");
 const contactPageEl = document.getElementById("contact-page");
 const headerTitle = document.getElementById("header-left");
 const toolbarEl = document.getElementById("toolbar");
+const searchBtnEl = document.getElementById("search-btn");
+const paymentPageEl = document.getElementById("payment-page");
 
 const cartPageEl = document.getElementById("cart-page");
 const cartTotalEl = document.getElementById("summary-label");
@@ -113,7 +115,9 @@ async function renderCart() {
         plus.onclick = () => updateQuantity(key, 1);
 
         cartItemsEl.appendChild(row);
-        cartRows[key] = {row, qtySpan, priceDiv};
+
+        // ⬇️ сохраняем name вместе с DOM-элементами
+        cartRows[key] = {row, qtySpan, priceDiv, name};
     });
 
     updateTotal();
@@ -121,7 +125,7 @@ async function renderCart() {
 
 export async function handleCheckout() {
     const checkoutBtn = document.getElementById("checkout-btn");
-    updateMainButton("Обработка…", true, true)
+    updateMainButton("Обработка…", true, true);
 
     if (checkoutBtn) {
         checkoutBtn.disabled = true;
@@ -131,17 +135,21 @@ export async function handleCheckout() {
     try {
         const payload = Object.entries(state.cart).map(([key, qty]) => {
             const [id, featureId] = key.split("_");
-            return {id, featureId: featureId || null, qty};
+            const itemName = cartRows[key]?.name || null; // ⬅️ берём имя из cartRows
+            return {
+                id,
+                featureId: featureId || null,
+                qty,
+                name: itemName,
+            };
         });
 
         const data = await apiPost("/cart/json", {items: payload});
         setCheckoutData(data);
         navigateTo("/checkout");
     } catch (err) {
-        console.error("Checkout failed:", err);
-        alert("Ошибка при оформлении заказа. Попробуйте ещё раз.");
+        console.error(err);
     } finally {
-        updateMainButton('x', false, false)
         hideMainButton();
         if (checkoutBtn) {
             checkoutBtn.disabled = false;
@@ -159,6 +167,8 @@ export async function renderCartPage() {
     headerTitle.textContent = "Корзина";
     checkoutEl.style.display = "none";
     contactPageEl.style.display = "none";
+    searchBtnEl.style.display = "flex";
+    paymentPageEl.style.display = "none";
 
     await withLoader(renderCart);
 
@@ -167,7 +177,7 @@ export async function renderCartPage() {
             navigateTo("/");
         });
 
-        showMainButton('Оформить заказ', () => handleCheckout());
+        showMainButton("Оформить заказ", () => handleCheckout());
     } else {
         let btn = document.getElementById("checkout-btn");
         if (!btn) {

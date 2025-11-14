@@ -26,6 +26,7 @@ app.include_router(payments_router)
 app.include_router(users_router)
 app.include_router(forwarding_router)
 app.include_router(webhooks_router)
+app.include_router(users_router)
 
 
 @app.get("/", response_class=HTMLResponse)

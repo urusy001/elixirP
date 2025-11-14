@@ -3,7 +3,7 @@
 // ============================================================================
 import { showLoader, hideLoader } from "../ui/loader.js";
 import { hideCartIcon } from "../ui/cart-icon.js";
-import { isTelegramApp, showMainButton } from "../ui/telegram.js";
+import {isTelegramApp, showBackButton, showMainButton} from "../ui/telegram.js";
 import { navigateTo } from "../router.js";
 import { fetchPVZByCode, getSelectedPVZCode } from "../../services/pvzService.js";
 import { YandexPvzWidget } from "./yandex-pvz-widget.js";
@@ -18,6 +18,8 @@ const cartPageEl = document.getElementById("cart-page");
 const contactPageEl = document.getElementById("contact-page");
 const headerTitle = document.getElementById("header-left");
 const toolbarEl = document.getElementById("toolbar");
+const searchBtnEl = document.getElementById("search-btn");
+const paymentPageEl = document.getElementById("payment-page");
 
 // Map container IDs
 const CDEK_ID = "cdek-map-container";
@@ -284,7 +286,7 @@ async function initYandexWidget() {
                 sessionStorage.setItem(
                     "selected_delivery",
                     JSON.stringify({
-                        deliveryMode: "pickup_point",
+                        deliveryMode: payload.deliveryMode,
                         tariff: null,
                         address: {
                             code: payload.code,
@@ -350,13 +352,16 @@ export function createProceedButton(
 // ---------------------------------------------------------------------------
 export async function renderCheckoutPage() {
     showLoader();
-
+    showBackButton(() => navigateTo("/cart"));
     cartPageEl.style.display = "none";
     detailEl.style.display = "none";
     listEl.style.display = "none";
     toolbarEl.style.display = "none";
     contactPageEl.style.display = "none";
+    searchBtnEl.style.display = "none";
     headerTitle.textContent = "Доставка";
+    paymentPageEl.style.display = "none";
+
     hideCartIcon();
 
     checkoutPageEl.style.display = "block";

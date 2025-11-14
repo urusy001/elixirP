@@ -60,15 +60,74 @@
     </div>
 
     <!-- ✉️ Contact form page -->
-    <div id="contact-page" style="display:none;max-width:900px;margin:0 auto;padding:1rem;">
-        <h2>Введите данные для получения чека</h2>
+    <div id="contact-page" style="display:none;">
         <form id="contact-form" novalidate>
             <input type="text" name="name" placeholder="Имя" required/>
             <input type="text" name="surname" placeholder="Фамилия" required/>
             <input type="tel" name="phone" placeholder="Телефон" required/>
             <input type="email" name="email" placeholder="Email" required/>
-            <button id="submit-contact" type="submit">Продолжить</button>
         </form>
+    </div>
+    <div id="payment-page" style="display:none;">
+        <div class="payment-card">
+            <div class="payment-summary-row total">
+                <span>К оплате</span>
+                <span id="payment-total">0 ₽</span>
+            </div>
+            <div class="payment-summary-row" id="payment-delivery-row" style="display:none;">
+                <span>Доставка</span>
+                <span id="payment-delivery-amount">0 ₽</span>
+            </div>
+        </div>
+
+        <!-- Methods -->
+        <div class="payment-card">
+            <div class="payment-summary-row" style="margin-bottom:8px;">
+                <span>Способ оплаты</span>
+            </div>
+
+            <div class="payment-method-list" id="payment-methods">
+
+                <!-- Crypto USDT -->
+                <label class="payment-method active">
+                    <input type="radio" name="payment_method" value="usdt" checked>
+                    <div>
+                        <div class="payment-method-title">Криптовалюта USDT</div>
+                        <div class="payment-method-desc">
+                            Оплата заказа в USDT после подтверждения. Мы покажем адрес кошелька и сумму.
+                        </div>
+                    </div>
+                </label>
+
+                <!-- YooKassa -->
+                <label class="payment-method">
+                    <input type="radio" name="payment_method" value="yookassa">
+                    <div>
+                        <div class="payment-method-title">ЮKassa (карта, СБП и др.)</div>
+                        <div class="payment-method-desc">
+                            Перенаправим вас на защищённую страницу ЮKassa для онлайн-оплаты.
+                        </div>
+                    </div>
+                </label>
+
+                <!-- Pay later -->
+                <label class="payment-method">
+                    <input type="radio" name="payment_method" value="later">
+                    <div>
+                        <div class="payment-method-title">Оплатить позже</div>
+                        <div class="payment-method-desc">
+                            Оформить заказ без оплаты сейчас. Мы свяжемся с вами и уточним детали.
+                        </div>
+                    </div>
+                </label>
+
+            </div>
+
+            <div class="payment-note" id="payment-method-note" style="margin-top: 8px !important;">
+                Способ оплаты: USDT. После оформления мы покажем вам реквизиты.
+            </div>
+        </div>
+
     </div>
 
 </div>

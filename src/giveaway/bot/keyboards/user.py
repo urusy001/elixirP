@@ -2,6 +2,11 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from src.webapp.models import Giveaway, Participant
 
+class ChatSubscription(InlineKeyboardMarkup):
+    def __init__(self, giveaway_id: int):
+        super().__init__(inline_keyboard=[
+            [InlineKeyboardButton(text='Проверить подписку', callback_data=f'user:check_subscription:{giveaway_id}')],
+        ])
 
 class ViewGiveaways(InlineKeyboardMarkup):
     def __init__(self, giveaways: list[Giveaway]):

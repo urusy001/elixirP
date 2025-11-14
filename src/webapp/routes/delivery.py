@@ -6,7 +6,6 @@ from fastapi.responses import Response
 
 from config import CDEK_API_URL, YANDEX_GEOCODER_TOKEN, YANDEX_DELIVERY_TOKEN, YANDEX_DELIVERY_BASE_URL
 from src.delivery.sdek import client as cdek_client
-from src.webapp.models import PVZRequest
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +61,7 @@ async def cdek_proxy(request: Request):
             filtered = [
                 t for t in tariffs
                 if isinstance(t, dict)
-                   and t.get("tariff_name", "").lower().find("склад-") != -1
+                   and t.get("tariff_name", "").lower().find("склад-") != -1 and not 'магист' in t.get("tariff_name", "").lower()
             ]
 
             data["tariff_codes"] = filtered

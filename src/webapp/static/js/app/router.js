@@ -3,6 +3,7 @@ import {renderProductDetailPage} from "./pages/product-detail.js";
 import {renderCartPage} from "./pages/cart.js";
 import {renderCheckoutPage} from "./pages/checkout.js";
 import {renderContactPage} from "./pages/contact.js";
+import {renderPaymentPage} from "./pages/payment.js";
 
 const routes = [
     {match: p => p === "/" || p === "", action: renderHomePage},
@@ -10,6 +11,7 @@ const routes = [
     {match: p => p === "/cart", action: renderCartPage},
     {match: p => p === "/checkout", action: renderCheckoutPage},
     {match: p => p === "/contact", action: renderContactPage},
+    {match: p => p === "/payment", action: renderPaymentPage},
 ];
 
 export async function renderCurrentPath() {

@@ -20,6 +20,8 @@ const checkoutEl = document.getElementById("checkout-page");
 const contactPageEl = document.getElementById("contact-page");
 const headerTitle = document.getElementById("header-left");
 const toolbarEl = document.getElementById("toolbar");
+const searchBtnEl = document.getElementById("search-btn");
+const paymentPageEl = document.getElementById("payment-page");
 
 export async function renderProductDetailPage(onec_id) {
     toolbarEl.style.display = "none";
@@ -27,7 +29,9 @@ export async function renderProductDetailPage(onec_id) {
     contactPageEl.style.display = "none";
     cartPageEl.style.display = "none";
     checkoutEl.style.display = "none";
+    paymentPageEl.style.display = "none";
     headerTitle.textContent = "Информация о продукте";
+    searchBtnEl.style.display = "flex";
     detailEl.style.display = "block";
 
     const data = await withLoader(() => getProductDetail(onec_id));
@@ -89,6 +93,10 @@ export async function renderProductDetailPage(onec_id) {
     if (data.product.usage) infoEl.querySelector(".product-usage").innerHTML = data.product.usage;
     if (data.product.expiration) infoEl.querySelector(".product-expiration").innerHTML = data.product.expiration;
     detailEl.querySelector(".product-image img").alt = data.product.name;
+
+    // Clamp / expand description
+    const descEl = infoEl.querySelector(".product-description");
+    setupDescriptionClamp(descEl);
 
     // Create bottom sheet
     const sheet = createBottomSheet(featuresTableHtml);
@@ -373,4 +381,46 @@ function createBottomSheet(innerHTML) {
     const isOpen = () => opened;
 
     return {root, open, close, onClose, isOpen};
+}
+
+/**
+ * Clamp long product description to first N lines and show TikTok-style "ещё..." toggle.
+ */
+function setupDescriptionClamp(descEl) {
+    if (!descEl) return;
+
+    const MAX_LINES = 4; // how many lines to show when collapsed
+
+    descEl.classList.add("product-description--clamp");
+    descEl.style.setProperty("--desc-max-lines", MAX_LINES);
+
+    // Wait for layout so scrollHeight/clientHeight are correct
+    requestAnimationFrame(() => {
+        // If text fits inside, no "ещё..." needed
+        if (descEl.scrollHeight <= descEl.clientHeight + 1) {
+            descEl.classList.remove("product-description--clamp");
+            return;
+        }
+
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "product-description-toggle";
+        toggle.textContent = "ещё...";
+
+        // Visually like TikTok comments: below the text
+        descEl.insertAdjacentElement("afterend", toggle);
+
+        let expanded = false;
+
+        toggle.addEventListener("click", () => {
+            expanded = !expanded;
+            if (expanded) {
+                descEl.classList.add("product-description--expanded");
+                toggle.textContent = "скрыть";
+            } else {
+                descEl.classList.remove("product-description--expanded");
+                toggle.textContent = "ещё...";
+            }
+        });
+    });
 }

@@ -9,7 +9,6 @@ from src.webapp.schemas import UserRead
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-
 @router.get("/", response_model=List[UserRead])
 async def get_users(
         column_name: str = Query(..., description="Column name to filter by"),
@@ -21,9 +20,7 @@ async def get_users(
     Example: /users?column_name=email&value=john@example.com
     """
 
-    user = await get_user(db, 'tg_id', value)
-
-    if not user:
-        return []
+    user = await get_user(db, column_name, value)
+    if not user: return []
 
     return [user]  # Response model expects a list

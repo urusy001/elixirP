@@ -23,7 +23,6 @@ async def get_cart_product(
         raise HTTPException(status_code=404, detail="Product not found")
 
     feature = None
-    print(onec_id, feature_id)
     if feature_id:
         feature = await get_feature(db, 'onec_id', feature_id)
         if not feature:
@@ -57,17 +56,18 @@ async def cart_json(cart_data: dict = Body(...), db: AsyncSession = Depends(get_
 
     for item in items:
         pid = item.get("id")
+
         fid = item.get("featureId")
         qty = item.get("qty", 1)
 
-        feature = feature_map.get(fid)
+        feature: Feature = feature_map.get(fid)
         if feature:
             price = Decimal(feature.price)
             subtotal = price * qty
             total += subtotal
-
             enriched.append({
                 "id": pid,
+                "name": f'{item.get("name")}',
                 "featureId": fid,
                 "price": float(price),
                 "qty": qty,
