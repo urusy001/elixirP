@@ -25,8 +25,10 @@ async def main():
     await init_db(False)
     # Track all created tasks
     tasks = [
-        asyncio.create_task(client.token_worker(), name="sdek_token_worker"),
-        asyncio.create_task(run_app(), name="webapp")
+        asyncio.create_task(run_giveaway_bot()),
+        asyncio.create_task(run_professor_bot()),
+        asyncio.create_task(run_dose_bot()),
+        asyncio.create_task(run_new_bot()),
     ]
 
     # Helper to cancel everything cleanly

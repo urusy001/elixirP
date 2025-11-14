@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import asyncio
 
 from aiogram import Router
-from aiogram.filters import CommandStart, ChatMemberUpdatedFilter, JOIN_TRANSITION
+from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery
 from aiogram.utils.deep_linking import create_start_link
 
 from config import ADMIN_TG_IDS
