@@ -265,7 +265,7 @@ async def handle_user_call(call: CallbackQuery, state: FSMContext, giveaway_bot)
                 start_link = await create_start_link(call.bot, f"{user_id}_{giveaway_id}", True)
                 text = (
                     f"❌ Вы привели <b>{refs}/{giveaway.minimal_referral_amount}</b> друзей по ссылке: "
-                    f"<code>{start_link}</code>\n\n"
+                    f"<b>{start_link}</b>\n\n"
                     f"<i>Приведённые друзья должны <b>пройти проверку подписки</b> "
                     f"для участия в розыгрыше.</i>"
                 )
