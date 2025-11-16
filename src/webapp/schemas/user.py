@@ -17,15 +17,11 @@ class UserBase(BaseModel):
     blocked_until: datetime | None = Field(None, description="User blocked until this datetime")
 
 
-# ---------- Create ----------
-
 class UserCreate(UserBase):
     """Schema used when creating a new user."""
     tg_id: int = Field(..., description="Telegram user ID")
     tg_ref_id: int | None = Field(None, description="Optional referral user ID")
 
-
-# ---------- Update ----------
 
 class UserUpdate(BaseModel):
     """Schema used when updating existing user fields."""
@@ -38,9 +34,8 @@ class UserUpdate(BaseModel):
     input_tokens: int | None = None
     output_tokens: int | None = None
     blocked_until: datetime | None = None
+    tg_ref_id: int | None = None
 
-
-# ---------- Read ----------
 
 class UserRead(UserBase):
     """Schema used when returning a user from the database."""
@@ -48,5 +43,5 @@ class UserRead(UserBase):
     tg_ref_id: int | None = None
 
     model_config = {
-        "from_attributes": True  # Enables ORM compatibility with SQLAlchemy models
+        "from_attributes": True  # ORM mode for SQLAlchemy models
     }

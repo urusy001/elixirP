@@ -23,12 +23,11 @@ logger = logging.getLogger("main")
 
 async def main():
     await init_db(False)
+    await OneCEnterprise().update_db("postgres")
     # Track all created tasks
     tasks = [
-        asyncio.create_task(run_giveaway_bot()),
-        asyncio.create_task(run_professor_bot()),
-        asyncio.create_task(run_dose_bot()),
-        asyncio.create_task(run_new_bot()),
+        asyncio.create_task(client.token_worker()),
+        asyncio.create_task(run_app())
     ]
 
     # Helper to cancel everything cleanly

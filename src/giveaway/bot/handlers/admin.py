@@ -210,7 +210,7 @@ async def handle_admin_call(call: CallbackQuery, state: FSMContext):
                 participants, giveaway = await asyncio.gather(participants_task, giveaway_task)
 
             participants_info = [{
-                'Полное имя': participant.review_phone,
+                'Полное имя': participant.review_fullname,
                 'Номер телефона': participant.review_phone,
                 'Эл. почта': participant.review_email,
                 'Телеграм ID': participant.tg_id,

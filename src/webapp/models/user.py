@@ -1,4 +1,5 @@
 from sqlalchemy import Column, BigInteger, String, DateTime
+from sqlalchemy.orm import relationship
 
 from src.webapp.database import Base
 
@@ -8,8 +9,8 @@ class User(Base):
 
     # Telegram + identity
     tg_id = Column(BigInteger, primary_key=True, index=True, autoincrement=False)
-    tg_ref_id = Column(BigInteger, index=True, autoincrement=False, nullable=True)
-    tg_phone = Column(String, nullable=False, index=True)
+    tg_ref_id = Column(BigInteger, index=True, autoincrement=False, nullable=True, default=None)
+    tg_phone = Column(String, nullable=True, index=True, default=None)
 
     # Profile info
     name = Column(String, nullable=True, default=None)
@@ -24,3 +25,16 @@ class User(Base):
 
     # Blocking system
     blocked_until = Column(DateTime(timezone=True), nullable=True, default=None)
+
+    # Relationships
+    bags = relationship(
+        "Bag",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    carts = relationship(
+        "Cart",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )

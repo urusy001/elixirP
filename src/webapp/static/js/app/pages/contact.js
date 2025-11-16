@@ -2,7 +2,7 @@ import { showLoader, hideLoader } from "../ui/loader.js";
 import { hideCartIcon } from "../ui/cart-icon.js";
 import { navigateTo } from "../router.js";
 import { state } from "../state.js";
-import { isTelegramApp, showMainButton, updateMainButton, showBackButton } from "../ui/telegram.js";
+import {isTelegramApp, showMainButton, updateMainButton, showBackButton, hideMainButton} from "../ui/telegram.js";
 
 const checkoutPageEl = document.getElementById("checkout-page");
 const listEl = document.getElementById("product-list");
@@ -63,6 +63,7 @@ export async function renderContactPage() {
             showLoader();
             const url = `/users?column_name=tg_id&value=${encodeURIComponent(String(uid))}`;
             const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
+            alert(JSON.stringify(res, null, 2));
             if (!res.ok) return null;
             const arr = await res.json(); // List[UserRead]
             return Array.isArray(arr) && arr.length ? arr[0] : null;
@@ -86,7 +87,7 @@ export async function renderContactPage() {
         navigateTo("/payment"); // 👉 go to payment page, no POST yet
     }
 
-    showMainButton("Продолжить", handleSubmit);
+    hideMainButton();
     showBackButton(() => navigateTo("/checkout"));
 
     // ---------- Prefill / auto-skip ----------
