@@ -4,19 +4,19 @@ import {navigateTo} from "../router.js";
 import {state, saveCart} from "../state.js";
 import {hideBackButton, hideMainButton} from "../ui/telegram.js";
 import {showCartIcon} from "../ui/cart-icon.js";
+import {
+    cartPageEl,
+    checkoutPageEl,
+    contactPageEl, detailEl,
+    headerTitle, listEl,
+    paymentPageEl,
+    processPaymentEl,
+    searchBtnEl,
+    toolbarEl
+} from "./constants.js";
 
 let page = 0;
 let loading = false;
-
-const listEl = document.getElementById("product-list");
-const detailEl = document.getElementById("product-detail");
-const cartPageEl = document.getElementById("cart-page");
-const checkoutEl = document.getElementById("checkout-page");
-const contactPageEl = document.getElementById("contact-page");
-const headerTitle = document.getElementById("header-left");
-const toolbarEl = document.getElementById("toolbar");
-const paymentPageEl = document.getElementById("payment-page");
-const searchBtnEl = document.getElementById("search-btn");
 
 function productCardHTML(p) {
     const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
@@ -158,9 +158,10 @@ export async function renderHomePage() {
     searchBtnEl.style.display = "flex";
     detailEl.style.display = "none";
     cartPageEl.style.display = "none";
-    checkoutEl.style.display = "none";
+    checkoutPageEl.style.display = "none";
     contactPageEl.style.display = "none";
     paymentPageEl.style.display = "none";
+    processPaymentEl.style.display = "none";
 
     page = 1;
     await loadMore(listEl, false);

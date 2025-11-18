@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import httpx
@@ -21,22 +22,6 @@ from config import (
     AMOCRM_BASE_DOMAIN,
 )
 
-AMO_CF = {
-    "cdek_tracking_url": 752437,
-    "delivery_cdek": 752921,
-    "consultant_call": 753605,
-    "delivery_yandex": 753603,
-    "tg_nick": 753183,
-    "payment": 753401,
-    "cdek_number": 751951,
-    "city": 752927,
-    "address": 752435,
-    "promo_code": 752923,
-    "delivery_price": 752929,
-    "ai": 753181,
-}
-
-
 class AsyncAmoCRM:
     def __init__(
             self,
@@ -47,9 +32,31 @@ class AsyncAmoCRM:
             access_token: str | None = None,
             refresh_token: str | None = None,
     ):
-        self.COMPLETE_STATUS_IDS = [75784946, 75784942, 76566302, 76566306, 142]
-        self.MAIN_STATUS_ID = 81419122
+        self.STATUS_IDS = {
+            "main": 81419122,
+            "check_sent": 75784938,
+            "check_paid": 75784946,
+            "packaged": 75784942,
+            "package_sent": 76566302,
+            "package_delivered": 76566306,
+            "won": 142
+        }
         self.PIPELINE_ID = 9280278
+        self.CF = {
+            "cdek_tracking_url": 752437,
+            "delivery_cdek": 752921,
+            "consultant_call": 753605,
+            "delivery_yandex": 753603,
+            "tg_nick": 753183,
+            "payment": 753401,
+            "cdek_number": 751951,
+            "city": 752927,
+            "address": 752435,
+            "promo_code": 752923,
+            "delivery_price": 752929,
+            "ai": 753181,
+        }
+        
         self.logger = logging.getLogger(self.__class__.__name__)
         self.base_domain = base_domain
         self.client_id = client_id
@@ -60,6 +67,9 @@ class AsyncAmoCRM:
         self.expires_at = datetime.now(UTC) + timedelta(days=1)
 
     # ---------- TOKEN MANAGEMENT ----------
+    @property
+    def COMPLETE_STATUS_IDS(self):
+        return self.STATUS_IDS.items()
 
     async def __request_token(self, grant_type: str, code: str | None = None):
         """Request new tokens (either via refresh_token or authorization_code)."""
@@ -334,9 +344,11 @@ class AsyncAmoCRM:
     async def create_lead(
             self,
             name: str,
+            status_id: int,
             price: int | None = None,
             custom_fields: dict[int, object] | None = None,
             responsible_user_id: int | None = None,
+
     ):
         """
         Create a single lead in AmoCRM.
@@ -348,7 +360,7 @@ class AsyncAmoCRM:
         body_lead: dict = {
             "name": name,
             "pipeline_id": self.PIPELINE_ID,
-            "status_id": self.MAIN_STATUS_ID,
+            "status_id": status_id,
         }
 
         if price is not None:
@@ -399,6 +411,7 @@ class AsyncAmoCRM:
             note_text: str,
             payment_method: str,
             tg_nick: str | None = '',
+            status_id: int = None,
     ):
         """
         1) Create lead with custom fields
@@ -408,25 +421,25 @@ class AsyncAmoCRM:
 
         Returns dict: {"lead": lead_dict, "contact": contact_dict}
         """
-        # Normalize address for CF
         address_str = normalize_address_for_cf(address)
 
         lead_custom_fields: dict[int, object] = {}
-        if address_str: lead_custom_fields[AMO_CF["address"]] = address_str
-        if tg_nick: lead_custom_fields[AMO_CF["tg_nick"]] = tg_nick
-        if isinstance(address, dict) and address.get("city"): lead_custom_fields[AMO_CF["city"]] = address["city"]
+        if address_str: lead_custom_fields[self.CF["address"]] = address_str
+        if tg_nick: lead_custom_fields[self.CF["tg_nick"]] = tg_nick
+        if isinstance(address, dict) and address.get("city"): lead_custom_fields[self.CF["city"]] = address["city"]
         if delivery_service.upper() == "CDEK":
-            lead_custom_fields[AMO_CF["delivery_cdek"]] = "СДЭК"
-            lead_custom_fields[AMO_CF["cdek_number"]] = order_number
-            lead_custom_fields[AMO_CF["cdek_tracking_url"]] = f'https://www.cdek.ru/ru/tracking/?order_id={order_number}'
+            lead_custom_fields[self.CF["delivery_cdek"]] = "СДЭК"
+            lead_custom_fields[self.CF["cdek_number"]] = order_number
+            lead_custom_fields[self.CF["cdek_tracking_url"]] = f'https://www.cdek.ru/ru/tracking/?order_id={order_number}'
 
-        elif delivery_service.upper() == "YANDEX": lead_custom_fields[AMO_CF["delivery_yandex"]] = "Яндекс"
-        lead_custom_fields[AMO_CF["payment"]] = payment_method
+        elif delivery_service.upper() == "YANDEX": lead_custom_fields[self.CF["delivery_yandex"]] = "Яндекс"
+        lead_custom_fields[self.CF["payment"]] = payment_method
 
         lead = await self.create_lead(
             name=f"Заказ №{order_number} с Приложения ТГ",
             price=price,
             custom_fields=lead_custom_fields,
+            status_id=status_id or self.STATUS_IDS[""]
         )
         lead_id = lead["id"]
 
@@ -465,10 +478,7 @@ class AsyncAmoCRM:
         await self.post(f"/api/v4/leads/{lead_id}/link", json=link_payload)
         await self.add_lead_note(lead_id, note_text)
 
-        return {
-            "lead": lead,
-            "contact": contact,
-        }
+        return lead
 
 
 # ---------- INSTANCE ----------

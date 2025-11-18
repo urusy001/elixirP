@@ -10,29 +10,29 @@ import {
     isTelegramApp,
 } from "../ui/telegram.js";
 import {navigateTo} from "../router.js";
+import {
+    cartPageEl,
+    checkoutPageEl,
+    contactPageEl, detailEl,
+    headerTitle, listEl,
+    paymentPageEl,
+    processPaymentEl,
+    searchBtnEl,
+    toolbarEl
+} from "./constants.js";
 
-/* ============================ Public ============================ */
-
-const listEl = document.getElementById("product-list");
-const detailEl = document.getElementById("product-detail");
-const cartPageEl = document.getElementById("cart-page");
-const checkoutEl = document.getElementById("checkout-page");
-const contactPageEl = document.getElementById("contact-page");
-const headerTitle = document.getElementById("header-left");
-const toolbarEl = document.getElementById("toolbar");
-const searchBtnEl = document.getElementById("search-btn");
-const paymentPageEl = document.getElementById("payment-page");
 
 export async function renderProductDetailPage(onec_id) {
     toolbarEl.style.display = "none";
     listEl.style.display = "none";
     contactPageEl.style.display = "none";
     cartPageEl.style.display = "none";
-    checkoutEl.style.display = "none";
+    checkoutPageEl.style.display = "none";
     paymentPageEl.style.display = "none";
     headerTitle.textContent = "Информация о продукте";
     searchBtnEl.style.display = "flex";
     detailEl.style.display = "block";
+    processPaymentEl.style.display = "none";
 
     const data = await withLoader(() => getProductDetail(onec_id));
     if (data?.error) {

@@ -7,19 +7,20 @@ import {isTelegramApp, showBackButton, showMainButton} from "../ui/telegram.js";
 import { navigateTo } from "../router.js";
 import { fetchPVZByCode, getSelectedPVZCode } from "../../services/pvzService.js";
 import { YandexPvzWidget } from "./yandex-pvz-widget.js";
+import {
+    cartPageEl,
+    checkoutPageEl,
+    contactPageEl, detailEl,
+    headerTitle, listEl,
+    paymentPageEl,
+    processPaymentEl,
+    searchBtnEl,
+    toolbarEl
+} from "./constants.js";
 
 // ---------------------------------------------------------------------------
 // DOM references
 // ---------------------------------------------------------------------------
-const checkoutPageEl = document.getElementById("checkout-page");
-const listEl = document.getElementById("product-list");
-const detailEl = document.getElementById("product-detail");
-const cartPageEl = document.getElementById("cart-page");
-const contactPageEl = document.getElementById("contact-page");
-const headerTitle = document.getElementById("header-left");
-const toolbarEl = document.getElementById("toolbar");
-const searchBtnEl = document.getElementById("search-btn");
-const paymentPageEl = document.getElementById("payment-page");
 
 // Map container IDs
 const CDEK_ID = "cdek-map-container";
@@ -361,6 +362,7 @@ export async function renderCheckoutPage() {
     searchBtnEl.style.display = "none";
     headerTitle.textContent = "Доставка";
     paymentPageEl.style.display = "none";
+    processPaymentEl.style.display = "none";
 
     hideCartIcon();
 

@@ -3,7 +3,7 @@ from datetime import datetime
 
 import pandas as pd
 from aiogram import Router
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, FSInputFile
 
@@ -11,7 +11,9 @@ from config import ADMIN_TG_IDS, SPENDS_DIR, AI_BOT_TOKEN, AI_BOT_TOKEN2
 from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
 from src.webapp import get_session
-from src.webapp.crud import get_usages
+from src.webapp.crud import get_usages, get_user, update_user
+from src.webapp.schemas import UserUpdate
+from src.tg_methods import get_user_id_by_phone, normalize_phone
 
 router = Router(name="admin")
 router2 = Router(name="admin")
@@ -26,6 +28,207 @@ async def handle_admin_start(message: Message):
         f'{message.from_user.full_name}, Добро пожаловать в <b>админ панель</b>\n\nВыберите действие кнопками ниже',
         reply_markup=admin_keyboards.main_menu, parse_mode="html")
 
+
+@router.message(Command('block'), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@router2.message(Command('block'), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@router3.message(Command('block'), lambda message: message.from_user.id in ADMIN_TG_IDS)
+async def handle_block(message: Message):
+    text = (message.text or "").strip()
+    args = text.removeprefix("/block ").split()
+
+    if len(args) != 2:
+        return await message.answer(
+            "<b>Ошибка команды</b>\n"
+            "<code>/block phone номер_телефона</code>\n"
+            "<code>/block id айди_телеграм</code>"
+        )
+
+    mode, value = args[0], args[1]
+    user_update = UserUpdate(blocked_until=datetime.max)
+    full_name = "Unknown"
+
+    if mode == "id":
+        if not value.isdigit():
+            return await message.answer(
+                "<b>Ошибка команды:</b> айди должен быть числом\n"
+                "<code>/block id 123456789</code>"
+            )
+
+        user_id = int(value)
+        async with get_session() as session:
+            user = await get_user(session, "tg_id", user_id)
+            if not user:
+                return await message.answer(
+                    f"<b>Ошибка команды: пользователь с айди {user_id} не найден</b>"
+                )
+
+            await update_user(session, user.tg_id, user_update)
+
+        # попытка достать нормальное имя из Telegram
+        try:
+            chat = await message.bot.get_chat(user_id)
+            if chat:
+                full_name = chat.full_name
+        except Exception:
+            full_name = str(user_id)
+
+        return await message.answer(
+            f"Пользователь {full_name} успешно <b>заблокирован</b>\n"
+            f"Команда для разблокировки: <code>/unblock id {user_id}</code>"
+        )
+
+    elif mode == "phone":
+        phone = normalize_phone(value)
+        full_name = phone
+
+        async with get_session() as session:
+            user = await get_user(session, "tg_phone", phone)
+            if not user:
+                user = await get_user(session, "tg_id", f'+{phone}')
+
+        if not user:
+            user_id = await get_user_id_by_phone(phone)
+            if not user_id:
+                return await message.answer(
+                    f"<b>Ошибка команды: пользователь с номером {phone} не найден</b>"
+                )
+
+            async with get_session() as session:
+                user = await get_user(session, "tg_id", user_id)
+                if not user:
+                    return await message.answer(
+                        f"<b>Ошибка команды: пользователь с номером {phone} не найден</b>"
+                    )
+
+                # блокируем по tg_id (важно — этого не было в твоем коде)
+                await update_user(session, user.tg_id, user_update)
+
+        else:
+            # если нашли по tg_phone — просто блокируем
+            async with get_session() as session:
+                await update_user(session, user.tg_id, user_update)
+
+        # попытка достать нормальное имя из Telegram
+        try:
+            chat = await message.bot.get_chat(user.tg_id)
+            if chat:
+                full_name = chat.full_name
+        except Exception:
+            pass
+
+        return await message.answer(
+            f"Пользователь {full_name} успешно <b>заблокирован</b>\n"
+            f"Команда для разблокировки: <code>/unblock phone {phone}</code>"
+        )
+
+    # ------------- неизвестный режим -------------
+    else:
+        return await message.answer(
+            "<b>Ошибка команды</b>\n"
+            "<code>/block phone номер_телефона</code>\n"
+            "<code>/block id айди_телеграм</code>"
+        )
+
+
+@router.message(Command('unblock'), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@router2.message(Command('unblock'), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@router3.message(Command('unblock'), lambda message: message.from_user.id in ADMIN_TG_IDS)
+async def handle_unblock(message: Message):
+    text = (message.text or "").strip()
+    args = text.removeprefix("/unblock ").split()
+
+    if len(args) != 2:
+        return await message.answer(
+            "<b>Ошибка команды</b>\n"
+            "<code>/unblock phone номер_телефона</code>\n"
+            "<code>/unblock id айди_телеграм</code>"
+        )
+
+    mode, value = args[0], args[1]
+    # снимаем блокировку
+    user_update = UserUpdate(blocked_until=None)
+    full_name = "Unknown"
+
+    # ------------- /unblock id 123456 -------------
+    if mode == "id":
+        if not value.isdigit():
+            return await message.answer(
+                "<b>Ошибка команды:</b> айди должен быть числом\n"
+                "<code>/unblock id 123456789</code>"
+            )
+
+        user_id = int(value)
+        async with get_session() as session:
+            user = await get_user(session, "tg_id", user_id)
+            if not user:
+                return await message.answer(
+                    f"<b>Ошибка команды: пользователь с айди {user_id} не найден</b>"
+                )
+
+            await update_user(session, user.tg_id, user_update)
+
+        # попытка достать нормальное имя из Telegram
+        try:
+            chat = await message.bot.get_chat(user_id)
+            if chat:
+                full_name = chat.full_name
+        except Exception:
+            full_name = str(user_id)
+
+        return await message.answer(
+            f"Пользователь {full_name} успешно <b>разблокирован</b>\n"
+            f"Команда для блокировки: <code>/block id {user_id}</code>"
+        )
+
+    elif mode == "phone":
+        phone = normalize_phone(value)
+        full_name = phone
+
+        async with get_session() as session:
+            user = await get_user(session, "tg_phone", phone)
+            if not user:
+                user = await get_user(session, "tg_id", f'+{phone}')
+
+        if not user:
+            user_id = await get_user_id_by_phone(phone)
+            if not user_id:
+                return await message.answer(
+                    f"<b>Ошибка команды: пользователь с номером {phone} не найден</b>"
+                )
+
+            async with get_session() as session:
+                user = await get_user(session, "tg_id", user_id)
+                if not user:
+                    return await message.answer(
+                        f"<b>Ошибка команды: пользователь с номером {phone} не найден</b>"
+                    )
+
+                await update_user(session, user.tg_id, user_update)
+
+        else:
+            async with get_session() as session:
+                await update_user(session, user.tg_id, user_update)
+
+        # попытка достать нормальное имя из Telegram
+        try:
+            chat = await message.bot.get_chat(user.tg_id)
+            if chat:
+                full_name = chat.full_name
+        except Exception:
+            pass
+
+        return await message.answer(
+            f"Пользователь {full_name} успешно <b>разблокирован</b>\n"
+            f"Команда для блокировки: <code>/block phone {phone}</code>"
+        )
+
+    # ------------- неизвестный режим -------------
+    else:
+        return await message.answer(
+            "<b>Ошибка команды</b>\n"
+            "<code>/unblock phone номер_телефона</code>\n"
+            "<code>/unblock id айди_телеграм</code>"
+        )
 
 @router.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in ADMIN_TG_IDS)
 @router2.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in ADMIN_TG_IDS)

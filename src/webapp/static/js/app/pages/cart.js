@@ -9,17 +9,18 @@ import {
     showMainButton, updateMainButton,
 } from "../ui/telegram.js";
 import {hideCartIcon} from "../ui/cart-icon.js";
+import {
+    cartPageEl,
+    checkoutPageEl,
+    contactPageEl, detailEl,
+    headerTitle, listEl,
+    paymentPageEl,
+    processPaymentEl,
+    searchBtnEl,
+    toolbarEl
+} from "./constants.js";
 
-const listEl = document.getElementById("product-list");
-const detailEl = document.getElementById("product-detail");
-const checkoutEl = document.getElementById("checkout-page");
-const contactPageEl = document.getElementById("contact-page");
-const headerTitle = document.getElementById("header-left");
-const toolbarEl = document.getElementById("toolbar");
-const searchBtnEl = document.getElementById("search-btn");
-const paymentPageEl = document.getElementById("payment-page");
 
-const cartPageEl = document.getElementById("cart-page");
 const cartTotalEl = document.getElementById("summary-label");
 const cartItemsEl = document.getElementById("cart-items");
 
@@ -165,10 +166,11 @@ export async function renderCartPage() {
     detailEl.style.display = "none";
     cartPageEl.style.display = "block";
     headerTitle.textContent = "Корзина";
-    checkoutEl.style.display = "none";
+    checkoutPageEl.style.display = "none";
     contactPageEl.style.display = "none";
     searchBtnEl.style.display = "flex";
     paymentPageEl.style.display = "none";
+    processPaymentEl.style.display = "none";
 
     await withLoader(renderCart);
 

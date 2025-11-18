@@ -6,11 +6,11 @@ from pydantic import BaseModel, EmailStr, Field
 # ---------- Base ----------
 
 class UserBase(BaseModel):
-    tg_phone: str = Field(..., description="Telegram phone number of the user")
+    tg_phone: str | None = Field(None,  description="Telegram phone number of the user (if provided by Telegram)")
     name: str | None = Field(None, description="First name of the user")
     surname: str | None = Field(None, description="Last name of the user")
     email: EmailStr | None = Field(None, description="User email address")
-    phone: str | None = Field(None, description="Additional phone number")
+    phone: str | None = Field(None, description="Additional phone number / contact phone")
     thread_id: str | None = Field(None, description="Associated OpenAI thread ID")
     input_tokens: int = Field(0, ge=0)
     output_tokens: int = Field(0, ge=0)

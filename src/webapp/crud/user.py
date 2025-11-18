@@ -1,4 +1,5 @@
-from sqlalchemy import select, update, bindparam
+from sqlalchemy import select, update, bindparam, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.helpers import normalize_user_value
@@ -16,7 +17,7 @@ async def create_user(db: AsyncSession, data: UserCreate) -> User:
 
 
 # ---------------- READ ----------------
-async def get_user(db, column_name: str, raw_value: str):
+async def get_user(db, column_name: str, raw_value: str) -> User | None:
     column = getattr(User, column_name, None)
     if column is None:
         return None
@@ -24,7 +25,7 @@ async def get_user(db, column_name: str, raw_value: str):
     value = normalize_user_value(column_name, raw_value)
     stmt = select(User).where(column == bindparam("v", value, type_=column.type))
     result = await db.execute(stmt)
-    return result.scalars().all()
+    return result.scalar_one_or_none()
 
 
 async def get_tg_refs(db: AsyncSession, value, by: str = 'tg_ref_id') -> User | None:
@@ -55,35 +56,72 @@ async def update_user(db: AsyncSession, tg_id: int, data: UserUpdate) -> User | 
     return user
 
 # ---------------- UPSERT ----------------
-async def upsert_user(db: AsyncSession, data: UserCreate) -> User:
+async def upsert_user(db: AsyncSession, user_upsert) -> User:
     """
-    Create or update a user by tg_id.
-
-    - If user with this tg_id exists: update basic profile fields
-      (does NOT touch input_tokens/output_tokens unless you explicitly
-      put that logic in).
-    - If user does not exist: create a new row.
+    Upsert-поведение для User:
+    - Сначала ищем по tg_id.
+    - Если не нашли – ищем по phone.
+    - Если не нашли – ищем по email.
+    - Если нашли – обновляем поля (кроме тех, что None).
+    - Если не нашли – создаём нового.
     """
-    tg_id = data.tg_id
-    user = await db.get(User, tg_id)
 
-    if user is None:
-        # create new user
-        user = User(**data.dict())
-        db.add(user)
+    # user_upsert — скорее всего Pydantic-модель: берём только выставленные поля
+    data = user_upsert.model_dump(exclude_unset=True)
+
+    tg_id: int | None = data.get("tg_id")
+    phone: str | None = data.get("phone")
+    email: str | None = data.get("email")
+
+    user: User | None = None
+
+    # 1) Пробуем найти по tg_id (это твой primary key)
+    if tg_id is not None:
+        res = await db.execute(select(User).where(User.tg_id == tg_id))
+        user = res.scalar_one_or_none()
+
+    # 2) Если по tg_id нет – пробуем по phone
+    if user is None and phone:
+        res = await db.execute(select(User).where(User.phone == phone))
+        user = res.scalar_one_or_none()
+
+    # 3) Если по phone нет – пробуем по email
+    if user is None and email:
+        res = await db.execute(select(User).where(User.email == email))
+        user = res.scalar_one_or_none()
+
+    if user is not None:
+        # 4) Обновляем найденного пользователя
+        for field, value in data.items():
+            # чтобы не затирать существующие значения на None
+            if value is not None:
+                setattr(user, field, value)
     else:
-        # update existing user – ignore tg_id and token counters by default
-        update_data = data.dict()
-        update_data.pop("tg_id", None)
+        # 5) Создаём нового
+        user = User(**data)
+        db.add(user)
 
-        # don't reset counters on upsert unless you really want that
-        update_data.pop("input_tokens", None)
-        update_data.pop("output_tokens", None)
+    try:
+        await db.commit()
+    except IntegrityError:
+        # 6) Обработка гонок/конфликтов UNIQUE (phone/email)
+        await db.rollback()
 
-        for field, value in update_data.items():
-            setattr(user, field, value)
+        filters = []
+        if tg_id is not None:
+            filters.append(User.tg_id == tg_id)
+        if phone:
+            filters.append(User.phone == phone)
+        if email:
+            filters.append(User.email == email)
 
-    await db.commit()
+        if not filters:
+            # вообще не по чему искать – пробрасываем ошибку выше
+            raise
+
+        res = await db.execute(select(User).where(or_(*filters)))
+        user = res.scalar_one()
+
     await db.refresh(user)
     return user
 

@@ -57,7 +57,11 @@ load_dotenv()
 MOSCOW_TZ = timezone(timedelta(hours=3))
 
 # ---------- admin / tokens ----------
-ADMIN_TG_IDS = env_list_ints("ADMIN_TG_IDS")
+ADMIN_TG_IDS      = env_list_ints("ADMIN_TG_IDS")
+TELETHON_API_ID   = env("TELETHON_API_ID", "")
+TELETHON_API_HASH = env("TELETHON_API_HASH", "")
+TELETHON_PHONE    = env("TELETHON_PHONE", "")
+TELETHON_PASSWORD = env("TELETHON_PASSWORD", None)
 
 AI_BOT_TOKEN  = env("AI_BOT_TOKEN", "")
 AI_BOT_TOKEN2 = env("AI_BOT_TOKEN2", "")
@@ -71,11 +75,11 @@ OPENAI_API_KEY  = env("OPENAI_API_KEY", "")
 OPENAI_API_KEY2 = env("OPENAI_API_KEY2", "")
 
 # ---------- postgres ----------
-POSTGRES_USER = env("POSTGRES_USER", "postgres") or "postgres"
+POSTGRES_USER     = env("POSTGRES_USER", "postgres") or "postgres"
 POSTGRES_PASSWORD = env("POSTGRES_PASSWORD", "") or ""
-POSTGRES_DB = env("POSTGRES_DB", "postgres") or "postgres"
-POSTGRES_HOST = env("POSTGRES_HOST", "localhost") or "localhost"
-POSTGRES_PORT = env_int("POSTGRES_PORT", 5432) or 5432
+POSTGRES_DB       = env("POSTGRES_DB", "postgres") or "postgres"
+POSTGRES_HOST     = env("POSTGRES_HOST", "localhost") or "localhost"
+POSTGRES_PORT     = env_int("POSTGRES_PORT", 5432) or 5432
 
 SYNC_DATABASE_URL  = build_sync_dsn(POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB)
 ASYNC_DATABASE_URL = build_async_dsn(POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB)
@@ -106,13 +110,13 @@ CDEK_ACCOUNT         = env("CDEK_ACCOUNT", "")
 CDEK_SECURE_PASSWORD = env("CDEK_SECURE_PASSWORD", "")
 CDEK_API_URL         = env("CDEK_API_URL", "")
 
-CDEK_SENDER_CITY_CODE = 256          # CDEK-код города отправителя (пример)
-CDEK_SENDER_POSTAL_CODE = "450078"  # индекс склада/офиса отправителя
+CDEK_SENDER_CITY_CODE    = 256          # CDEK-код города отправителя (пример)
+CDEK_SENDER_POSTAL_CODE  = "450078"  # индекс склада/офиса отправителя
 CDEK_SENDER_COUNTRY_CODE = "RU"
-CDEK_SENDER_CITY = "Уфа"
-CDEK_SENDER_ADDRESS = "ул. Революционная, 98/1 блок А"
+CDEK_SENDER_CITY         = "Уфа"
+CDEK_SENDER_ADDRESS      = "ул. Революционная, 98/1 блок А"
 
-CDEK_SENDER_NAME = "ИП Хоменко Татьяна Ивановна"
+CDEK_SENDER_NAME  = "ИП Хоменко Татьяна Ивановна"
 CDEK_SENDER_PHONE = "+79610387977"
 CDEK_SENDER_EMAIL = "shop@example.com"
 
@@ -141,6 +145,8 @@ AMOCRM_ACCESS_TOKEN   = env("AMOCRM_ACCESS_TOKEN", "")
 AMOCRM_REFRESH_TOKEN  = env("AMOCRM_REFRESH_TOKEN", "")
 AMOCRM_LOGIN_EMAIL    = env("AMOCRM_LOGIN_EMAIL", "")
 AMOCRM_LOGIN_PASSWORD = env("AMOCRM_LOGIN_PASSWORD", "")
+
+USDT_ADDRESS = env("USDT_ADDRESS", "")
 
 # ---------- light sanity logs (optional) ----------
 _log = logging.getLogger("config")

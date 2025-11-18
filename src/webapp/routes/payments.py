@@ -1,29 +1,26 @@
-import uuid
 import json
-import httpx
 import logging
+import httpx
 from datetime import datetime
-from decimal import Decimal
 from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import (
     YANDEX_DELIVERY_BASE_URL,
     YANDEX_DELIVERY_TOKEN,
-    YANDEX_DELIVERY_WAREHOUSE_ID,
+    YANDEX_DELIVERY_WAREHOUSE_ID, USDT_ADDRESS
 )
-
-from config import YOOKASSA_API_URL, YOOKASSA_SECRET_KEY, YOOKASSA_SHOP_ID
+from src.amocrm.client import amocrm
 from src.delivery.sdek import client as cdek_client
 from src.helpers import format_order_for_amocrm
+from src.payments.usdt import rub_usdt
+from src.payments.yookassa import create_yookassa_payment
 from src.webapp import get_session
-from src.webapp.crud import update_user
+from src.webapp.crud import upsert_user
 from src.webapp.database import get_db
-from src.webapp.models.checkout import CheckoutData, build_receipt
+from src.webapp.models.checkout import CheckoutData
 from src.webapp.routes.cart import cart_json
-from src.webapp.schemas import UserUpdate
-from src.amocrm.client import amocrm
-
+from src.webapp.schemas import UserCreate
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 log = logging.getLogger(__name__)
@@ -31,8 +28,9 @@ log = logging.getLogger(__name__)
 
 @router.post("/create", response_model=None)
 async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_db)):
-    cart = await cart_json(payload.checkout_data, db=db)
+    result = {}
 
+    enriched_cart = await cart_json(payload.checkout_data, db=db)
     delivery_service = payload.selected_delivery_service.lower()
     delivery_data = payload.selected_delivery
     tariff = delivery_data["deliveryMode"]
@@ -44,8 +42,8 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
 
     payload_dict = payload.model_dump()
 
-    user_update = UserUpdate(**contact_info.model_dump())
-    async with get_session() as session: user = await update_user(session, user_id, user_update)
+    user_upsert = UserCreate(**contact_info.model_dump(), tg_id=user_id)
+    async with get_session() as session: user = await upsert_user(session, user_upsert)
 
     log.info("Create payment payload: %s", ())
     order_number = str(datetime.now().timestamp())
@@ -110,46 +108,22 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
             "note_text": format_order_for_amocrm(order_number, payload_dict, delivery_service, tariff),
             "payment_method": payment_method.upper(),
         }
-        print(11111, json.dumps(order_lead_kwargs, indent=4, ensure_ascii=False))
-        await amocrm.create_lead_with_contact_and_note(**order_lead_kwargs)
 
+        result["payment_method"] = payment_method
 
-async def yookassa(payload, enriched_cart, delivery_fee, order_number):
-    receipt = build_receipt(enriched_cart, delivery_fee)
-    receipt["customer"] = {
-        "full_name": f"{payload.contact_info.name} {payload.contact_info.surname}",
-        "phone": payload.contact_info.phone,
-        "email": payload.contact_info.email
-    }
+        if payment_method == "usdt":
+            result["address"] = USDT_ADDRESS
+            result["amount"] = rub_usdt(float(total))
+            order_lead_kwargs["status_id"] = amocrm.STATUS_IDS["check_sent"]
 
-    # Add settlements (optional but recommended)
-    total_amount = Decimal(enriched_cart.get("total", 0)) + delivery_fee
-    receipt["settlements"] = [
-        {
-            "type": "cashless",
-            "amount": {"value": f"{total_amount:.2f}", "currency": "RUB"}
-        }
-    ]
-    payment_payload = {
-        "amount": {"value": f"{total_amount:.2f}", "currency": "RUB"},
-        "confirmation": {"type": "redirect", "return_url": "http://localhost:3000/checkout-success"},
-        "capture": True,
-        "description": f"Заказ #{order_number}",
-        "receipt": receipt
-    }
+        elif payment_method == "yookassa":
+            result.update(await create_yookassa_payment(payload_dict, enriched_cart, order_number))
+            order_lead_kwargs["status_id"] = amocrm.STATUS_IDS["check_sent"]
 
-    async with httpx.AsyncClient(auth=(YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY)) as client:
-        response = await client.post(
-            YOOKASSA_API_URL,
-            json=payment_payload,
-            headers={"Idempotence-Key": str(uuid.uuid4())},
-        )
-
-        if response.status_code not in (200, 201):
-            raise HTTPException(status_code=500, detail=f"YooKassa error: {response.text}")
-
-        data = response.json()
-        return {
-            "confirmation_url": data["confirmation"]["confirmation_url"],
-            "order_id": order_number
-        }
+        lead = await amocrm.create_lead_with_contact_and_note(**order_lead_kwargs)
+        if lead:
+            result["lead"] = True
+            result["delivery"] = True
+            print(result)
+            return result
+    raise HTTPException(status_code=400, detail="Failed when lead")

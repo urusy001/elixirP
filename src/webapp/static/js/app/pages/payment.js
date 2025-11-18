@@ -1,18 +1,19 @@
 import {hideCartIcon} from "../ui/cart-icon.js";
 import {showLoader, hideLoader} from "../ui/loader.js";
-import {hideMainButton, isTelegramApp, showBackButton, showMainButton} from "../ui/telegram.js";
+import {isTelegramApp, showBackButton, showMainButton} from "../ui/telegram.js";
 import {navigateTo} from "../router.js";
 import { state } from "../state.js";
+import {
+    cartPageEl,
+    checkoutPageEl,
+    contactPageEl, detailEl,
+    headerTitle, listEl,
+    paymentPageEl,
+    processPaymentEl,
+    searchBtnEl,
+    toolbarEl
+} from "./constants.js";
 
-const checkoutEl = document.getElementById("checkout-page");
-const listEl = document.getElementById("product-list");
-const detailEl = document.getElementById("product-detail");
-const cartPageEl = document.getElementById("cart-page");
-const contactPageEl = document.getElementById("contact-page");
-const headerTitle = document.getElementById("header-left");
-const toolbarEl = document.getElementById("toolbar");
-const searchBtnEl = document.getElementById("search-btn");
-const paymentPageEl = document.getElementById("payment-page");
 
 const CHECKOUT_ENDPOINT = "/payments/create";
 
@@ -26,10 +27,11 @@ export async function renderPaymentPage() {
     detailEl.style.display = "none";
     cartPageEl.style.display = "none";
     headerTitle.textContent = "Оплата";
-    checkoutEl.style.display = "none";
+    checkoutPageEl.style.display = "none";
     contactPageEl.style.display = "none";
     paymentPageEl.style.display = "block";
     searchBtnEl.style.display = "none";
+    processPaymentEl.style.display = "none";
 
     if (isTelegramApp()) {
         showBackButton(() => {
@@ -103,7 +105,6 @@ function setupPaymentPage() {
     };
 }
 
-// 🔥 This actually sends /payments/create with the chosen method
 async function handlePaymentSubmit() {
     try {
         showLoader();
@@ -168,11 +169,13 @@ async function handlePaymentSubmit() {
             // YooKassa: redirect to payment page
             window.location.href = data.confirmation_url;
             return;
+        } else if (payment_method === "usdt" && data?.usdt_address) {
+
         }
 
         // USDT / later: you may want to show a success screen or instructions
         // For now, just navigate to some local "success" route:
-        navigateTo("/payment/success");
+        navigateTo("/process-payment");
 
     } catch (err) {
         console.error("Ошибка при создании платежа:", err);

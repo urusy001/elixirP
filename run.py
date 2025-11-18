@@ -3,7 +3,9 @@ import asyncio
 import signal
 import sys
 
-from src.delivery.sdek import client
+from config import TELETHON_PASSWORD, TELETHON_PHONE
+from src.delivery.sdek import client as cdek_client
+from src.tg_methods import client as tg_client
 from src.onec import OneCEnterprise
 from src.giveaway.bot.main import run_bot as run_giveaway_bot
 from src.ai.bot.main import run_professor_bot, run_dose_bot, run_new_bot
@@ -23,11 +25,12 @@ logger = logging.getLogger("main")
 
 async def main():
     await init_db(False)
-    await OneCEnterprise().update_db("postgres")
+    await tg_client.start(TELETHON_PHONE, TELETHON_PASSWORD or None)
     # Track all created tasks
     tasks = [
-        asyncio.create_task(client.token_worker()),
-        asyncio.create_task(run_app())
+        asyncio.create_task(cdek_client.token_worker()),
+        asyncio.create_task(run_app()),
+        asyncio.create_task(tg_client.start()),
     ]
 
     # Helper to cancel everything cleanly
