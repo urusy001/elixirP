@@ -89,6 +89,7 @@ BASE_DIR = pathlib.Path(__file__).resolve().parent
 WORKING_DIR = BASE_DIR  # alias if other modules expect it
 
 DATA_DIR      = BASE_DIR / "data"
+LOGS_DIR      = BASE_DIR / "logs"
 DOWNLOADS_DIR = DATA_DIR / "downloads"
 GIVEAWAYS_DIR = DATA_DIR / "giveaways"
 SPENDS_DIR    = DATA_DIR / "spends"
@@ -154,3 +155,9 @@ if not ADMIN_TG_IDS:
     _log.warning("ADMIN_TG_IDS is empty or invalid; admin-only filters may not work.")
 if not AI_BOT_TOKEN:
     _log.warning("AI_BOT_TOKEN is empty.")
+
+BOT_NAMES = {
+    int(AI_BOT_TOKEN.split(":")[0]): "Обширная база",
+    int(AI_BOT_TOKEN2.split(":")[0]): "Дозировки",
+    int(AI_BOT_TOKEN3.split(":")[0]): "Новый 4.1",
+}
