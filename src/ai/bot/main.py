@@ -1,15 +1,22 @@
 import logging
 import re
 from datetime import datetime, timedelta
-from pathlib import Path  # 🔹 NEW
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message, FSInputFile, InputMediaPhoto, ReplyKeyboardRemove
 
-from config import AI_BOT_TOKEN, AI_BOT_TOKEN2, ASSISTANT_ID2, OPENAI_API_KEY2, AI_BOT_TOKEN3, ASSISTANT_ID3, LOGS_DIR, \
-    BOT_NAMES
+from config import (
+    AI_BOT_TOKEN,
+    AI_BOT_TOKEN2,
+    ASSISTANT_ID2,
+    OPENAI_API_KEY2,
+    AI_BOT_TOKEN3,
+    ASSISTANT_ID3,
+    LOGS_DIR,
+    BOT_NAMES,
+)
 from src.ai.bot.handlers import *
 from src.ai.bot.middleware import ContextMiddleware
 from src.ai.client import ProfessorClient
@@ -20,13 +27,32 @@ from src.webapp.schemas import UserUpdate, UserCreate
 
 
 class ProfessorBot(Bot):
-    def __init__(self, api_key: str):
-        super().__init__(api_key, default=DefaultBotProperties())
+    def __init__(self, api_key: str, bot_name: str):
+        super().__init__(api_key, default=DefaultBotProperties(parse_mode="html"))
         self.__users: dict[int, dict] = {}
-        self.__logger = logging.getLogger(self.__class__.__name__)
 
-        self.__logs_dir = LOGS_DIR / f"{BOT_NAMES.get(self.id)}"
-        self.__logs_dir.mkdir(exist_ok=True)
+        # One logger per bot
+        self.__logger = logging.getLogger(f"{self.__class__.__name__}::{bot_name}")
+        self.__logger.setLevel(logging.INFO)
+
+        # One file per bot: logs/<bot_name>.txt
+        log_file = LOGS_DIR / f"{bot_name}.txt"
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+
+        # Avoid duplicate handlers if something imports twice
+        if not any(
+            isinstance(h, logging.FileHandler)
+            and getattr(h, "baseFilename", None) == str(log_file)
+            for h in self.__logger.handlers
+        ):
+            fh = logging.FileHandler(log_file, encoding="utf-8")
+            fh.setFormatter(
+                logging.Formatter(
+                    "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+                    "%Y-%m-%d %H:%M:%S",
+                )
+            )
+            self.__logger.addHandler(fh)
 
     @property
     def users(self):
@@ -36,44 +62,15 @@ class ProfessorBot(Bot):
     def log(self):
         return self.__logger
 
-    # 🔹 Helper: create/get per-user logger with logs/<name>.txt
-    def _get_user_logger(self, name: str) -> logging.Logger:
-        logger = logging.getLogger(name)
-        logger.setLevel(logging.INFO)
-
-        log_file = self.__logs_dir / f"{name}.txt"
-
-        # avoid adding multiple handlers for same logger
-        already_has_file = any(
-            isinstance(h, logging.FileHandler)
-            and getattr(h, "baseFilename", None)
-            and Path(h.baseFilename) == log_file
-            for h in logger.handlers
-        )
-        if not already_has_file:
-            fh = logging.FileHandler(log_file, encoding="utf-8")
-            fh.setFormatter(logging.Formatter(
-                "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-                "%Y-%m-%d %H:%M:%S"
-            ))
-            logger.addHandler(fh)
-
-        user_id = int(name)
-        if user_id in self.__users:
-            self.__users[user_id]["logger"] = logger
-        return logger
-
     # ---------------- LOAD USERS ----------------
     async def load_users(self):
         async with get_session() as session:
             db_users = await get_users(session)
 
-        self.__users = {}
-        for user in db_users:
-            user_logger = self._get_user_logger(str(user.tg_id))  # 🔹 per-user file logger
-            self.__users[user.tg_id] = {**user.to_dict(), "logger": user_logger}
+        # just store data, no per-user loggers
+        self.__users = {user.tg_id: user.to_dict() for user in db_users}
 
-        self.__logger.info(f"Loaded {len(self.__users)} users from DB successfully")
+        self.__logger.info("Loaded %d users from DB successfully", len(self.__users))
 
     # ---------------- CREATE USER ----------------
     async def create_user(self, user_id: int, phone: str):
@@ -83,25 +80,21 @@ class ProfessorBot(Bot):
         async with get_session() as session:
             user = await create_user(session, user_create)
 
-        user_logger = self._get_user_logger(str(user.tg_id))  # 🔹 per-user file logger
-        self.__users[user_id] = {**user.model_dump(), "logger": user_logger}
+        self.__users[user_id] = user.model_dump()
 
-        self.__logger.info(f"Created new user: {user_id}, phone={phone}")
+        self.__logger.info("Created new user: %s, phone=%s", user_id, phone)
         return thread_id
 
     # ---------------- PARSE RESPONSE ----------------
     async def parse_response(self, response: dict, message: Message):
         user_id = message.from_user.id
+        logger = self.__logger  # one logger per bot
 
-        # 🔹 Resolve logger for this user (fallback to global)
-        user_data = self.__users.get(user_id)
-        logger: logging.Logger = user_data["logger"] if user_data and "logger" in user_data else self._get_user_logger(user_id)
-
-        # 🔹 Log incoming message
+        # Log incoming message
         logger.info(
             "INCOMING message | user_id=%s | text=%r",
             user_id,
-            getattr(message, "text", None)
+            getattr(message, "text", None),
         )
 
         files: list[str] = response.get("files") or []
@@ -110,7 +103,8 @@ class ProfessorBot(Bot):
         output_tokens: int = int(response.get("output_tokens") or 0)
 
         logger.info(
-            "MODEL RESPONSE (raw) | user_id=%s | files=%d | text_len=%d | input_tokens=%d | output_tokens=%d",
+            "MODEL RESPONSE (raw) | user_id=%s | files=%d | text_len=%d | "
+            "input_tokens=%d | output_tokens=%d",
             user_id,
             len(files),
             len(text),
@@ -118,23 +112,27 @@ class ProfessorBot(Bot):
             output_tokens,
         )
 
-        # 🔹 Detect blocking command
+        # Detect blocking command
         match = re.search(r"BLOCK_USER_TG_(\d+)", text, re.IGNORECASE)
         if match:
             days = int(match.group(1))
             text = re.sub(r"BLOCK_USER_TG_\d+", "", text, flags=re.IGNORECASE).strip()
-            blocked_until = datetime.now() + timedelta(days=days) if days > 0 else datetime.max
+            blocked_until = (
+                datetime.now() + timedelta(days=days) if days > 0 else datetime.max
+            )
 
             logger.warning(
                 "Blocking user for %s days (until %s)", days, blocked_until
             )
 
             async with get_session() as session:
-                await update_user(session, user_id, UserUpdate(blocked_until=blocked_until))
+                await update_user(
+                    session, user_id, UserUpdate(blocked_until=blocked_until)
+                )
             if user_id in self.__users:
                 self.__users[user_id]["blocked_until"] = blocked_until
 
-        # 🔹 Update token usage
+        # Update token usage
         if input_tokens or output_tokens:
             prev_input = self.__users.get(user_id, {}).get("input_tokens", 0)
             prev_output = self.__users.get(user_id, {}).get("output_tokens", 0)
@@ -155,7 +153,10 @@ class ProfessorBot(Bot):
                 await update_user(
                     session,
                     user_id,
-                    UserUpdate(input_tokens=new_input, output_tokens=new_output),
+                    UserUpdate(
+                        input_tokens=new_input,
+                        output_tokens=new_output,
+                    ),
                 )
 
             if user_id in self.__users:
@@ -163,16 +164,20 @@ class ProfessorBot(Bot):
                 self.__users[user_id]["output_tokens"] = new_output
 
             self.__logger.info(
-                f"Updated tokens for {user_id}: +{input_tokens}/{output_tokens} "
-                f"(total {new_input}/{new_output})"
+                "Updated tokens for %s: +%d/%d (total %d/%d)",
+                user_id,
+                input_tokens,
+                output_tokens,
+                new_input,
+                new_output,
             )
 
-        # 🔹 Handle empty
+        # Handle empty
         if not files and not text:
             logger.warning("EMPTY response (no files, no text)")
             return await message.answer("oshibochka vishla da")
 
-        # 🔹 Handle files
+        # Handle files
         if files:
             logger.info("OUTGOING response has %d file(s)", len(files))
             if len(files) == 1:
@@ -183,10 +188,10 @@ class ProfessorBot(Bot):
                 )
                 return await message.answer_photo(
                     FSInputFile(files[0]),
-                    caption=caption,
+                    caption=caption, parse_mode=None
                 )
             else:
-                media = [InputMediaPhoto(media=FSInputFile(f)) for f in files]
+                media = [InputMediaPhoto(media=FSInputFile(f), parse_mode=None) for f in files]
                 if text:
                     media[0].caption = re.sub(r"【[^】]*】", "", text[:1024])
                 logger.info(
@@ -195,7 +200,7 @@ class ProfessorBot(Bot):
                 )
                 return await message.answer_media_group(media)
 
-        # 🔹 Handle long text
+        # Handle long text
         if len(text) > MAX_TG_MSG_LEN:
             logger.info("OUTGOING long text | len=%d | splitting", len(text))
             chunks = await split_text(text)
@@ -214,7 +219,7 @@ class ProfessorBot(Bot):
                 )
             return None
 
-        # 🔹 Normal text
+        # Normal text
         clean_text = re.sub(r"【[^】]*】", "", text)
         logger.info(
             "OUTGOING text | len=%d | preview=%r",
@@ -228,9 +233,12 @@ class ProfessorBot(Bot):
         )
 
 
-professor_bot = ProfessorBot(AI_BOT_TOKEN)
-dose_bot = ProfessorBot(AI_BOT_TOKEN2)
-new_bot = ProfessorBot(AI_BOT_TOKEN3)
+# ───────── Bots & dispatchers ─────────
+
+# assuming BOT_NAMES maps from token -> human name
+professor_bot = ProfessorBot(AI_BOT_TOKEN, BOT_NAMES[AI_BOT_TOKEN])
+dose_bot = ProfessorBot(AI_BOT_TOKEN2, BOT_NAMES[AI_BOT_TOKEN2])
+new_bot = ProfessorBot(AI_BOT_TOKEN3, BOT_NAMES[AI_BOT_TOKEN3])
 
 professor_client = ProfessorClient()
 dose_client = ProfessorClient(OPENAI_API_KEY2, ASSISTANT_ID2)

@@ -1,0 +1,26 @@
+{
+    "20417190-4ed9-11f0-887d-fa163eccf8af": {
+        "onec_id": "20417190-4ed9-11f0-887d-fa163eccf8af",
+        "unit_onec_id": "20670018-4ed9-11f0-887d-fa163eccf8af",
+        "name": "<Без категории>",
+        "code": "00-000001"
+    },
+    "4519fc92-51bf-11f0-9cca-fa163eccf8af": {
+        "onec_id": "4519fc92-51bf-11f0-9cca-fa163eccf8af",
+        "unit_onec_id": "20670018-4ed9-11f0-887d-fa163eccf8af",
+        "name": "Пептиды",
+        "code": "00-000002"
+    },
+    "9fc44ca4-fd7f-11ef-9145-fa163e347889": {
+        "onec_id": "9fc44ca4-fd7f-11ef-9145-fa163e347889",
+        "unit_onec_id": null,
+        "name": "Мебель",
+        "code": "НФ-000003"
+    },
+    "8e7ab658-be46-11f0-881f-fa163e347889": {
+        "onec_id": "8e7ab658-be46-11f0-881f-fa163e347889",
+        "unit_onec_id": null,
+        "name": "Хасанов",
+        "code": "НФ-000004"
+    }
+}

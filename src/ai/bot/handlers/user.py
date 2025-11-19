@@ -38,7 +38,7 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
     if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ):
         return await message.answer(
             f"Уважаемый {message.from_user.full_name}, вы *ЗАБЛОКИРОВАНЫ* за недобросовестное использование нашего продукта.\n\n"
-            f"Блокировка до {user.blocked_until.date().replace('9999-12-31', '')}, при вопросах напишите в поддержку: @",
+            f"Блокировка до {user.blocked_until.date()}, при вопросах напишите в поддержку: @".replace("Блокировка до 9999-12-31, п", "П"),
             parse_mode="Markdown",
         )
 

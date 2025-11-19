@@ -34,7 +34,6 @@ async def main():
         asyncio.create_task(run_new_bot()),
         asyncio.create_task(OneCEnterprise().postgre_worker()),
         asyncio.create_task(cdek_client.token_worker()),
-        asyncio.create_task(run_app()),
         asyncio.create_task(tg_client.start()),
     ]
 
