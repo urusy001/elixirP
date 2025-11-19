@@ -155,7 +155,7 @@ if not AI_BOT_TOKEN:
     _log.warning("AI_BOT_TOKEN is empty.")
 
 BOT_NAMES = {
-    int(AI_BOT_TOKEN.split(":")[0]): "Обширная база",
-    int(AI_BOT_TOKEN2.split(":")[0]): "Дозировки",
-    int(AI_BOT_TOKEN3.split(":")[0]): "Новый 4.1",
+    AI_BOT_TOKEN: "Обширная база",
+    AI_BOT_TOKEN2: "Дозировки",
+    AI_BOT_TOKEN3: "Новый 4.1",
 }

@@ -11,7 +11,7 @@ from src.ai.bot.keyboards import user_keyboards
 from src.ai.bot.states import user_states
 from src.helpers import with_typing
 from src.webapp import get_session
-from src.webapp.crud import update_user, increment_tokens, write_usage
+from src.webapp.crud import update_user, increment_tokens, write_usage, get_user
 from src.webapp.schemas import UserUpdate
 
 router = Router(name="user")
@@ -32,18 +32,18 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
             reply_markup=user_keyboards.phone,
         )
 
-    user_data = professor_bot.users[user_id]
-    thread_id = user_data.get("thread_id")
-    blocked_until = user_data.get("blocked_until")
+    async with get_session() as session:
+        user = await get_user(session, 'tg_id', user_id)
 
-    if blocked_until and blocked_until > datetime.now(ZoneInfo("Europe/Moscow")):
+    print(user.blocked_until, type(user.blocked_until))
+    if user.blocked_until and user.blocked_until > datetime.now(ZoneInfo("Europe/Moscow")):
         return await message.answer(
             f"Уважаемый {message.from_user.full_name}, вы *ЗАБЛОКИРОВАНЫ* за недобросовестное использование нашего продукта.\n\n"
-            f"Блокировка до {blocked_until.date()}, при вопросах напишите в поддержку: @paylakurusyan",
+            f"Блокировка до {user.blocked_until.date()}, при вопросах напишите в поддержку: @paylakurusyan",
             parse_mode="Markdown",
         )
 
-    if not thread_id:
+    if not user.thread_id:
         thread_id = await professor_client.create_thread()
         async with get_session() as session: await update_user(session, user_id, UserUpdate(thread_id=thread_id))
         professor_bot.users[user_id]["thread_id"] = thread_id
@@ -51,7 +51,7 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
     response = await professor_client.send_message(
         f"Я написал первое сообщение или возобновил наш диалог. Начни/возобнови диалог. "
         f"Мое имя в Telegram — {message.from_user.full_name}.",
-        thread_id=thread_id,
+        thread_id=user.thread_id,
     )
     async with get_session() as session:
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens'])
@@ -122,18 +122,17 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
     if user_id not in professor_bot.users:
         return await handle_user_start(message, state, professor_bot, professor_client)
 
-    user_data = professor_bot.users[user_id]
-    blocked_until = user_data.get("blocked_until")
+    async with get_session() as session:
+        user = await get_user(session, 'tg_id', user_id)
 
-    if blocked_until and blocked_until > datetime.now(ZoneInfo("Europe/Moscow")):
+    if user.blocked_until and user.blocked_until > datetime.now(ZoneInfo("Europe/Moscow")):
         return await message.answer(
             f"Уважаемый {message.from_user.full_name}, вы *ЗАБЛОКИРОВАНЫ*.\n\n"
             f"Свяжитесь с поддержкой: @paylakurusyan",
             parse_mode="Markdown",
         )
 
-    thread_id = user_data.get("thread_id")
-    response = await professor_client.send_message(message.text, thread_id)
+    response = await professor_client.send_message(message.text, user.thread_id)
 
     bot_id = str(message.bot.id)
     if bot_id == AI_BOT_TOKEN.split(':')[0]:
