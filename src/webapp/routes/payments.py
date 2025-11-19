@@ -8,13 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import (
     YANDEX_DELIVERY_BASE_URL,
     YANDEX_DELIVERY_TOKEN,
-    YANDEX_DELIVERY_WAREHOUSE_ID, USDT_ADDRESS
+    YANDEX_DELIVERY_WAREHOUSE_ID
 )
-from src.amocrm.client import amocrm
 from src.delivery.sdek import client as cdek_client
 from src.helpers import format_order_for_amocrm
-from src.payments.usdt import rub_usdt
-from src.payments.yookassa import create_yookassa_payment
 from src.webapp import get_session
 from src.webapp.crud import upsert_user
 from src.webapp.database import get_db
@@ -110,20 +107,6 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
         }
 
         result["payment_method"] = payment_method
-
-        if payment_method == "usdt":
-            result["address"] = USDT_ADDRESS
-            result["amount"] = rub_usdt(float(total))
-            order_lead_kwargs["status_id"] = amocrm.STATUS_IDS["check_sent"]
-
-        elif payment_method == "yookassa":
-            result.update(await create_yookassa_payment(payload_dict, enriched_cart, order_number))
-            order_lead_kwargs["status_id"] = amocrm.STATUS_IDS["check_sent"]
-
-        lead = await amocrm.create_lead_with_contact_and_note(**order_lead_kwargs)
-        if lead:
-            result["lead"] = True
-            result["delivery"] = True
-            print(result)
-            return result
+        print(order_lead_kwargs)
+        return result
     raise HTTPException(status_code=400, detail="Failed when lead")
