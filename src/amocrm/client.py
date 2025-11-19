@@ -19,7 +19,7 @@ from config import (
     AMOCRM_LOGIN_PASSWORD,
     AMOCRM_REFRESH_TOKEN,
     AMOCRM_REDIRECT_URI,
-    AMOCRM_BASE_DOMAIN,
+    AMOCRM_BASE_DOMAIN, WORKING_DIR,
 )
 
 class AsyncAmoCRM:
@@ -142,7 +142,7 @@ class AsyncAmoCRM:
 
     def _save_tokens_to_env(self, access_token: str, refresh_token: str):
         """Persist updated tokens to .env for future runs."""
-        path = os.path.join(os.getcwd(), ".env")
+        path = os.path.join(WORKING_DIR, ".env")
         lines = []
         if os.path.exists(path):
             with open(path, "r") as f:

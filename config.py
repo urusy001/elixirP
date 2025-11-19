@@ -147,8 +147,6 @@ AMOCRM_REFRESH_TOKEN  = env("AMOCRM_REFRESH_TOKEN", "")
 AMOCRM_LOGIN_EMAIL    = env("AMOCRM_LOGIN_EMAIL", "")
 AMOCRM_LOGIN_PASSWORD = env("AMOCRM_LOGIN_PASSWORD", "")
 
-USDT_ADDRESS = env("USDT_ADDRESS", "")
-
 # ---------- light sanity logs (optional) ----------
 _log = logging.getLogger("config")
 if not ADMIN_TG_IDS:
