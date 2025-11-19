@@ -6,7 +6,7 @@ from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from config import ADMIN_TG_IDS, AI_BOT_TOKEN, AI_BOT_TOKEN2
+from config import ADMIN_TG_IDS, AI_BOT_TOKEN, AI_BOT_TOKEN2, MOSCOW_TZ
 from src.ai.bot.keyboards import user_keyboards
 from src.ai.bot.states import user_states
 from src.helpers import with_typing
@@ -35,11 +35,10 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
     async with get_session() as session:
         user = await get_user(session, 'tg_id', user_id)
 
-    print(user.blocked_until, type(user.blocked_until))
-    if user.blocked_until and user.blocked_until > datetime.now(ZoneInfo("Europe/Moscow")):
+    if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ):
         return await message.answer(
             f"Уважаемый {message.from_user.full_name}, вы *ЗАБЛОКИРОВАНЫ* за недобросовестное использование нашего продукта.\n\n"
-            f"Блокировка до {user.blocked_until.date()}, при вопросах напишите в поддержку: @paylakurusyan",
+            f"Блокировка до {user.blocked_until.date().replace('9999-12-31', '')}, при вопросах напишите в поддержку: @",
             parse_mode="Markdown",
         )
 
@@ -125,7 +124,7 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
     async with get_session() as session:
         user = await get_user(session, 'tg_id', user_id)
 
-    if user.blocked_until and user.blocked_until > datetime.now(ZoneInfo("Europe/Moscow")):
+    if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ):
         return await message.answer(
             f"Уважаемый {message.from_user.full_name}, вы *ЗАБЛОКИРОВАНЫ*.\n\n"
             f"Свяжитесь с поддержкой: @paylakurusyan",
