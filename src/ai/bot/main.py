@@ -29,21 +29,17 @@ from src.webapp.schemas import UserUpdate, UserCreate
 class ProfessorBot(Bot):
     def __init__(self, api_key: str, bot_name: str):
         super().__init__(api_key, default=DefaultBotProperties(parse_mode="html"))
-        self.__users: dict[int, dict] = {}
 
-        # One logger per bot
         self.__logger = logging.getLogger(f"{self.__class__.__name__}::{bot_name}")
         self.__logger.setLevel(logging.INFO)
 
-        # One file per bot: logs/<bot_name>.txt
         log_file = LOGS_DIR / f"{bot_name}.txt"
         log_file.parent.mkdir(parents=True, exist_ok=True)
 
-        # Avoid duplicate handlers if something imports twice
         if not any(
-            isinstance(h, logging.FileHandler)
-            and getattr(h, "baseFilename", None) == str(log_file)
-            for h in self.__logger.handlers
+                isinstance(h, logging.FileHandler)
+                and getattr(h, "baseFilename", None) == str(log_file)
+                for h in self.__logger.handlers
         ):
             fh = logging.FileHandler(log_file, encoding="utf-8")
             fh.setFormatter(
@@ -55,22 +51,8 @@ class ProfessorBot(Bot):
             self.__logger.addHandler(fh)
 
     @property
-    def users(self):
-        return self.__users
-
-    @property
     def log(self):
         return self.__logger
-
-    # ---------------- LOAD USERS ----------------
-    async def load_users(self):
-        async with get_session() as session:
-            db_users = await get_users(session)
-
-        # just store data, no per-user loggers
-        self.__users = {user.tg_id: user.to_dict() for user in db_users}
-
-        self.__logger.info("Loaded %d users from DB successfully", len(self.__users))
 
     # ---------------- CREATE USER ----------------
     async def create_user(self, user_id: int, phone: str):
@@ -80,8 +62,6 @@ class ProfessorBot(Bot):
         async with get_session() as session:
             user = await create_user(session, user_create)
 
-        self.__users[user_id] = user.model_dump()
-
         self.__logger.info("Created new user: %s, phone=%s", user_id, phone)
         return thread_id
 
@@ -90,7 +70,6 @@ class ProfessorBot(Bot):
         user_id = message.from_user.id
         logger = self.__logger  # one logger per bot
 
-        # Log incoming message
         logger.info(
             "INCOMING message | user_id=%s | text=%r",
             user_id,
@@ -112,7 +91,6 @@ class ProfessorBot(Bot):
             output_tokens,
         )
 
-        # Detect blocking command
         match = re.search(r"BLOCK_USER_TG_(\d+)", text, re.IGNORECASE)
         if match:
             days = int(match.group(1))
@@ -129,27 +107,28 @@ class ProfessorBot(Bot):
                 await update_user(
                     session, user_id, UserUpdate(blocked_until=blocked_until)
                 )
-            if user_id in self.__users:
-                self.__users[user_id]["blocked_until"] = blocked_until
 
-        # Update token usage
         if input_tokens or output_tokens:
-            prev_input = self.__users.get(user_id, {}).get("input_tokens", 0)
-            prev_output = self.__users.get(user_id, {}).get("output_tokens", 0)
-            new_input = prev_input + input_tokens
-            new_output = prev_output + output_tokens
-
-            logger.info(
-                "Token usage | +in=%d +out=%d | prev=%d/%d | new=%d/%d",
-                input_tokens,
-                output_tokens,
-                prev_input,
-                prev_output,
-                new_input,
-                new_output,
-            )
-
             async with get_session() as session:
+                db_users = await get_users(session)
+                db_user = next((u for u in db_users if u.tg_id == user_id), None)
+
+                prev_input = getattr(db_user, "input_tokens", 0) if db_user else 0
+                prev_output = getattr(db_user, "output_tokens", 0) if db_user else 0
+
+                new_input = prev_input + input_tokens
+                new_output = prev_output + output_tokens
+
+                logger.info(
+                    "Token usage | +in=%d +out=%d | prev=%d/%d | new=%d/%d",
+                    input_tokens,
+                    output_tokens,
+                    prev_input,
+                    prev_output,
+                    new_input,
+                    new_output,
+                )
+
                 await update_user(
                     session,
                     user_id,
@@ -158,10 +137,6 @@ class ProfessorBot(Bot):
                         output_tokens=new_output,
                     ),
                 )
-
-            if user_id in self.__users:
-                self.__users[user_id]["input_tokens"] = new_input
-                self.__users[user_id]["output_tokens"] = new_output
 
             self.__logger.info(
                 "Updated tokens for %s: +%d/%d (total %d/%d)",
@@ -172,12 +147,10 @@ class ProfessorBot(Bot):
                 new_output,
             )
 
-        # Handle empty
         if not files and not text:
             logger.warning("EMPTY response (no files, no text)")
             return await message.answer("oshibochka vishla da")
 
-        # Handle files
         if files:
             logger.info("OUTGOING response has %d file(s)", len(files))
             if len(files) == 1:
@@ -188,10 +161,14 @@ class ProfessorBot(Bot):
                 )
                 return await message.answer_photo(
                     FSInputFile(files[0]),
-                    caption=caption, parse_mode=None
+                    caption=caption,
+                    parse_mode=None,
                 )
             else:
-                media = [InputMediaPhoto(media=FSInputFile(f), parse_mode=None) for f in files]
+                media = [
+                    InputMediaPhoto(media=FSInputFile(f), parse_mode=None)
+                    for f in files
+                ]
                 if text:
                     media[0].caption = re.sub(r"【[^】]*】", "", text[:1024])
                 logger.info(
@@ -200,7 +177,6 @@ class ProfessorBot(Bot):
                 )
                 return await message.answer_media_group(media)
 
-        # Handle long text
         if len(text) > MAX_TG_MSG_LEN:
             logger.info("OUTGOING long text | len=%d | splitting", len(text))
             chunks = await split_text(text)
@@ -219,7 +195,6 @@ class ProfessorBot(Bot):
                 )
             return None
 
-        # Normal text
         clean_text = re.sub(r"【[^】]*】", "", text)
         logger.info(
             "OUTGOING text | len=%d | preview=%r",
@@ -238,7 +213,9 @@ class ProfessorBot(Bot):
 # assuming BOT_NAMES maps from token -> human name
 professor_bot = ProfessorBot(AI_BOT_TOKEN, BOT_NAMES[AI_BOT_TOKEN])
 dose_bot = ProfessorBot(AI_BOT_TOKEN2, BOT_NAMES[AI_BOT_TOKEN2])
-new_bot = ProfessorBot(AI_BOT_TOKEN3, BOT_NAMES[AI_BOT_TOKEN3])
+new_bot = ProfessorBot(
+    "8345967987:AAFpAhO0W1C9oD3LPEnfZnnqTAF8884U5wA", BOT_NAMES[AI_BOT_TOKEN3]
+)
 
 professor_client = ProfessorClient()
 dose_client = ProfessorClient(OPENAI_API_KEY2, ASSISTANT_ID2)
@@ -262,17 +239,14 @@ new_dp.callback_query.middleware(ContextMiddleware(new_bot, new_client))
 
 async def run_professor_bot():
     await professor_bot.delete_webhook(drop_pending_updates=False)
-    await professor_bot.load_users()
     await professor_dp.start_polling(professor_bot)
 
 
 async def run_dose_bot():
     await dose_bot.delete_webhook(drop_pending_updates=False)
-    await dose_bot.load_users()
     await dose_dp.start_polling(dose_bot)
 
 
 async def run_new_bot():
     await new_bot.delete_webhook(drop_pending_updates=False)
-    await new_bot.load_users()
     await new_dp.start_polling(new_bot)

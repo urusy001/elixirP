@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
@@ -38,7 +40,7 @@ class OneCEnterprise:
     #                          FETCHING FROM 1C
     # --------------------------------------------------------------------------
 
-    async def __fetch_odata(self, endpoint: str, save: bool = True) -> list[dict[str, Any]]:
+    async def __fetch_odata(self, endpoint: str, save: bool = False) -> list[dict[str, Any]]:
         """Fetch OData XML feed and parse <entry> records including ДополнительныеРеквизиты."""
         url = f"{self.__url}{endpoint}"
         response = None
@@ -217,9 +219,7 @@ class OneCEnterprise:
 
         self.log.info(f"✅ Finished inserting {name}.")
 
-    async def update_db(self, approach: Literal["json", "postgres"]) -> None:
-        save = approach == "json"
-
+    async def update_db(self, approach: Literal["json", "postgres"], save: bool | None = True) -> None:
         # --- 1️⃣ Fetch all data ---
         products_task = self.get_products_1c(save)
         features_task = self.get_features_1c(save)

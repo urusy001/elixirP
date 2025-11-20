@@ -1,5 +1,4 @@
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from aiogram import Router
 from aiogram.filters import CommandStart, Command
@@ -18,22 +17,22 @@ router = Router(name="user")
 router2 = Router(name="user2")
 router3 = Router(name="user3")
 
-
 @router.message(CommandStart(), lambda message: message.from_user.id not in ADMIN_TG_IDS)
 @router2.message(CommandStart(), lambda message: message.from_user.id not in ADMIN_TG_IDS)
 @router3.message(CommandStart(), lambda message: message.from_user.id not in ADMIN_TG_IDS)
 @with_typing
 async def handle_user_start(message: Message, state: FSMContext, professor_bot, professor_client):
     user_id = message.from_user.id
-    if user_id not in professor_bot.users:
+    async with get_session() as session:
+        user = await get_user(session, 'tg_id', user_id)
+
+    if not user:
         await state.set_state(user_states.Registration.phone)
         return await message.answer(
             f"Уважаемый {message.from_user.full_name}, для подтверждения, что вы не робот, нажмите кнопку ниже ⬇️",
             reply_markup=user_keyboards.phone,
         )
 
-    async with get_session() as session:
-        user = await get_user(session, 'tg_id', user_id)
 
     if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ):
         return await message.answer(
@@ -45,7 +44,6 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
     if not user.thread_id:
         thread_id = await professor_client.create_thread()
         async with get_session() as session: await update_user(session, user_id, UserUpdate(thread_id=thread_id))
-        professor_bot.users[user_id]["thread_id"] = thread_id
 
     response = await professor_client.send_message(
         f"Я написал первое сообщение или возобновил наш диалог. Начни/возобнови диалог. "
@@ -56,12 +54,9 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens'])
 
         bot_id = str(message.bot.id)
-        if bot_id == AI_BOT_TOKEN.split(':')[0]:
-            bot = "professor"
-        elif bot_id == AI_BOT_TOKEN2.split(':')[0]:
-            bot = "dose"
-        else:
-            bot = "new"
+        if bot_id == AI_BOT_TOKEN.split(':')[0]: bot = "professor"
+        elif bot_id == AI_BOT_TOKEN2.split(':')[0]: bot = "dose"
+        else: bot = "new"
         await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], bot=bot)
 
     return await professor_bot.parse_response(response, message)
@@ -86,29 +81,27 @@ async def handle_user_registration(message: Message, state: FSMContext, professo
     )
 
     bot_id = str(message.bot.id)
-    if bot_id == AI_BOT_TOKEN.split(':')[0]:
-        bot = "professor"
-    elif bot_id == AI_BOT_TOKEN2.split(':')[0]:
-        bot = "dose"
-    else:
-        bot = "new"
+    if bot_id == AI_BOT_TOKEN.split(':')[0]: bot = "professor"
+    elif bot_id == AI_BOT_TOKEN2.split(':')[0]: bot = "dose"
+    else: bot = "new"
 
     async with get_session() as session:
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens'])
         await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], bot=bot)
 
-    return await professor_bot.parse_response(response, message)
+    await professor_bot.parse_response(response, message)
+    return await message.delete()
 
 
 @router.message(Command('new_chat'))
 @router2.message(Command('new_chat'))
 @router3.message(Command('new_chat'))
-async def handle_new_chat(message: Message, professor_bot, professor_client):
+async def handle_new_chat(message: Message, state: FSMContext, professor_bot, professor_client):
     thread_id = await professor_client.create_thread()
     async with get_session() as session:
         await update_user(session, message.from_user.id, UserUpdate(thread_id=thread_id))
-        professor_bot.users[message.from_user.id]["thread_id"] = thread_id
 
+    await state.update_data(thread_id=thread_id)
     await message.answer('Новый чат успешно начат, продолжайте общение')
 
 
@@ -118,11 +111,9 @@ async def handle_new_chat(message: Message, professor_bot, professor_client):
 @with_typing
 async def handle_text_message(message: Message, state: FSMContext, professor_bot, professor_client):
     user_id = message.from_user.id
-    if user_id not in professor_bot.users:
-        return await handle_user_start(message, state, professor_bot, professor_client)
+    async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
 
-    async with get_session() as session:
-        user = await get_user(session, 'tg_id', user_id)
+    if not user: return await handle_user_start(message, state, professor_bot, professor_client)
 
     if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ):
         return await message.answer(
@@ -134,12 +125,9 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
     response = await professor_client.send_message(message.text, user.thread_id)
 
     bot_id = str(message.bot.id)
-    if bot_id == AI_BOT_TOKEN.split(':')[0]:
-        bot = "professor"
-    elif bot_id == AI_BOT_TOKEN2.split(':')[0]:
-        bot = "dose"
-    else:
-        bot = "new"
+    if bot_id == AI_BOT_TOKEN.split(':')[0]: bot = "professor"
+    elif bot_id == AI_BOT_TOKEN2.split(':')[0]: bot = "dose"
+    else: bot = "new"
 
     async with get_session() as session:
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens']),
