@@ -266,6 +266,3 @@ class OneCEnterprise:
 
     async def close(self):
         await self.__client.aclose()
-
-if __name__ == "__main__":
-    asyncio.run(OneCEnterprise().update_db("json"))
