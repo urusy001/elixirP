@@ -213,9 +213,7 @@ class ProfessorBot(Bot):
 # assuming BOT_NAMES maps from token -> human name
 professor_bot = ProfessorBot(AI_BOT_TOKEN, BOT_NAMES[AI_BOT_TOKEN])
 dose_bot = ProfessorBot(AI_BOT_TOKEN2, BOT_NAMES[AI_BOT_TOKEN2])
-new_bot = ProfessorBot(
-    "8345967987:AAFpAhO0W1C9oD3LPEnfZnnqTAF8884U5wA", BOT_NAMES[AI_BOT_TOKEN3]
-)
+new_bot = ProfessorBot(AI_BOT_TOKEN3, BOT_NAMES[AI_BOT_TOKEN3])
 
 professor_client = ProfessorClient()
 dose_client = ProfessorClient(OPENAI_API_KEY2, ASSISTANT_ID2)
