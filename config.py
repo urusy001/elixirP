@@ -88,6 +88,8 @@ ASYNC_DATABASE_URL = build_async_dsn(POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 WORKING_DIR = BASE_DIR  # alias if other modules expect it
 
+SRC_DIR       = BASE_DIR / "src"
+ANTISPAM_DIR  = SRC_DIR  / "antispam"
 DATA_DIR      = BASE_DIR / "data"
 LOGS_DIR      = BASE_DIR / "logs"
 DOWNLOADS_DIR = DATA_DIR / "downloads"
@@ -148,10 +150,10 @@ AMOCRM_LOGIN_EMAIL    = env("AMOCRM_LOGIN_EMAIL", "")
 AMOCRM_LOGIN_PASSWORD = env("AMOCRM_LOGIN_PASSWORD", "")
 
 
-HF_SAVE_DIR = env("HF_SAVE_DIR", "")
-CLF_PATH    = env("CLF_PATH", "")
-MAX_LENGTH  = env_int("MAX_LENGTH", 96)
-MODEL_NAME  = env("MODEL_NAME", "")
+HF_SAVE_DIR = ANTISPAM_DIR / "hf_rubert_spam"
+CLF_PATH    = ANTISPAM_DIR / "spam_classifier.joblib"
+MAX_LENGTH  = 128
+MODEL_NAME  = "cointegrated/rubert-tiny"
 CSV_PATH    = LOGS_DIR / "messages.csv"
 MISSES_PATH = LOGS_DIR / "misses.csv"
 
