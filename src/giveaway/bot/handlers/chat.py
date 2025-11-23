@@ -1,8 +1,9 @@
-import aiofiles
 from aiogram import Router
 from aiogram.types import Message
 
 from config import LOGS_DIR
+from src.antispam.test_classifier import is_spam
+from src.helpers import append_message_to_csv
 
 router = Router(name="chat")
 file_path = LOGS_DIR / "messages.csv"
@@ -11,12 +12,5 @@ file_path = LOGS_DIR / "messages.csv"
 async def handle_chat_message(message: Message):
     if not message.text.strip(): pass
     else:
-        if not file_path.exists():
-            with open(file_path, "w", encoding="utf-8") as f: f.write("message;label\n")
-
-        async with aiofiles.open(file_path, mode="r", encoding="utf-8") as f:
-            data = await f.readlines()
-
-        data.append(f"{message.text.strip()};label\n")
-        async with aiofiles.open(file_path, mode="w", encoding="utf-8") as f:
-            await f.writelines(data)
+        result, p = await is_spam(message.text)
+        await append_message_to_csv(message.text, int(result))

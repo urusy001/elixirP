@@ -147,6 +147,14 @@ AMOCRM_REFRESH_TOKEN  = env("AMOCRM_REFRESH_TOKEN", "")
 AMOCRM_LOGIN_EMAIL    = env("AMOCRM_LOGIN_EMAIL", "")
 AMOCRM_LOGIN_PASSWORD = env("AMOCRM_LOGIN_PASSWORD", "")
 
+
+HF_SAVE_DIR = env("HF_SAVE_DIR", "")
+CLF_PATH    = env("CLF_PATH", "")
+MAX_LENGTH  = env_int("MAX_LENGTH", 96)
+MODEL_NAME  = env("MODEL_NAME", "")
+CSV_PATH    = LOGS_DIR / "messages.csv"
+MISSES_PATH = LOGS_DIR / "misses.csv"
+
 # ---------- light sanity logs (optional) ----------
 _log = logging.getLogger("config")
 if not ADMIN_TG_IDS:

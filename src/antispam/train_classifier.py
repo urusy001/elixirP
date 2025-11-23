@@ -18,13 +18,9 @@ from sklearn.metrics import (
 from sklearn.model_selection import train_test_split
 import joblib
 
-# 1. Config
-MODEL_NAME = "cointegrated/rubert-tiny"   # or another ru model
-CSV_PATH = "messages.csv"                 # your labeled csv
-HF_SAVE_DIR = "hf_rubert_spam"            # where to save tokenizer+model
-CLF_PATH = "spam_classifier.joblib"       # where to save sklearn classifier
-MISSES_PATH = "misses.csv"                # where to log FP/FN
-MAX_LENGTH = 96                           # good starting point
+from config import HF_SAVE_DIR, CLF_PATH, MAX_LENGTH, MODEL_NAME, MISSES_PATH, CSV_PATH
+
+# good starting point
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

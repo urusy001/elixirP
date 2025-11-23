@@ -219,7 +219,7 @@ class OneCEnterprise:
 
         self.log.info(f"✅ Finished inserting {name}.")
 
-    async def update_db(self, approach: Literal["json", "postgres"], save: bool | None = True) -> None:
+    async def update_db(self, approach: Literal["json", "postgres"], save: bool = False) -> None:
         # --- 1️⃣ Fetch all data ---
         products_task = self.get_products_1c(save)
         features_task = self.get_features_1c(save)
@@ -252,12 +252,12 @@ class OneCEnterprise:
         async with aiofiles.open(file, "w", encoding="utf-8") as f:
             await f.write(json.dumps(data, ensure_ascii=False, indent=4))
 
-    async def postgre_worker(self):
+    async def postgres_worker(self):
         """Periodic DB sync every 15 minutes."""
         while True:
             self.log.info("🔁 PostgreSQL sync started...")
             try:
-                await self.update_db("postgre")
+                await self.update_db("postgres", False)
                 self.log.info("✅ PostgreSQL DB updated successfully.")
                 await get_db_items(self.log)
             except Exception as e:

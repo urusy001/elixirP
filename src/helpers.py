@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import csv
 import hashlib
 import hmac
 import random
@@ -13,7 +14,7 @@ from aiogram import Bot
 from aiogram.types import Message
 from transliterate import translit
 
-from config import YOOKASSA_SECRET_KEY
+from config import YOOKASSA_SECRET_KEY, CSV_PATH
 
 MAX_TG_MSG_LEN = 4096  # Telegram limit
 
@@ -521,3 +522,28 @@ def normalize_html_for_telegram(raw_html: str) -> str:
     text = "\n".join(line.rstrip() for line in text.splitlines())
 
     return text.strip()
+
+_csv_lock = asyncio.Lock()  # чтобы несколько хендлеров не писали одновременно
+
+async def append_message_to_csv(text: str, label: int | str = 0) -> None:
+    """
+    Добавляет строку в messages.csv.
+    csv.writer сам экранирует запятые, кавычки и переносы строк.
+    """
+    text = text.replace("\r\n", "\n").replace("\r", "\n")  # чуть-чуть нормализуем
+
+    async with _csv_lock:
+        file_exists = CSV_PATH.exists()
+
+        with CSV_PATH.open("a", encoding="utf-8", newline="") as f:
+            writer = csv.writer(
+                f,
+                delimiter=",",
+                quotechar='"',
+                quoting=csv.QUOTE_MINIMAL,  # можно csv.QUOTE_ALL если хочешь всегда в кавычках
+            )
+            # если файл только что создан — пишем заголовок
+            if not file_exists:
+                writer.writerow(["Message", "Label"])
+
+            writer.writerow([text, label])
