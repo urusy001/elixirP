@@ -19,7 +19,6 @@ logger = logging.getLogger("main")
 
 
 async def main():
-    await init_db(False)
     tasks = [
         asyncio.create_task(run_dose_bot()),
         asyncio.create_task(run_giveaway_bot()),
