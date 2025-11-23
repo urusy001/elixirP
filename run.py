@@ -25,16 +25,10 @@ logger = logging.getLogger("main")
 
 async def main():
     await init_db(False)
-    await tg_client.start(TELETHON_PHONE, TELETHON_PASSWORD or None)
-    # Track all created tasks
     tasks = [
-        asyncio.create_task(run_giveaway_bot()),
-        asyncio.create_task(run_professor_bot()),
-        asyncio.create_task(run_dose_bot()),
         asyncio.create_task(run_new_bot()),
-        asyncio.create_task(OneCEnterprise().postgre_worker()),
         asyncio.create_task(cdek_client.token_worker()),
-        asyncio.create_task(tg_client.start()),
+        asyncio.create_task(run_app()),
     ]
 
     # Helper to cancel everything cleanly

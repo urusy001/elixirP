@@ -378,3 +378,146 @@ def normalize_address_for_cf(address: object, service: Literal["cdek", "yandex"]
         if len(s) > 255:
             s = s[:255]
         return s or None
+
+import html
+import re
+from bs4 import BeautifulSoup, Tag
+
+# Базовый список допустимых тегов по Telegram
+ALLOWED_TAGS = {
+    "b", "strong",
+    "i", "em",
+    "u", "ins",
+    "s", "strike", "del",
+    "span", "tg-spoiler",
+    "a",
+    "tg-emoji",
+    "code", "pre",
+    "blockquote",
+}
+
+
+def normalize_html_for_telegram(raw_html: str) -> str:
+    """
+    Превращает произвольный HTML в валидный HTML для Telegram (parse_mode='HTML').
+
+    Делает:
+    - h1–h6 -> <b>
+    - p -> текст + два переноса
+    - br -> \n
+    - ul/ol/li -> буллеты "• ..."
+    - убирает article/div/span без tg-spoiler и прочие контейнеры
+    - оставляет только допустимые теги и нужные атрибуты
+    - декодирует HTML-сущности (&nbsp; &mdash; ...) в юникод и заново экранирует
+    """
+
+    # 1) Сначала раскрываем все HTML-сущности в нормальные символы,
+    #    чтобы не осталось именованных типа &nbsp; &mdash; и т.п.,
+    #    которые Телега не понимает
+    raw_html = html.unescape(raw_html)
+
+    soup = BeautifulSoup(raw_html, "html.parser")
+
+    # 2) Заголовки в <b>
+    for tag in soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"]):
+        tag.name = "b"
+
+    # 3) strong/em оставляем как есть (они разрешены), можно было бы и мапать в b/i
+    #    но Телега их понимает напрямую
+
+    # 4) Списки -> "• ..."
+    for lst in soup.find_all(["ul", "ol"]):
+        lines = []
+        for li in lst.find_all("li", recursive=False):
+            text = li.get_text(" ", strip=True)
+            if text:
+                lines.append(f"• {text}")
+        lst.replace_with("\n".join(lines))
+
+    # 5) <br> -> \n
+    for br in soup.find_all("br"):
+        br.replace_with("\n")
+
+    # 6) <p> -> абзацы + пустая строка после
+    for p in soup.find_all("p"):
+        text = p.get_text(" ", strip=True)
+        if text:
+            p.replace_with(text + "\n")
+        else:
+            p.decompose()
+
+    # 7) Обработка атрибутов и фильтрация тегов
+    for tag in list(soup.find_all(True)):  # True = любой тег
+        if not isinstance(tag, Tag):
+            continue
+
+        name = tag.name
+
+        # всё, что не в ALLOWED_TAGS, разворачиваем
+        if name not in ALLOWED_TAGS:
+            tag.unwrap()
+            continue
+
+        # ----- специальные случаи по тегам -----
+
+        if name == "span":
+            # оставляем только spoiler: <span class="tg-spoiler">
+            classes = tag.get("class", [])
+            if "tg-spoiler" in classes:
+                tag.attrs = {"class": "tg-spoiler"}
+            else:
+                tag.unwrap()
+
+        elif name == "a":
+            # только href
+            href = tag.get("href")
+            if href:
+                tag.attrs = {"href": href}
+            else:
+                # без href смысла нет
+                tag.unwrap()
+
+        elif name == "tg-emoji":
+            # только emoji-id
+            emoji_id = tag.get("emoji-id")
+            if emoji_id:
+                tag.attrs = {"emoji-id": emoji_id}
+            else:
+                tag.unwrap()
+
+        elif name == "code":
+            # язык можно оставлять только если внутри <pre><code class="language-...">
+            if isinstance(tag.parent, Tag) and tag.parent.name == "pre":
+                cls = tag.get("class")
+                if cls:
+                    # class="language-python" и т.п. — оставляем
+                    tag.attrs = {"class": cls}
+                else:
+                    tag.attrs = {}
+            else:
+                # одиночный <code> — без атрибутов
+                tag.attrs = {}
+
+        elif name == "pre":
+            # pre без атрибутов
+            tag.attrs = {}
+
+        elif name == "blockquote":
+            # разрешён только атрибут expandable
+            if "expandable" in tag.attrs:
+                tag.attrs = {"expandable": None}  # <blockquote expandable>
+            else:
+                tag.attrs = {}
+
+        else:
+            # все остальные разрешённые теги без атрибутов
+            tag.attrs = {}
+
+    # 8) Получаем HTML-строку обратно
+    text = str(soup)
+
+    # 9) Чистим лишние пустые строки
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = "\n".join(line.rstrip() for line in text.splitlines())
+
+    return text.strip()
