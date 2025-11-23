@@ -6,7 +6,7 @@ from aiogram.enums import ParseMode, ChatMemberStatus
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from config import PRIZEDRAW_BOT_TOKEN as TELEGRAM_BOT_TOKEN
-from src.giveaway.bot.handlers import user_router, admin_router
+from src.giveaway.bot.handlers import *
 from src.giveaway.bot.middleware import GiveawayMiddleware
 
 
@@ -43,7 +43,7 @@ class GiveawayBot(Bot):
 
 bot = GiveawayBot()
 dp = Dispatcher(storage=MemoryStorage())
-dp.include_routers(user_router, admin_router)
+dp.include_routers(user_router, admin_router, chat_router)
 dp.message.middleware(GiveawayMiddleware(bot))
 dp.callback_query.middleware(GiveawayMiddleware(bot))
 
