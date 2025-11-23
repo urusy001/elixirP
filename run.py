@@ -3,13 +3,8 @@ import asyncio
 import signal
 import sys
 
-from config import TELETHON_PASSWORD, TELETHON_PHONE
-from src.delivery.sdek import client as cdek_client
-from src.tg_methods import client as tg_client
-from src.onec import OneCEnterprise
 from src.giveaway.bot.main import run_bot as run_giveaway_bot
-from src.ai.bot.main import run_professor_bot, run_dose_bot, run_new_bot
-from src.webapp.main import run_app
+from src.ai.bot.main import run_professor_bot, run_dose_bot
 from src.webapp.database import init_db
 
 
@@ -26,12 +21,11 @@ logger = logging.getLogger("main")
 async def main():
     await init_db(False)
     tasks = [
-        asyncio.create_task(run_new_bot()),
-        asyncio.create_task(cdek_client.token_worker()),
-        asyncio.create_task(run_app()),
+        asyncio.create_task(run_dose_bot()),
+        asyncio.create_task(run_giveaway_bot()),
+        asyncio.create_task(run_professor_bot())
     ]
 
-    # Helper to cancel everything cleanly
     async def shutdown():
         logger.warning("🛑 Shutting down gracefully...")
         for task in tasks:
