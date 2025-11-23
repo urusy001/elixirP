@@ -3,9 +3,10 @@ import asyncio
 import signal
 import sys
 
+from config import TELETHON_PHONE, TELETHON_PASSWORD
 from src.giveaway.bot.main import run_bot as run_giveaway_bot
 from src.ai.bot.main import run_professor_bot, run_dose_bot
-from src.webapp.database import init_db
+from src.tg_methods import client as tg_client
 
 
 logging.basicConfig(
@@ -20,6 +21,7 @@ logger = logging.getLogger("main")
 
 async def main():
     tasks = [
+        asyncio.create_task(tg_client.start(TELETHON_PHONE, TELETHON_PASSWORD)),
         asyncio.create_task(run_dose_bot()),
         asyncio.create_task(run_giveaway_bot()),
         asyncio.create_task(run_professor_bot())
