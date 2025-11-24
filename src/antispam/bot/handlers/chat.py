@@ -34,7 +34,7 @@ POLL_THREADS: Dict[str, Optional[int]] = {}
 
 async def delete_later(bot: Bot, chat_id: int, message_id: int, delay: int = 90) -> None:
     """Удалить сообщение через delay секунд."""
-    await asyncio.sleep(30)
+    await asyncio.sleep(32)
     try:
         await bot.delete_message(chat_id, message_id)
     except Exception as e:
@@ -56,14 +56,14 @@ async def send_ephemeral_message(
         kwargs["message_thread_id"] = thread_id
 
     msg = await bot.send_message(chat_id, text, **kwargs)
-    asyncio.create_task(delete_later(bot, chat_id, msg.message_id, 30))
+    asyncio.create_task(delete_later(bot, chat_id, msg.message_id, 32))
     return msg
 
 
 async def answer_ephemeral(message: Message, text: str, ttl: int = 90):
     """Ответить на сообщение и удалить ответ через ttl секунд."""
     msg = await message.answer(text, parse_mode="HTML")
-    asyncio.create_task(delete_later(message.bot, message.chat.id, msg.message_id, 30))
+    asyncio.create_task(delete_later(message.bot, message.chat.id, msg.message_id, 32))
     return msg
 
 
@@ -342,6 +342,7 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
 async def handle_poll_expired(poll: Poll, bot: Bot):
     # 1) Игнорируем любые обновления, пока опрос еще не закрыт
     if not poll.is_closed:
+        print('not closed')
         return
 
     poll_id = poll.id
