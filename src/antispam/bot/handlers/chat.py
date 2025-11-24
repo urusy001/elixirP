@@ -37,8 +37,8 @@ async def delete_later(bot: Bot, chat_id: int, message_id: int, delay: int = 90)
     await asyncio.sleep(delay)
     try:
         await bot.delete_message(chat_id, message_id)
-    except Exception:
-        pass
+    except Exception as e:
+        print(e)
 
 
 async def send_ephemeral_message(
@@ -70,15 +70,15 @@ async def answer_ephemeral(message: Message, text: str, ttl: int = 90):
 async def safe_restrict(bot: Bot, chat_id: int, user_id: int, permissions) -> bool:
     try:
         member = await bot.get_chat_member(chat_id, user_id)
-    except Exception:
-        return False
+    except Exception as e:
+        print(e);       return False
     if member.status in ("left", "kicked"):
         return False
     try:
         await bot.restrict_chat_member(chat_id, user_id, permissions)
         return True
-    except Exception:
-        return False
+    except Exception as e:
+        print(e);        return False
 
 
 async def safe_unrestrict(bot: Bot, chat_id: int, user_id: int) -> bool:
@@ -173,7 +173,7 @@ async def start_captcha(bot: Bot, chat_id: int, user_id: int, thread_id: Optiona
             type="quiz",
             correct_option_id=correct_option_id,
             is_anonymous=False,
-            open_period=60,
+            open_period=30,
             **kwargs,
         )
 
@@ -194,7 +194,7 @@ async def start_captcha(bot: Bot, chat_id: int, user_id: int, thread_id: Optiona
         POLL_THREADS[poll_message.poll.id] = thread_id
 
         # На всякий случай удалим сам poll через 120 сек, если его не удалили ранее
-        asyncio.create_task(delete_later(bot, chat_id, poll_message.message_id, delay=120))
+        asyncio.create_task(delete_later(bot, chat_id, poll_message, delay=120))
 
 
 @router.chat_member(CHAT_USER_FILTER, ChatMemberUpdatedFilter(JOIN_TRANSITION))
@@ -255,8 +255,8 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
         if chat_id and msg_id:
             try:
                 await bot.delete_message(chat_id, msg_id)
-            except Exception:
-                pass
+            except Exception as e:
+                print(e)
 
         correct_id = user.poll_correct_option_id
 
@@ -301,7 +301,7 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
                     poll_message_id=None,
                     poll_id=None,
                     poll_correct_option_id=None,
-                    banned_until=far_future,
+                    banned_until=None,
                     muted_until=far_future,
                     times_banned=(user.times_banned or 0) + 1,
                 ),
@@ -337,6 +337,7 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
 
         POLL_THREADS.pop(poll_id, None)
 
+
 @router.poll()
 async def handle_poll_expired(poll: Poll, bot: Bot):
     # 1) Игнорируем любые обновления, пока опрос еще не закрыт
@@ -371,8 +372,8 @@ async def handle_poll_expired(poll: Poll, bot: Bot):
         if chat_id and msg_id:
             try:
                 await bot.delete_message(chat_id, msg_id)
-            except Exception:
-                pass
+            except Exception as e:
+                print(e)
 
         attempts = (user.poll_attempts or 0) + 1
 
@@ -388,7 +389,7 @@ async def handle_poll_expired(poll: Poll, bot: Bot):
                     poll_message_id=None,
                     poll_id=None,
                     poll_correct_option_id=None,
-                    banned_until=far_future,
+                    banned_until=None,
                     muted_until=far_future,
                     times_banned=(user.times_banned or 0) + 1,
                 ),
@@ -474,8 +475,8 @@ async def handle_spam(message: Message):
 
     try:
         await message.reply_to_message.delete()
-    except Exception:
-        pass
+    except Exception as e:
+        print(e)
 
 
 @router.message(CHAT_ADMIN_FILTER, Command("mute"))
@@ -731,8 +732,8 @@ async def handle_chat_message(message: Message):
             await safe_restrict(message.bot, message.chat.id, user.id, NEW_USER)
             try:
                 await message.delete()
-            except Exception:
-                pass
+            except Exception as e:
+                print(e)
             return
 
     # Админы и whitelisted проходят без проверки и антиспама в плане ограничений
@@ -750,8 +751,8 @@ async def handle_chat_message(message: Message):
         )
         try:
             await message.delete()
-        except Exception:
-            pass
+        except Exception as e:
+            print(e)
         return
 
     # ===== АНТИСПАМ =====
@@ -774,7 +775,7 @@ async def handle_chat_message(message: Message):
                         times_reported=times_reported,
                         accused_spam=True,
                         last_accused_text=message.text[:1024],
-                        banned_until=far_future,
+                        banned_until=None,
                         muted_until=far_future,
                         times_banned=(chat_user.times_banned if chat_user else 0) + 1,
                     ),
@@ -827,7 +828,7 @@ async def handle_chat_message(message: Message):
                                 times_reported=times_reported,
                                 accused_spam=True,
                                 last_accused_text=message.text[:1024],
-                                banned_until=far_future,
+                                banned_until=None,
                                 muted_until=far_future,
                                 times_banned=(chat_user.times_banned if chat_user else 0) + 1,
                                 times_muted=new_count,
@@ -882,8 +883,8 @@ async def handle_chat_message(message: Message):
 
         try:
             await message.delete()
-        except Exception:
-            pass
+        except Exception as e:
+            print(e)
 
-    # Лог для обучения / анализа
+        # Лог для обучения / анализа
     await append_message_to_csv(message.text, int(result))
