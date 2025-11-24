@@ -1,6 +1,7 @@
 import asyncio
 import random
 from datetime import datetime, timedelta
+from typing import Optional, Dict
 
 from aiogram import Router, Bot
 from aiogram.filters import ChatMemberUpdatedFilter, JOIN_TRANSITION, Command
@@ -33,6 +34,44 @@ CHAT_USER_FILTER = lambda obj: getattr(obj.chat, "id", 0) in [-1003182914098, EL
 
 CAPTCHA_MAX_ATTEMPTS = 3
 
+# poll_id -> thread_id
+POLL_THREADS: Dict[str, Optional[int]] = {}
+
+
+async def delete_later(bot: Bot, chat_id: int, message_id: int, delay: int = 90) -> None:
+    """Удалить сообщение через delay секунд."""
+    await asyncio.sleep(delay)
+    try:
+        await bot.delete_message(chat_id, message_id)
+    except Exception:
+        pass
+
+
+async def send_ephemeral_message(
+        bot: Bot,
+        chat_id: int,
+        text: str,
+        *,
+        thread_id: Optional[int] = None,
+        parse_mode: str = "HTML",
+        ttl: int = 90,
+):
+    """Отправить сообщение и удалить его через ttl секунд."""
+    kwargs = {"parse_mode": parse_mode}
+    if thread_id is not None:
+        kwargs["message_thread_id"] = thread_id
+
+    msg = await bot.send_message(chat_id, text, **kwargs)
+    asyncio.create_task(delete_later(bot, chat_id, msg.message_id, ttl))
+    return msg
+
+
+async def answer_ephemeral(message: Message, text: str, ttl: int = 90):
+    """Ответить на сообщение и удалить ответ через ttl секунд."""
+    msg = await message.answer(text, parse_mode="HTML")
+    asyncio.create_task(delete_later(message.bot, message.chat.id, msg.message_id, ttl))
+    return msg
+
 
 async def safe_restrict(bot: Bot, chat_id: int, user_id: int, permissions) -> bool:
     try:
@@ -59,7 +98,11 @@ async def pass_user(chat_id: int, user_id: int, bot: Bot, timer: int | float | N
         await set_muted_until(session, user_id, None)
 
 
-async def start_captcha(bot: Bot, chat_id: int, user_id: int):
+async def start_captcha(bot: Bot, chat_id: int, user_id: int, thread_id: Optional[int]):
+    """
+    Старт / повтор капчи.
+    Всегда отправляем сообщения и опрос в тот же thread_id (если он есть).
+    """
     now = datetime.now(tz=MOSCOW_TZ)
     async with get_session() as session:
         user = await get_chat_user(session, user_id)
@@ -89,29 +132,29 @@ async def start_captcha(bot: Bot, chat_id: int, user_id: int):
                 ),
             )
 
-        # Уже забанен навсегда
+        # Уже бессрочно забанен
         if user.banned_until and user.banned_until > now + timedelta(days=365 * 10):
             return
 
-        # Лимит попыток уже превышен – ничего не отправляем
+        # Лимит попыток исчерпан
         if user.poll_attempts >= CAPTCHA_MAX_ATTEMPTS and not user.passed_poll:
             text = (
                 f'<a href="tg://user?id={user_id}">Пользователь</a> не прошёл проверку.\n'
                 "Права на отправку сообщений ограничены до решения администратора."
             )
-            await bot.send_message(chat_id, text, parse_mode="HTML")
+            await send_ephemeral_message(bot, chat_id, text, thread_id=thread_id, ttl=120)
             return
 
-        # Уже есть активный опрос – просим ответить на него
+        # Уже есть активный опрос
         if user.poll_active and user.poll_chat_id and user.poll_message_id:
             text = (
                 f'<a href="tg://user?id={user_id}">Пользователь</a>, '
                 "у вас уже есть активный вопрос выше. Сначала ответьте на него."
             )
-            await bot.send_message(chat_id, text, parse_mode="HTML")
+            await send_ephemeral_message(bot, chat_id, text, thread_id=thread_id, ttl=120)
             return
 
-        # Отправляем новый опрос
+        # Новый опрос
         poll_question: PollQuestion = random.choice(POLL_QUESTIONS_RU)
         question = poll_question.text
         options, correct_option_id = poll_question.options(True)
@@ -120,7 +163,11 @@ async def start_captcha(bot: Bot, chat_id: int, user_id: int):
             "Для отправки сообщений в чат необходимо пройти простую проверку.\n"
             "Ответьте на вопрос ниже. Всего доступно три попытки."
         )
-        await bot.send_message(chat_id, info_text)
+        await send_ephemeral_message(bot, chat_id, info_text, thread_id=thread_id, ttl=120)
+
+        kwargs = {}
+        if thread_id is not None:
+            kwargs["message_thread_id"] = thread_id
 
         poll_message = await bot.send_poll(
             chat_id=chat_id,
@@ -130,6 +177,7 @@ async def start_captcha(bot: Bot, chat_id: int, user_id: int):
             correct_option_id=correct_option_id,
             is_anonymous=False,
             open_period=60,
+            **kwargs,
         )
 
         # Сохраняем состояние капчи в БД
@@ -139,6 +187,12 @@ async def start_captcha(bot: Bot, chat_id: int, user_id: int):
         user.poll_id = poll_message.poll.id
         user.poll_correct_option_id = correct_option_id
         await session.commit()
+
+        # Сохраняем соответствие poll_id -> thread_id в памяти
+        POLL_THREADS[poll_message.poll.id] = thread_id
+
+        # На всякий случай удалим сам poll через 120 сек, если его не удалили ранее
+        asyncio.create_task(delete_later(bot, chat_id, poll_message.message_id, delay=120))
 
 
 @router.chat_member(CHAT_USER_FILTER, ChatMemberUpdatedFilter(JOIN_TRANSITION))
@@ -184,14 +238,17 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
     async with get_session() as session:
         user = await get_chat_user(session, user_id)
         if not user or user.passed_poll:
+            POLL_THREADS.pop(poll_id, None)
             return
 
         # Проверяем, что это именно его активный опрос
         if not user.poll_active or not user.poll_id or user.poll_id != poll_id:
+            POLL_THREADS.pop(poll_id, None)
             return
 
         chat_id = user.poll_chat_id
         msg_id = user.poll_message_id
+        thread_id = POLL_THREADS.get(poll_id)
 
         # Удаляем сообщение с опросом
         if chat_id and msg_id:
@@ -218,7 +275,10 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
                 f"{answer.user.mention_html()}, проверка пройдена.\n"
                 "Теперь вы можете отправлять сообщения в чат."
             )
-            await bot.send_message(chat_id, text, parse_mode="HTML")
+            if chat_id:
+                await send_ephemeral_message(bot, chat_id, text, thread_id=thread_id, ttl=120)
+
+            POLL_THREADS.pop(poll_id, None)
             return
 
         # Неверный ответ – считаем попытку
@@ -234,13 +294,14 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
             await increment_times_banned(session, user_id, 1)
             await session.commit()
 
-            await safe_restrict(bot, chat_id, user_id, NEW_USER)
+            if chat_id:
+                await safe_restrict(bot, chat_id, user_id, NEW_USER)
 
-            text = (
-                f"{answer.user.mention_html()}, проверка не пройдена.\n"
-                "Количество попыток исчерпано. Права на отправку сообщений ограничены до решения администратора."
-            )
-            await bot.send_message(chat_id, text, parse_mode="HTML")
+                text = (
+                    f"{answer.user.mention_html()}, проверка не пройдена.\n"
+                    "Количество попыток исчерпано. Права на отправку сообщений ограничены до решения администратора."
+                )
+                await send_ephemeral_message(bot, chat_id, text, thread_id=thread_id, ttl=120)
         else:
             await session.commit()
             left = CAPTCHA_MAX_ATTEMPTS - attempts
@@ -248,18 +309,25 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
                 f"{answer.user.mention_html()}, ответ неверный.\n"
                 f"Осталось попыток: {left}. Для новой попытки отправьте любое сообщение в чат."
             )
-            await bot.send_message(chat_id, text, parse_mode="HTML")
+            if chat_id:
+                await send_ephemeral_message(bot, chat_id, text, thread_id=thread_id, ttl=120)
+
+        POLL_THREADS.pop(poll_id, None)
 
 
 @router.poll()
 async def handle_poll_expired(poll: Poll, bot: Bot):
+    poll_id = poll.id
     now = datetime.now(tz=MOSCOW_TZ)
+    thread_id = POLL_THREADS.get(poll_id)
+
     async with get_session() as session:
         result = await session.execute(
             select(ChatUser).where(ChatUser.poll_id == poll.id)
         )
         user = result.scalars().first()
         if not user or user.passed_poll is True:
+            POLL_THREADS.pop(poll_id, None)
             return
 
         chat_id = user.poll_chat_id
@@ -290,13 +358,14 @@ async def handle_poll_expired(poll: Poll, bot: Bot):
             await increment_times_banned(session, user_id, 1)
             await session.commit()
 
-            await safe_restrict(bot, chat_id, user_id, NEW_USER)
+            if chat_id:
+                await safe_restrict(bot, chat_id, user_id, NEW_USER)
 
-            text = (
-                f'<a href="tg://user?id={user_id}">Пользователь</a> не прошёл проверку.\n'
-                "Количество попыток исчерпано. Права на отправку сообщений ограничены до решения администратора."
-            )
-            await bot.send_message(chat_id, text, parse_mode="HTML")
+                text = (
+                    f'<a href="tg://user?id={user_id}">Пользователь</a> не прошёл проверку.\n'
+                    "Количество попыток исчерпано. Права на отправку сообщений ограничены до решения администратора."
+                )
+                await send_ephemeral_message(bot, chat_id, text, thread_id=thread_id, ttl=120)
         else:
             await session.commit()
             left = CAPTCHA_MAX_ATTEMPTS - attempts
@@ -304,7 +373,10 @@ async def handle_poll_expired(poll: Poll, bot: Bot):
                 f'<a href="tg://user?id={user_id}">Пользователь</a> не успел ответить на проверочный вопрос.\n'
                 f"Осталось попыток: {left}. Для новой попытки нужно отправить сообщение в чат."
             )
-            await bot.send_message(chat_id, text, parse_mode="HTML")
+            if chat_id:
+                await send_ephemeral_message(bot, chat_id, text, thread_id=thread_id, ttl=120)
+
+        POLL_THREADS.pop(poll_id, None)
 
 
 @router.message(CHAT_ADMIN_FILTER, Command("spam"))
@@ -394,17 +466,15 @@ async def handle_whitelist(message: Message):
     args = text.strip().removeprefix("/whitelist").strip().split()
 
     if not args:
-        return asyncio.create_task(
-            _notify_user(
-                message,
-                (
-                    "<b>Использование:</b>\n"
-                    "<code>/whitelist add [user_id]</code> — добавить в белый список\n"
-                    "<code>/whitelist remove [user_id]</code> — убрать из белого списка\n\n"
-                    "Можно указать <code>user_id</code> или ответить командой на сообщение пользователя."
-                ),
-                180,
-            )
+        return await answer_ephemeral(
+            message,
+            (
+                "<b>Использование:</b>\n"
+                "<code>/whitelist add [user_id]</code> — добавить в белый список\n"
+                "<code>/whitelist remove [user_id]</code> — убрать из белого списка\n\n"
+                "Можно указать <code>user_id</code> или ответить командой на сообщение пользователя."
+            ),
+            ttl=180,
         )
 
     action = args[0].lower()
@@ -413,57 +483,51 @@ async def handle_whitelist(message: Message):
     elif action in ("remove", "rm", "off", "del", "-"):
         value = False
     else:
-        return asyncio.create_task(
-            _notify_user(
-                message,
-                "<b>Ошибка команды:</b> неизвестное действие.\n"
-                "Используйте <code>add</code> или <code>remove</code>.",
-                120,
-            )
+        return await answer_ephemeral(
+            message,
+            "<b>Ошибка команды:</b> неизвестное действие.\n"
+            "Используйте <code>add</code> или <code>remove</code>.",
+            ttl=120,
         )
 
-    user_id: int | None = None
+    user_id: Optional[int] = None
 
+    # /whitelist add 123456789
     if len(args) >= 2 and args[1].isdigit():
         user_id = int(args[1])
+    # /whitelist add (в ответ на сообщение)
     elif message.reply_to_message and message.reply_to_message.from_user:
         user_id = message.reply_to_message.from_user.id
 
     if not user_id:
-        return asyncio.create_task(
-            _notify_user(
-                message,
-                (
-                    "Укажите <code>user_id</code> или ответьте командой на сообщение пользователя.\n\n"
-                    "<b>Пример:</b> <code>/whitelist add 123456789</code>"
-                ),
-                150,
-            )
+        return await answer_ephemeral(
+            message,
+            (
+                "Укажите <code>user_id</code> или ответьте командой на сообщение пользователя.\n\n"
+                "<b>Пример:</b> <code>/whitelist add 123456789</code>"
+            ),
+            ttl=150,
         )
 
     async with get_session() as session:
         user = await set_whitelist(session, user_id, value)
 
     if not user:
-        return asyncio.create_task(
-            _notify_user(
-                message,
-                (
-                    "Пользователь не найден в базе.\n"
-                    "Он должен хотя бы один раз написать в чат, чтобы бот его сохранил."
-                ),
-                120,
-            )
+        return await answer_ephemeral(
+            message,
+            (
+                "Пользователь не найден в базе.\n"
+                "Он должен хотя бы один раз написать в чат, чтобы бот его сохранил."
+            ),
+            ttl=120,
         )
 
     status = "добавлен в <b>белый список</b>" if value else "убран из <b>белого списка</b>"
 
-    return asyncio.create_task(
-        _notify_user(
-            message,
-            f"Пользователь с <code>user_id={user_id}</code> {status}.",
-            90,
-        )
+    return await answer_ephemeral(
+        message,
+        f"Пользователь с <code>user_id={user_id}</code> {status}.",
+        ttl=90,
     )
 
 
@@ -477,15 +541,13 @@ async def handle_unmute(message: Message):
         user_id = message.reply_to_message.from_user.id
 
     if not user_id:
-        return asyncio.create_task(
-            _notify_user(
-                message,
-                (
-                    "Либо укажите user_id пользователя, либо ответьте командой на его сообщение\n\n"
-                    "<i>Напишите @ShostakovIV в ТГ, если не знаете как получить user_id</i>"
-                ),
-                120,
-            )
+        return await answer_ephemeral(
+            message,
+            (
+                "Либо укажите user_id пользователя, либо ответьте командой на его сообщение\n\n"
+                "<i>Напишите @ShostakovIV в ТГ, если не знаете как получить user_id</i>"
+            ),
+            ttl=120,
         )
 
     ok = await safe_unrestrict(message.bot, message.chat.id, user_id)
@@ -499,35 +561,29 @@ async def handle_unmute(message: Message):
         else "Не удалось вернуть права: пользователь не найден или уже покинул чат"
     )
 
-    return asyncio.create_task(_notify_user(message, msg, 60))
+    return await answer_ephemeral(message, msg, ttl=60)
 
 
 @router.message(CHAT_USER_FILTER, Command("report"))
 async def handle_report(message: Message):
     if not message.reply_to_message or not message.reply_to_message.from_user:
-        asyncio.create_task(
-            _notify_user(
-                message,
-                (
-                    "Ответьте командой <code>/report</code> на сообщение пользователя, "
-                    "на которого хотите пожаловаться."
-                ),
-                90,
-            )
+        return await answer_ephemeral(
+            message,
+            (
+                "Ответьте командой <code>/report</code> на сообщение пользователя, "
+                "на которого хотите пожаловаться."
+            ),
+            ttl=90,
         )
-        return
 
     target = message.reply_to_message.from_user
 
     if message.from_user and target.id == message.from_user.id:
-        asyncio.create_task(
-            _notify_user(
-                message,
-                "Нельзя отправить жалобу на самого себя.",
-                60,
-            )
+        return await answer_ephemeral(
+            message,
+            "Нельзя отправить жалобу на самого себя.",
+            ttl=60,
         )
-        return
 
     async with get_session() as session:
         await increment_times_reported(
@@ -537,12 +593,10 @@ async def handle_report(message: Message):
             accused_spam=False,
         )
 
-    asyncio.create_task(
-        _notify_user(
-            message,
-            "Спасибо, жалоба отправлена. Администраторы чата смогут её увидеть.",
-            90,
-        )
+    await answer_ephemeral(
+        message,
+        "Спасибо, жалоба отправлена. Администраторы чата смогут её увидеть.",
+        ttl=90,
     )
 
     await message.reply_to_message.forward(REPORTS_CHANNEL_ID)
@@ -551,7 +605,8 @@ async def handle_report(message: Message):
 
 @router.message(CHAT_ADMIN_FILTER, Command("get_id"))
 async def handle_get_id(message: Message):
-    return await message.answer(f"{message.chat.id}")
+    # Ответ в том же треде, удалится сам
+    return await answer_ephemeral(message, f"{message.chat.id}", ttl=120)
 
 
 @router.message(CHAT_USER_FILTER)
@@ -610,14 +665,19 @@ async def handle_chat_message(message: Message):
                 pass
             return
 
-    # Админы и whitelisted проходят без проверки
+    # Админы и whitelisted проходят без проверки и антиспама в плане ограничений
     if whitelist:
         await append_message_to_csv(message.text, 0)
         return
 
     # Пользователь ещё не прошёл капчу – запускаем / напоминаем
     if not passed_poll:
-        await start_captcha(message.bot, message.chat.id, user.id)
+        await start_captcha(
+            message.bot,
+            message.chat.id,
+            user.id,
+            message.message_thread_id,
+        )
         try:
             await message.delete()
         except Exception:
@@ -648,7 +708,7 @@ async def handle_chat_message(message: Message):
                     "Сообщение с очень высокой вероятностью является спамом.\n"
                     f"Пользователь {user.mention_html()} ограничен в отправке сообщений <b>без срока</b>."
                 )
-                await message.answer(text, parse_mode="HTML")
+                await answer_ephemeral(message, text, ttl=120)
 
             else:
                 # Лестница: 1-й раз – без мута, далее 1д / 7д / 30д / бесконечно
@@ -661,7 +721,7 @@ async def handle_chat_message(message: Message):
                         "Сообщение похоже на спам.\n"
                         "Сообщение удалено. Это первое предупреждение, ограничения не выданы."
                     )
-                    await message.answer(text, parse_mode="HTML")
+                    await answer_ephemeral(message, text, ttl=120)
                 else:
                     if new_count == 2:
                         mute_delta = timedelta(days=1)
@@ -684,7 +744,7 @@ async def handle_chat_message(message: Message):
                             f"Пользователь {user.mention_html()} ограничен в отправке сообщений <b>без срока</b> "
                             "из-за повторяющегося спама."
                         )
-                        await message.answer(text, parse_mode="HTML")
+                        await answer_ephemeral(message, text, ttl=120)
                     else:
                         mute_until = now + mute_delta
                         await set_muted_until(session, user.id, mute_until)
@@ -704,7 +764,7 @@ async def handle_chat_message(message: Message):
                             f"Пользователь {user.mention_html()} автоматически ограничен в правах {label}.\n"
                             f"Для досрочного возвращения прав используйте команду <code>/unmute {user.id}</code>"
                         )
-                        await message.answer(text, parse_mode="HTML")
+                        await answer_ephemeral(message, text, ttl=120)
                         asyncio.create_task(
                             pass_user(
                                 message.chat.id,
@@ -719,4 +779,5 @@ async def handle_chat_message(message: Message):
         except Exception:
             pass
 
+    # Лог для обучения / анализа
     await append_message_to_csv(message.text, int(result))

@@ -92,7 +92,7 @@ platformdirs==4.5.0
 playwright==1.55.0
 prompt_toolkit==3.0.52
 propcache==0.3.2
-psycopg2-binary==2.9.11
+psycopg2==2.9.11
 ptyprocess==0.7.0
 pure_eval==0.2.3
 pyaes==1.6.1
