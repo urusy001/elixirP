@@ -27,11 +27,6 @@ async def main():
         asyncio.create_task(telegram_client.start(TELETHON_PHONE, TELETHON_PASSWORD)),
         asyncio.create_task(cdek_client.token_worker()),
         asyncio.create_task(OneCEnterprise().postgres_worker()),
-        asyncio.create_task(run_dose_bot()),
-        asyncio.create_task(run_new_bot()),
-        asyncio.create_task(run_professor_bot()),
-        asyncio.create_task(run_bot()),
-        asyncio.create_task(run_antispam_bot()),
         asyncio.create_task(run_app())
     ]
 
