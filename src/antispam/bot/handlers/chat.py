@@ -243,7 +243,7 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
             POLL_THREADS.pop(poll_id, None)
             return
 
-        # Проверяем, что это именно его активный опрос
+        # не его активный опрос → игнор
         if not user.poll_active or not user.poll_id or user.poll_id != poll_id:
             POLL_THREADS.pop(poll_id, None)
             return
@@ -252,7 +252,6 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
         msg_id = user.poll_message_id
         thread_id = POLL_THREADS.get(poll_id)
 
-        # Удаляем сообщение с опросом
         if chat_id and msg_id:
             try:
                 await bot.delete_message(chat_id, msg_id)
@@ -261,13 +260,14 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
 
         correct_id = user.poll_correct_option_id
 
-        # Верный ответ
+        # ---- ВЕРНЫЙ ОТВЕТ ----
         if chosen is not None and correct_id is not None and chosen == correct_id:
             await update_chat_user(
                 session,
                 user_id,
                 ChatUserUpdate(
                     passed_poll=True,
+                    poll_attempts=user.poll_attempts,  # не трогаем
                     poll_active=False,
                     poll_chat_id=None,
                     poll_message_id=None,
@@ -276,21 +276,20 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
                 ),
             )
 
-            text = (
-                f"{answer.user.mention_html()}, проверка пройдена.\n"
-                "Теперь вы можете отправлять сообщения в чат."
-            )
             if chat_id:
+                text = (
+                    f"{answer.user.mention_html()}, проверка пройдена.\n"
+                    "Теперь вы можете отправлять сообщения в чат."
+                )
                 await send_ephemeral_message(bot, chat_id, text, thread_id=thread_id, ttl=120)
 
             POLL_THREADS.pop(poll_id, None)
             return
 
-        # Неверный ответ – считаем попытку
+        # ---- НЕВЕРНЫЙ ОТВЕТ ----
         attempts = (user.poll_attempts or 0) + 1
 
         if attempts >= CAPTCHA_MAX_ATTEMPTS:
-            # Блокируем
             far_future = now + timedelta(days=365 * 100)
             await update_chat_user(
                 session,
@@ -310,7 +309,6 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
 
             if chat_id:
                 await safe_restrict(bot, chat_id, user_id, NEW_USER)
-
                 text = (
                     f"{answer.user.mention_html()}, проверка не пройдена.\n"
                     "Количество попыток исчерпано. Права на отправку сообщений ограничены до решения администратора."
@@ -330,18 +328,21 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
                 ),
             )
             left = CAPTCHA_MAX_ATTEMPTS - attempts
-            text = (
-                f"{answer.user.mention_html()}, ответ неверный.\n"
-                f"Осталось попыток: {left}. Для новой попытки отправьте любое сообщение в чат."
-            )
             if chat_id:
+                text = (
+                    f"{answer.user.mention_html()}, ответ неверный.\n"
+                    f"Осталось попыток: {left}. Для новой попытки отправьте любое сообщение в чат."
+                )
                 await send_ephemeral_message(bot, chat_id, text, thread_id=thread_id, ttl=120)
 
         POLL_THREADS.pop(poll_id, None)
 
-
 @router.poll()
 async def handle_poll_expired(poll: Poll, bot: Bot):
+    # 1) Игнорируем любые обновления, пока опрос еще не закрыт
+    if not poll.is_closed:
+        return
+
     poll_id = poll.id
     now = datetime.now(tz=MOSCOW_TZ)
     thread_id = POLL_THREADS.get(poll_id)
@@ -351,7 +352,15 @@ async def handle_poll_expired(poll: Poll, bot: Bot):
             select(ChatUser).where(ChatUser.poll_id == poll.id)
         )
         user = result.scalars().first()
-        if not user or user.passed_poll is True:
+
+        # 2) Если юзер не найден, уже прошел капчу,
+        #    или poll уже не активен — НИЧЕГО НЕ ДЕЛАЕМ
+        if (
+                not user
+                or user.passed_poll
+                or not user.poll_active
+                or user.poll_id != poll.id
+        ):
             POLL_THREADS.pop(poll_id, None)
             return
 
@@ -387,7 +396,6 @@ async def handle_poll_expired(poll: Poll, bot: Bot):
 
             if chat_id:
                 await safe_restrict(bot, chat_id, user_id, NEW_USER)
-
                 text = (
                     f'<a href="tg://user?id={user_id}">Пользователь</a> не прошёл проверку.\n'
                     "Количество попыток исчерпано. Права на отправку сообщений ограничены до решения администратора."
@@ -407,11 +415,11 @@ async def handle_poll_expired(poll: Poll, bot: Bot):
                 ),
             )
             left = CAPTCHA_MAX_ATTEMPTS - attempts
-            text = (
-                f'<a href="tg://user?id={user_id}">Пользователь</a> не успел ответить на проверочный вопрос.\n'
-                f"Осталось попыток: {left}. Для новой попытки нужно отправить сообщение в чат."
-            )
             if chat_id:
+                text = (
+                    f'<a href="tg://user?id={user_id}">Пользователь</a> не успел ответить на проверочный вопрос.\n'
+                    f"Осталось попыток: {left}. Для новой попытки нужно отправить сообщение в чат."
+                )
                 await send_ephemeral_message(bot, chat_id, text, thread_id=thread_id, ttl=120)
 
         POLL_THREADS.pop(poll_id, None)
