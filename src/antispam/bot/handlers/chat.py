@@ -194,7 +194,7 @@ async def start_captcha(bot: Bot, chat_id: int, user_id: int, thread_id: Optiona
         POLL_THREADS[poll_message.poll.id] = thread_id
 
         # На всякий случай удалим сам poll через 120 сек, если его не удалили ранее
-        asyncio.create_task(delete_later(bot, chat_id, poll_message, delay=120))
+        asyncio.create_task(delete_later(bot, chat_id, poll_message.message_id, delay=120))
 
 
 @router.chat_member(CHAT_USER_FILTER, ChatMemberUpdatedFilter(JOIN_TRANSITION))
