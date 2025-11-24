@@ -9,12 +9,21 @@ from src.webapp.models import ChatUser
 from src.webapp.schemas import ChatUserCreate, ChatUserUpdate
 
 
+# ========== BASIC QUERIES ==========
+
+
 async def get_chat_user(db: AsyncSession, user_id: int) -> Optional[ChatUser]:
+    """Получить пользователя по id."""
     result = await db.execute(select(ChatUser).where(ChatUser.id == user_id))
     return result.scalars().first()
 
 
-async def get_chat_users(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[ChatUser]:
+async def get_chat_users(
+        db: AsyncSession,
+        skip: int = 0,
+        limit: int = 100,
+) -> List[ChatUser]:
+    """Получить список пользователей с пагинацией."""
     result = await db.execute(
         select(ChatUser)
         .order_by(ChatUser.id)
@@ -24,7 +33,11 @@ async def get_chat_users(db: AsyncSession, skip: int = 0, limit: int = 100) -> L
     return list(result.scalars().all())
 
 
+# ========== CREATE / UPDATE / UPSERT ==========
+
+
 async def create_chat_user(db: AsyncSession, user_in: ChatUserCreate) -> ChatUser:
+    """Создать нового ChatUser на основе ChatUserCreate."""
     db_user = ChatUser(
         id=user_in.id,
         full_name=user_in.full_name,
@@ -52,10 +65,27 @@ async def create_chat_user(db: AsyncSession, user_in: ChatUserCreate) -> ChatUse
     return db_user
 
 
-async def update_chat_user(db: AsyncSession, db_user: ChatUser, user_in: ChatUserUpdate) -> ChatUser:
-    data = user_in.dict(exclude_unset=True)
+async def update_chat_user(
+        db: AsyncSession,
+        user_id: int,
+        user_in: ChatUserUpdate,
+) -> Optional[ChatUser]:
+    """
+    Частичное обновление пользователя по id.
+
+    ВАЖНО: интерфейс именно (db, user_id, ChatUserUpdate),
+    как ожидает твой chat.py.
+    """
+    db_user = await get_chat_user(db, user_id)
+    if db_user is None:
+        return None
+
+    # Pydantic v2: model_dump; если у тебя v1 – можно заменить на .dict()
+    data = user_in.model_dump(exclude_unset=True)
+
     for field, value in data.items():
         setattr(db_user, field, value)
+
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
@@ -63,14 +93,25 @@ async def update_chat_user(db: AsyncSession, db_user: ChatUser, user_in: ChatUse
 
 
 async def upsert_chat_user(db: AsyncSession, user_in: ChatUserCreate) -> ChatUser:
+    """
+    Если пользователь есть — обновляем его полями из ChatUserCreate,
+    если нет — создаём.
+    """
     db_user = await get_chat_user(db, user_in.id)
     if db_user is None:
         return await create_chat_user(db, user_in)
-    update_data = ChatUserUpdate(**user_in.dict(exclude={"id"}))
-    return await update_chat_user(db, db_user, update_data)
+
+    # все поля, кроме id, в ChatUserUpdate
+    update_data = ChatUserUpdate(
+        **user_in.model_dump(exclude={"id"})
+    )
+    updated = await update_chat_user(db, user_in.id, update_data)
+    # updated не None, т.к. db_user уже был
+    return updated  # type: ignore[return-value]
 
 
 async def delete_chat_user(db: AsyncSession, user_id: int) -> bool:
+    """Удалить пользователя по id."""
     db_user = await get_chat_user(db, user_id)
     if db_user is None:
         return False
@@ -79,26 +120,33 @@ async def delete_chat_user(db: AsyncSession, user_id: int) -> bool:
     return True
 
 
-async def set_whitelist(db: AsyncSession, user_id: int, value: bool = True) -> Optional[ChatUser]:
-    db_user = await get_chat_user(db, user_id)
-    if db_user is None:
-        return None
-    db_user.whitelist = value
-    db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
-    return db_user
+# ========== SINGLE-FIELD HELPERS (ОБЁРТКИ НАД update_chat_user) ==========
 
 
-async def set_passed_poll(db: AsyncSession, user_id: int, value: bool = True) -> Optional[ChatUser]:
-    db_user = await get_chat_user(db, user_id)
-    if db_user is None:
-        return None
-    db_user.passed_poll = value
-    db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
-    return db_user
+async def set_whitelist(
+        db: AsyncSession,
+        user_id: int,
+        value: bool = True,
+) -> Optional[ChatUser]:
+    """Установить/снять whitelist."""
+    return await update_chat_user(
+        db,
+        user_id,
+        ChatUserUpdate(whitelist=value),
+    )
+
+
+async def set_passed_poll(
+        db: AsyncSession,
+        user_id: int,
+        value: bool = True,
+) -> Optional[ChatUser]:
+    """Отметить, что пользователь прошёл / не прошёл капчу."""
+    return await update_chat_user(
+        db,
+        user_id,
+        ChatUserUpdate(passed_poll=value),
+    )
 
 
 async def set_muted_until(
@@ -106,14 +154,12 @@ async def set_muted_until(
         user_id: int,
         muted_until: Optional[datetime],
 ) -> Optional[ChatUser]:
-    db_user = await get_chat_user(db, user_id)
-    if db_user is None:
-        return None
-    db_user.muted_until = muted_until
-    db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
-    return db_user
+    """Обновить дату окончания мута."""
+    return await update_chat_user(
+        db,
+        user_id,
+        ChatUserUpdate(muted_until=muted_until),
+    )
 
 
 async def set_banned_until(
@@ -121,14 +167,15 @@ async def set_banned_until(
         user_id: int,
         banned_until: Optional[datetime],
 ) -> Optional[ChatUser]:
-    db_user = await get_chat_user(db, user_id)
-    if db_user is None:
-        return None
-    db_user.banned_until = banned_until
-    db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
-    return db_user
+    """Обновить дату окончания бана."""
+    return await update_chat_user(
+        db,
+        user_id,
+        ChatUserUpdate(banned_until=banned_until),
+    )
+
+
+# ========== COUNTERS (INCREMENT-ХЕЛПЕРЫ) ==========
 
 
 async def increment_messages_sent(
@@ -136,14 +183,17 @@ async def increment_messages_sent(
         user_id: int,
         delta: int = 1,
 ) -> Optional[ChatUser]:
+    """Увеличить messages_sent на delta."""
     db_user = await get_chat_user(db, user_id)
     if db_user is None:
         return None
-    db_user.messages_sent = (db_user.messages_sent or 0) + delta
-    db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
-    return db_user
+
+    new_value = (db_user.messages_sent or 0) + delta
+    return await update_chat_user(
+        db,
+        user_id,
+        ChatUserUpdate(messages_sent=new_value),
+    )
 
 
 async def increment_times_reported(
@@ -152,19 +202,18 @@ async def increment_times_reported(
         delta: int = 1,
         accused_spam: Optional[bool] = None,
 ) -> Optional[ChatUser]:
+    """Увеличить счётчик жалоб, опционально обновить accused_spam."""
     db_user = await get_chat_user(db, user_id)
     if db_user is None:
         return None
 
-    db_user.times_reported = (db_user.times_reported or 0) + delta
+    new_value = (db_user.times_reported or 0) + delta
 
+    update_data = ChatUserUpdate(times_reported=new_value)
     if accused_spam is not None:
-        db_user.accused_spam = accused_spam
+        update_data.accused_spam = accused_spam
 
-    db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
-    return db_user
+    return await update_chat_user(db, user_id, update_data)
 
 
 async def increment_times_muted(
@@ -172,14 +221,17 @@ async def increment_times_muted(
         user_id: int,
         delta: int = 1,
 ) -> Optional[ChatUser]:
+    """Увеличить times_muted на delta."""
     db_user = await get_chat_user(db, user_id)
     if db_user is None:
         return None
-    db_user.times_muted = (db_user.times_muted or 0) + delta
-    db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
-    return db_user
+
+    new_value = (db_user.times_muted or 0) + delta
+    return await update_chat_user(
+        db,
+        user_id,
+        ChatUserUpdate(times_muted=new_value),
+    )
 
 
 async def increment_times_banned(
@@ -187,23 +239,34 @@ async def increment_times_banned(
         user_id: int,
         delta: int = 1,
 ) -> Optional[ChatUser]:
+    """Увеличить times_banned на delta."""
     db_user = await get_chat_user(db, user_id)
     if db_user is None:
         return None
-    db_user.times_banned = (db_user.times_banned or 0) + delta
-    db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
-    return db_user
+
+    new_value = (db_user.times_banned or 0) + delta
+    return await update_chat_user(
+        db,
+        user_id,
+        ChatUserUpdate(times_banned=new_value),
+    )
+
+
+# ========== SELECTION HELPERS ==========
 
 
 async def get_users_with_active_mute(
-        session: AsyncSession,
+        db: AsyncSession,
         now: Optional[datetime] = None,
 ) -> List[ChatUser]:
+    """
+    Получить всех пользователей, у которых сейчас активный мут.
+    Можно использовать в фоновой задаче, чтобы синхронизировать права.
+    """
     if now is None:
         now = datetime.now(tz=MOSCOW_TZ)
-    result = await session.execute(
+
+    result = await db.execute(
         select(ChatUser).where(
             ChatUser.muted_until.is_not(None),
             ChatUser.muted_until > now,
