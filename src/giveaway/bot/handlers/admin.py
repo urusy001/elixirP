@@ -11,7 +11,7 @@ from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, FSInputFile, ReplyKeyboardMarkup, KeyboardButton
 
-from config import ADMIN_TG_IDS, MOSCOW_TZ, GIVEAWAYS_DIR, LOGS_DIR
+from config import OWNER_TG_IDS, MOSCOW_TZ, GIVEAWAYS_DIR, LOGS_DIR
 from src.giveaway.bot.keyboards import admin_keyboards
 from src.giveaway.bot.keyboards.admin import GiveawayMenu
 from src.giveaway.bot.states import admin_states
@@ -49,7 +49,7 @@ logger.setLevel(logging.INFO)
 
 @router.callback_query(
     admin_states.CreateGiveaway.delete,
-    lambda call: call.from_user and call.from_user.id in ADMIN_TG_IDS and call.message.chat.type == "private"
+    lambda call: call.from_user and call.from_user.id in OWNER_TG_IDS and call.message.chat.type == "private"
 )
 async def block_callbacks_during_delete(call: CallbackQuery):
     logger.info(
@@ -61,7 +61,7 @@ async def block_callbacks_during_delete(call: CallbackQuery):
 
 @router.message(
     admin_states.CreateGiveaway.delete,
-    lambda message: message.from_user and message.from_user.id in ADMIN_TG_IDS and message.chat.type == "private"
+    lambda message: message.from_user and message.from_user.id in OWNER_TG_IDS and message.chat.type == "private"
 )
 async def handle_delete_giveaway(message: Message, state: FSMContext):
     logger.info(
@@ -122,7 +122,7 @@ async def handle_delete_giveaway(message: Message, state: FSMContext):
 
 @router.message(
     CommandStart(),
-    lambda message: message.from_user and message.from_user.id in ADMIN_TG_IDS and message.chat.type == "private"
+    lambda message: message.from_user and message.from_user.id in OWNER_TG_IDS and message.chat.type == "private"
 )
 async def handle_admin_start(message: Message, state: FSMContext):
     logger.info("handle_admin_start | admin_id=%s", message.from_user.id)
@@ -133,7 +133,7 @@ async def handle_admin_start(message: Message, state: FSMContext):
 
 @router.message(
     Command('winner'),
-    lambda message: message.from_user and message.from_user.id in ADMIN_TG_IDS and message.chat.type == "private"
+    lambda message: message.from_user and message.from_user.id in OWNER_TG_IDS and message.chat.type == "private"
 )
 async def handle_winner(message: Message):
     logger.info(
@@ -239,7 +239,7 @@ async def handle_winner(message: Message):
 
 @router.message(
     admin_states.CreateGiveaway.name,
-    lambda message: message.from_user and message.from_user.id in ADMIN_TG_IDS
+    lambda message: message.from_user and message.from_user.id in OWNER_TG_IDS
                     and message.chat.type == "private" and message.text and message.text.strip()
 )
 async def handle_giveaway_name(message: Message, state: FSMContext):
@@ -256,7 +256,7 @@ async def handle_giveaway_name(message: Message, state: FSMContext):
 
 @router.message(
     admin_states.CreateGiveaway.prize,
-    lambda message: message.from_user and message.from_user.id in ADMIN_TG_IDS
+    lambda message: message.from_user and message.from_user.id in OWNER_TG_IDS
                     and message.chat.type == "private" and message.text and message.text.strip()
 )
 async def handle_giveaway_prize(message: Message, state: FSMContext):
@@ -274,7 +274,7 @@ async def handle_giveaway_prize(message: Message, state: FSMContext):
 
 @router.message(
     admin_states.CreateGiveaway.description,
-    lambda message: message.from_user and message.from_user.id in ADMIN_TG_IDS
+    lambda message: message.from_user and message.from_user.id in OWNER_TG_IDS
                     and message.chat.type == "private" and message.text and message.text.strip()
 )
 async def handle_giveaway_description(message: Message, state: FSMContext):
@@ -291,7 +291,7 @@ async def handle_giveaway_description(message: Message, state: FSMContext):
 
 @router.message(
     admin_states.CreateGiveaway.channel_username,
-    lambda message: message.from_user and message.from_user.id in ADMIN_TG_IDS
+    lambda message: message.from_user and message.from_user.id in OWNER_TG_IDS
                     and message.chat.type == "private" and message.text and message.text.strip()
 )
 async def handle_giveaway_channel_username(message: Message, state: FSMContext, giveaway_bot):
@@ -316,7 +316,7 @@ async def handle_giveaway_channel_username(message: Message, state: FSMContext, 
 
 @router.message(
     admin_states.CreateGiveaway.referral_amount,
-    lambda message: message.from_user and message.from_user.id in ADMIN_TG_IDS
+    lambda message: message.from_user and message.from_user.id in OWNER_TG_IDS
                     and message.chat.type == "private" and message.text and message.text.strip().isdigit()
 )
 async def handle_giveaway_referral_amount(message: Message, state: FSMContext):
@@ -333,7 +333,7 @@ async def handle_giveaway_referral_amount(message: Message, state: FSMContext):
 
 @router.message(
     admin_states.CreateGiveaway.end_date,
-    lambda message: message.from_user and message.from_user.id in ADMIN_TG_IDS
+    lambda message: message.from_user and message.from_user.id in OWNER_TG_IDS
                     and message.chat.type == "private" and message.text and message.text.strip().isdigit()
 )
 async def handle_end_date(message: Message, state: FSMContext):
@@ -360,7 +360,7 @@ async def handle_end_date(message: Message, state: FSMContext):
 
 @router.callback_query(
     lambda call: call.data.startswith("admin")
-                 and call.from_user and call.from_user.id in ADMIN_TG_IDS
+                 and call.from_user and call.from_user.id in OWNER_TG_IDS
                  and call.message.chat.type == "private"
 )
 async def handle_admin_call(call: CallbackQuery, state: FSMContext):

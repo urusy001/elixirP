@@ -43,7 +43,7 @@ class GiveawayBot(Bot):
 
 bot = GiveawayBot()
 dp = Dispatcher(storage=MemoryStorage())
-dp.include_routers(user_router, admin_router, chat_router)
+dp.include_routers(user_router, admin_router)
 dp.message.middleware(GiveawayMiddleware(bot))
 dp.callback_query.middleware(GiveawayMiddleware(bot))
 

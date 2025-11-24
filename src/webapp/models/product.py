@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
-from src.helpers import normalize_html_for_telegram
 from src.webapp.database import Base
 
 
@@ -23,7 +22,7 @@ class Product(Base):
 
     def __str__(self) -> str:
         print(self.expiration or '1', self.usage or '0')
-        return normalize_html_for_telegram(f"<b>{self.name}</b>\n"
+        return (f"<b>{self.name}</b>\n"
                 f"Артикул: <i>{self.code}</i>\n"
                 f"\n"
                 f"{self.description if self.description else ''}\n\n"

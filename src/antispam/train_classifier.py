@@ -201,7 +201,7 @@ joblib.dump(
     {
         "classifier": clf,
         "label_map": label_map,
-        "threshold": 0.35  # you can tune this later
+        "threshold": 0.5  # you can tune this later
     },
     CLF_PATH
 )

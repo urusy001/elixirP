@@ -8,13 +8,14 @@ import random
 import re
 import string
 from functools import wraps
+from logging import Logger
 from typing import Optional, Literal
 
 from aiogram import Bot
 from aiogram.types import Message
 from transliterate import translit
 
-from config import YOOKASSA_SECRET_KEY, CSV_PATH
+from config import YOOKASSA_SECRET_KEY, CSV_PATH, ELIXIR_CHAT_ID
 
 MAX_TG_MSG_LEN = 4096  # Telegram limit
 
@@ -547,3 +548,31 @@ async def append_message_to_csv(text: str, label: int | str = 0) -> None:
                 writer.writerow(["Message", "Label"])
 
             writer.writerow([text, label])
+
+async def _notify_user(message: Message, text: str, timer: float | None = None, logger: Logger = None) -> None:
+    if logger: logger.info("Notify user %s | text_preview=%r | timer=%s", message.from_user.id, text[:100], timer)
+    x = await message.answer(text, parse_mode="HTML")
+    if timer:
+        await asyncio.sleep(timer)
+        await x.delete()
+        if logger: logger.debug("Deleted notification message for user %s", message.from_user.id)
+
+
+async def CHAT_ADMIN_FILTER(message: Message, bot: Bot) -> bool:
+    # 1) Работаем только в нужном чате
+    if getattr(message.chat, "id") not in [-1003182914098, ELIXIR_CHAT_ID]:
+        return False
+
+    # 2) Сообщение отправлено "от имени чата" (sender_chat)
+    #    Такое вообще может сделать только админ, так что считаем это админом
+    if message.sender_chat and message.sender_chat.id == message.chat.id:
+        return True
+
+    # 3) Обычный юзер (from_user) — проверяем через get_chat_member
+    if message.from_user:
+        member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+        return member.status in ("administrator", "creator")
+
+    # 4) Всё остальное — не админ
+    return False
+

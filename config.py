@@ -57,11 +57,15 @@ load_dotenv()
 MOSCOW_TZ = timezone(timedelta(hours=3))
 
 # ---------- admin / tokens ----------
-ADMIN_TG_IDS      = env_list_ints("ADMIN_TG_IDS")
+OWNER_TG_IDS      = env_list_ints("OWNER_TG_IDS")
 TELETHON_API_ID   = env("TELETHON_API_ID", "")
 TELETHON_API_HASH = env("TELETHON_API_HASH", "")
 TELETHON_PHONE    = env("TELETHON_PHONE", "")
 TELETHON_PASSWORD = env("TELETHON_PASSWORD", None)
+
+ANTISPAM_BOT_TOKEN       = env("ANTISPAM_BOT_TOKEN", "")
+REPORTS_CHANNEL_ID       = env_int("REPORTS_CHANNEL_ID", 0)
+ELIXIR_CHAT_ID           = env_int("ELIXIR_CHAT_ID", 0)
 
 AI_BOT_TOKEN  = env("AI_BOT_TOKEN", "")
 AI_BOT_TOKEN2 = env("AI_BOT_TOKEN2", "")
@@ -88,6 +92,7 @@ ASYNC_DATABASE_URL = build_async_dsn(POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 WORKING_DIR = BASE_DIR  # alias if other modules expect it
 
+SPA_DIR = BASE_DIR / "src" / "webapp" / "static"
 SRC_DIR       = BASE_DIR / "src"
 ANTISPAM_DIR  = SRC_DIR  / "antispam"
 DATA_DIR      = BASE_DIR / "data"
@@ -159,7 +164,7 @@ MISSES_PATH = LOGS_DIR / "misses.csv"
 
 # ---------- light sanity logs (optional) ----------
 _log = logging.getLogger("config")
-if not ADMIN_TG_IDS:
+if not OWNER_TG_IDS:
     _log.warning("ADMIN_TG_IDS is empty or invalid; admin-only filters may not work.")
 if not AI_BOT_TOKEN:
     _log.warning("AI_BOT_TOKEN is empty.")

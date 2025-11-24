@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, InlineQueryResultArticle, \
     InputTextMessageContent
 
-from config import ADMIN_TG_IDS, SPENDS_DIR, AI_BOT_TOKEN, AI_BOT_TOKEN2
+from config import OWNER_TG_IDS, SPENDS_DIR, AI_BOT_TOKEN, AI_BOT_TOKEN2
 from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
 from src.webapp import get_session
@@ -22,17 +22,17 @@ router2 = Router(name="admin")
 router3 = Router(name="admin")
 
 
-@router.message(CommandStart(), lambda message: message.from_user.id in ADMIN_TG_IDS)
-@router2.message(CommandStart(), lambda message: message.from_user.id in ADMIN_TG_IDS)
-@router3.message(CommandStart(), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@router.message(CommandStart(), lambda message: message.from_user.id in OWNER_TG_IDS)
+@router2.message(CommandStart(), lambda message: message.from_user.id in OWNER_TG_IDS)
+@router3.message(CommandStart(), lambda message: message.from_user.id in OWNER_TG_IDS)
 async def handle_admin_start(message: Message):
     await message.answer(
         f'{message.from_user.full_name}, Добро пожаловать в <b>админ панель</b>\n\nВыберите действие кнопками ниже',
         reply_markup=admin_keyboards.main_menu, parse_mode="html")
 
-@router.message(Command('block'), lambda message: message.from_user.id in ADMIN_TG_IDS)
-@router2.message(Command('block'), lambda message: message.from_user.id in ADMIN_TG_IDS)
-@router3.message(Command('block'), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@router.message(Command('block'), lambda message: message.from_user.id in OWNER_TG_IDS)
+@router2.message(Command('block'), lambda message: message.from_user.id in OWNER_TG_IDS)
+@router3.message(Command('block'), lambda message: message.from_user.id in OWNER_TG_IDS)
 async def handle_block(message: Message):
     text = (message.text or "").strip()
     args = text.removeprefix("/block ").split()
@@ -130,9 +130,9 @@ async def handle_block(message: Message):
             "<code>/block id айди_телеграм</code>"
         )
 
-@router.message(Command('unblock'), lambda message: message.from_user.id in ADMIN_TG_IDS)
-@router2.message(Command('unblock'), lambda message: message.from_user.id in ADMIN_TG_IDS)
-@router3.message(Command('unblock'), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@router.message(Command('unblock'), lambda message: message.from_user.id in OWNER_TG_IDS)
+@router2.message(Command('unblock'), lambda message: message.from_user.id in OWNER_TG_IDS)
+@router3.message(Command('unblock'), lambda message: message.from_user.id in OWNER_TG_IDS)
 async def handle_unblock(message: Message):
     text = (message.text or "").strip()
     args = text.removeprefix("/unblock ").split()
@@ -230,9 +230,9 @@ async def handle_unblock(message: Message):
             "<code>/unblock id айди_телеграм</code>"
         )
 
-@router.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in ADMIN_TG_IDS)
-@router2.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in ADMIN_TG_IDS)
-@router3.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in ADMIN_TG_IDS)
+@router.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in OWNER_TG_IDS)
+@router2.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in OWNER_TG_IDS)
+@router3.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in OWNER_TG_IDS)
 async def handle_spends_time(message: Message):
     """
     Handle admin command to generate spending report.
@@ -303,7 +303,7 @@ async def handle_spends_time(message: Message):
 
     return os.remove(file_path)
 
-@router2.message(Command('product'), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@router2.message(Command('product'), lambda message: message.from_user.id in OWNER_TG_IDS)
 async def handle_product(message: Message):
     onec_id = message.text.strip().removeprefix("/product ")
     if not onec_id:
@@ -315,7 +315,7 @@ async def handle_product(message: Message):
         return await message.answer(str(product))
 
 
-@router2.inline_query(lambda inline_query: inline_query.query.startswith("search") and inline_query.from_user.id in ADMIN_TG_IDS)
+@router2.inline_query(lambda inline_query: inline_query.query.startswith("search") and inline_query.from_user.id in OWNER_TG_IDS)
 async def handle_product_name(inline_query: InlineQuery, state: FSMContext):
     query = inline_query.query.strip().removeprefix("search").strip()
     if not query: return
@@ -340,9 +340,9 @@ async def handle_product_name(inline_query: InlineQuery, state: FSMContext):
     await inline_query.answer(results, cache_time=1)
 
 
-@router.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS)
-@router2.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS)
-@router3.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS)
+@router.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS)
+@router2.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS)
+@router3.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS)
 async def handle_admin_callback(call: CallbackQuery, state: FSMContext):
     try:
         await call.answer()

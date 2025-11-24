@@ -6,6 +6,7 @@ from .product import *
 from .unit import *
 from .user import *
 from .usertokenusage import *
+from .chatuser import *
 
 __all__ = [
     'CategoryUpdate', 'CategoryBase', 'CategoryRead', 'CategoryCreate',
@@ -16,4 +17,5 @@ __all__ = [
     'UserTokenUsageUpdate', 'UserTokenUsageRead', 'UserTokenUsageBase', 'UserTokenUsageCreate',
     'GiveawayBase', 'GiveawayCreate', 'GiveawayRead', 'GiveawayUpdate',
     'ParticipantBase', 'ParticipantRead', 'ParticipantCreate', 'ParticipantUpdate',
+    'ChatUserCreate', 'ChatUserBase', 'ChatUserOut', 'ChatUserUpdate'
 ]

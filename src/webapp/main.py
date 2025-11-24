@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -8,7 +8,8 @@ from config import BASE_DIR, templates
 from src.webapp.routes import *
 
 app = FastAPI(title="ElixirPeptides")
-app.mount("/static", StaticFiles(directory=BASE_DIR / "src" / "webapp" / "static"), name="static")
+app.mount("/static", StaticFiles(directory=BASE_DIR / "src" / "webapp" / "static", html=True), name="static")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:8000", "http://localhost:8000", "https://www.devsivanschostakov.org",
@@ -23,7 +24,6 @@ app.include_router(cart_router)
 app.include_router(cdek_router)
 app.include_router(yandex_router)
 app.include_router(payments_router)
-app.include_router(users_router)
 app.include_router(forwarding_router)
 app.include_router(webhooks_router)
 app.include_router(users_router)

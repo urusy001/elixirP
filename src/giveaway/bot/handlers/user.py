@@ -10,11 +10,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.deep_linking import create_start_link
 
-from config import ADMIN_TG_IDS, LOGS_DIR
+from config import OWNER_TG_IDS, LOGS_DIR
 from src.giveaway.bot.keyboards import user_keyboards
 from src.giveaway.bot.states import user_states
 from src.giveaway.bot.texts import user_texts, get_giveaway_text
-from src.helpers import extract_email, cypher_user_id
+from src.helpers import extract_email, cypher_user_id, _notify_user
 from src.webapp import get_session
 from src.webapp.crud import (
     get_giveaways,
@@ -28,9 +28,9 @@ from src.webapp.models import Participant
 from src.webapp.schemas import ParticipantUpdate, ParticipantCreate
 
 user_message_filter = lambda \
-        message: message.from_user and message.from_user.id not in ADMIN_TG_IDS and message and message.chat.type == "private"
+        message: message.from_user and message.from_user.id not in OWNER_TG_IDS and message and message.chat.type == "private"
 user_call_filter = lambda call: call.data.startswith(
-    "user") and call.from_user.id not in ADMIN_TG_IDS and call.message.chat.type == "private"
+    "user") and call.from_user.id not in OWNER_TG_IDS and call.message.chat.type == "private"
 
 router = Router(name="user")
 logger = logging.getLogger("Розыгрыши user")
@@ -54,16 +54,6 @@ if not any(
     logger.addHandler(fh)
 
 logger.setLevel(logging.INFO)
-
-
-async def _notify_user(message: Message, text: str, timer: float | None = None):
-    logger.info("Notify user %s | text_preview=%r | timer=%s", message.from_user.id, text[:100], timer)
-    x = await message.answer(text)
-    if timer:
-        await asyncio.sleep(timer)
-        await x.delete()
-        logger.debug("Deleted notification message for user %s", message.from_user.id)
-
 
 async def check_completion(session, giveaway_id: int, tg_id: int, participant, message: Message) -> Participant:
     """Check if all requirements are done and assign participation code if yes."""
@@ -168,14 +158,14 @@ async def handle_start(message: Message, state: FSMContext):
 
 @router.message(
     user_states.Requirements.email,
-    lambda message: message.from_user and message.from_user.id not in ADMIN_TG_IDS and message.text and message.text.strip() and message.chat.type == "private",
+    lambda message: message.from_user and message.from_user.id not in OWNER_TG_IDS and message.text and message.text.strip() and message.chat.type == "private",
 )
 async def handle_email(message: Message, state: FSMContext):
     logger.info("handle_email | user_id=%s | raw_text=%r", message.from_user.id, message.text)
     email = extract_email(message.text.strip())
     if not email:
         logger.warning("Invalid email from user %s: %r", message.from_user.id, message.text)
-        return await _notify_user(message, "❌ Введите корректный email")
+        return await _notify_user(message, "❌ Введите корректный email", logger=logger)
 
     logger.debug("Extracted email for user %s: %s", message.from_user.id, email)
 
@@ -229,24 +219,24 @@ async def handle_email(message: Message, state: FSMContext):
         prefix = "❌ "
 
     text = f"{prefix}{result.get('html_message', 'Ошибка в обработке запроса')}"
-    return asyncio.create_task(_notify_user(message, text))
+    return asyncio.create_task(_notify_user(message, text, logger=logger))
 
 
 @router.message(
-    lambda message: message.from_user and message.from_user.id not in ADMIN_TG_IDS and message.contact and message.chat.type == "private")
+    lambda message: message.from_user and message.from_user.id not in OWNER_TG_IDS and message.contact and message.chat.type == "private")
 async def handle_contact(message: Message):
     phone_number = message.contact.phone_number
     full_name = message.from_user.full_name
     logger.info("handle_contact | user_id=%s | full_name=%r | phone=%r", message.from_user.id, full_name, phone_number)
     await message.answer('Спасибо, с вами скоро свяжутся')
-    for admin_id in ADMIN_TG_IDS:
+    for admin_id in OWNER_TG_IDS:
         await message.bot.send_message(admin_id, f'Номер тг {full_name}: {phone_number}')
         logger.debug("Sent contact of %s to admin %s", message.from_user.id, admin_id)
 
 
 @router.message(
     user_states.Requirements.order_code,
-    lambda message: message.from_user and message.from_user.id not in ADMIN_TG_IDS and message.text and message.text.strip().isdigit() and message.chat.type == "private",
+    lambda message: message.from_user and message.from_user.id not in OWNER_TG_IDS and message.text and message.text.strip().isdigit() and message.chat.type == "private",
 )
 async def handle_order_code(message: Message, state: FSMContext):
     logger.info("handle_order_code | user_id=%s | raw_text=%r", message.from_user.id, message.text)
@@ -289,7 +279,7 @@ async def handle_order_code(message: Message, state: FSMContext):
         prefix = "❌ "
 
     text = f"{prefix}{result.get('html_message', 'Ошибка в обработке запроса')}"
-    asyncio.create_task(_notify_user(message, text))
+    asyncio.create_task(_notify_user(message, text, logger=logger))
 
     giveaway_text = get_giveaway_text(giveaway)
     await message.answer(
@@ -422,4 +412,4 @@ async def handle_user_call(call: CallbackQuery, state: FSMContext, giveaway_bot)
                 )
             return
 
-        asyncio.create_task(_notify_user(call.message, text, 120))
+        asyncio.create_task(_notify_user(call.message, text, 120, logger))

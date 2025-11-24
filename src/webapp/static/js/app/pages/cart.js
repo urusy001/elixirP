@@ -6,20 +6,22 @@ import {
     hideMainButton,
     showBackButton,
     isTelegramApp,
-    showMainButton, updateMainButton,
+    showMainButton,
+    updateMainButton,
 } from "../ui/telegram.js";
 import {hideCartIcon} from "../ui/cart-icon.js";
 import {
     cartPageEl,
     checkoutPageEl,
-    contactPageEl, detailEl,
-    headerTitle, listEl,
+    contactPageEl,
+    detailEl,
+    headerTitle,
+    listEl,
     paymentPageEl,
     processPaymentEl,
     searchBtnEl,
-    toolbarEl
+    toolbarEl,
 } from "./constants.js";
-
 
 const cartTotalEl = document.getElementById("summary-label");
 const cartItemsEl = document.getElementById("cart-items");
@@ -28,6 +30,7 @@ let cartRows = {};
 
 function updateTotal() {
     let total = 0;
+
     for (const key in cartRows) {
         const row = cartRows[key];
         const qty = state.cart[key] || 0;
@@ -35,11 +38,19 @@ function updateTotal() {
         total += price * qty;
     }
 
+    if (total === 0) {
+        cartTotalEl.innerHTML = `
+            <span class="total-label">Итого:</span>
+            <span class="total-amount">0 ₽</span>
+        `;
+        showMainButton("К товарам", () => navigateTo("/"));
+        return;
+    }
+
     cartTotalEl.innerHTML = `
-    <span class="total-label">Итого:</span>
-    <span class="total-amount">${total.toLocaleString("ru-RU")} ₽</span>
-  `;
-    if (total === 0) showMainButton("К товарам", () => navigateTo("/"));
+        <span class="total-label">Итого:</span>
+        <span class="total-amount">${total.toLocaleString("ru-RU")} ₽</span>
+    `;
 }
 
 function updateQuantity(key, delta) {
@@ -67,7 +78,10 @@ async function renderCart() {
 
     if (!keys.length) {
         cartItemsEl.innerHTML = "<p>Корзина пуста</p>";
-        cartTotalEl.textContent = "0 ₽";
+        cartTotalEl.innerHTML = `
+            <span class="total-label">Итого:</span>
+            <span class="total-amount">0 ₽</span>
+        `;
         return;
     }
 
@@ -79,11 +93,12 @@ async function renderCart() {
             } catch {
                 return null;
             }
-        })
+        }),
     );
 
     products.forEach((p, i) => {
         if (!p) return;
+
         const key = keys[i];
         const qty = state.cart[key] || 0;
         if (qty <= 0) return;
@@ -94,18 +109,18 @@ async function renderCart() {
         const row = document.createElement("div");
         row.className = "cart-item";
         row.innerHTML = `
-      <div class="cart-item-name">
-        ${name}:
-        <span class="cart-item-price" data-unit-price="${unitPrice}">
-          ${(unitPrice * qty).toLocaleString("ru-RU")} ₽
-        </span>
-      </div>
-      <div class="cart-item-controls">
-        <button class="minus">−</button>
-        <span class="qty">${qty}</span>
-        <button class="plus">+</button>
-      </div>
-    `;
+            <div class="cart-item-name">
+                ${name}:
+                <span class="cart-item-price" data-unit-price="${unitPrice}">
+                    ${(unitPrice * qty).toLocaleString("ru-RU")} ₽
+                </span>
+            </div>
+            <div class="cart-item-controls">
+                <button class="minus">−</button>
+                <span class="qty">${qty}</span>
+                <button class="plus">+</button>
+            </div>
+        `;
 
         const minus = row.querySelector(".minus");
         const plus = row.querySelector(".plus");
@@ -117,7 +132,6 @@ async function renderCart() {
 
         cartItemsEl.appendChild(row);
 
-        // ⬇️ сохраняем name вместе с DOM-элементами
         cartRows[key] = {row, qtySpan, priceDiv, name};
     });
 
@@ -136,7 +150,7 @@ export async function handleCheckout() {
     try {
         const payload = Object.entries(state.cart).map(([key, qty]) => {
             const [id, featureId] = key.split("_");
-            const itemName = cartRows[key]?.name || null; // ⬅️ берём имя из cartRows
+            const itemName = cartRows[key]?.name || null;
             return {
                 id,
                 featureId: featureId || null,
@@ -164,21 +178,19 @@ export async function renderCartPage() {
     toolbarEl.style.display = "none";
     listEl.style.display = "none";
     detailEl.style.display = "none";
-    cartPageEl.style.display = "block";
-    headerTitle.textContent = "Корзина";
     checkoutPageEl.style.display = "none";
     contactPageEl.style.display = "none";
-    searchBtnEl.style.display = "flex";
     paymentPageEl.style.display = "none";
     processPaymentEl.style.display = "none";
+
+    cartPageEl.style.display = "block";
+    headerTitle.textContent = "Корзина";
+    searchBtnEl.style.display = "flex";
 
     await withLoader(renderCart);
 
     if (isTelegramApp()) {
-        showBackButton(() => {
-            navigateTo("/");
-        });
-
+        showBackButton(() => navigateTo("/"));
         showMainButton("Оформить заказ", () => handleCheckout());
     } else {
         let btn = document.getElementById("checkout-btn");
@@ -192,6 +204,4 @@ export async function renderCartPage() {
         btn.style.display = "block";
         btn.onclick = handleCheckout;
     }
-
-    updateTotal();
 }

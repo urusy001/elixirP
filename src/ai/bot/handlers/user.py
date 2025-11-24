@@ -5,7 +5,7 @@ from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from config import ADMIN_TG_IDS, AI_BOT_TOKEN, AI_BOT_TOKEN2, MOSCOW_TZ
+from config import OWNER_TG_IDS, AI_BOT_TOKEN, AI_BOT_TOKEN2, MOSCOW_TZ
 from src.ai.bot.keyboards import user_keyboards
 from src.ai.bot.states import user_states
 from src.helpers import with_typing
@@ -17,9 +17,9 @@ router = Router(name="user")
 router2 = Router(name="user2")
 router3 = Router(name="user3")
 
-@router.message(CommandStart(), lambda message: message.from_user.id not in ADMIN_TG_IDS)
-@router2.message(CommandStart(), lambda message: message.from_user.id not in ADMIN_TG_IDS)
-@router3.message(CommandStart(), lambda message: message.from_user.id not in ADMIN_TG_IDS)
+@router.message(CommandStart(), lambda message: message.from_user.id not in OWNER_TG_IDS)
+@router2.message(CommandStart(), lambda message: message.from_user.id not in OWNER_TG_IDS)
+@router3.message(CommandStart(), lambda message: message.from_user.id not in OWNER_TG_IDS)
 @with_typing
 async def handle_user_start(message: Message, state: FSMContext, professor_bot, professor_client):
     user_id = message.from_user.id
@@ -62,9 +62,9 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
     return await professor_bot.parse_response(response, message)
 
 
-@router.message(user_states.Registration.phone, lambda message: message.from_user.id not in ADMIN_TG_IDS)
-@router2.message(user_states.Registration.phone, lambda message: message.from_user.id not in ADMIN_TG_IDS)
-@router3.message(user_states.Registration.phone, lambda message: message.from_user.id not in ADMIN_TG_IDS)
+@router.message(user_states.Registration.phone, lambda message: message.from_user.id not in OWNER_TG_IDS)
+@router2.message(user_states.Registration.phone, lambda message: message.from_user.id not in OWNER_TG_IDS)
+@router3.message(user_states.Registration.phone, lambda message: message.from_user.id not in OWNER_TG_IDS)
 async def handle_user_registration(message: Message, state: FSMContext, professor_bot, professor_client):
     if not message.contact:
         return await message.answer(
@@ -105,9 +105,9 @@ async def handle_new_chat(message: Message, state: FSMContext, professor_bot, pr
     await message.answer('Новый чат успешно начат, продолжайте общение')
 
 
-@router.message(lambda message: message.text, lambda message: message.from_user.id not in ADMIN_TG_IDS)
-@router2.message(lambda message: message.text, lambda message: message.from_user.id not in ADMIN_TG_IDS)
-@router3.message(lambda message: message.text, lambda message: message.from_user.id not in ADMIN_TG_IDS)
+@router.message(lambda message: message.text, lambda message: message.from_user.id not in OWNER_TG_IDS)
+@router2.message(lambda message: message.text, lambda message: message.from_user.id not in OWNER_TG_IDS)
+@router3.message(lambda message: message.text, lambda message: message.from_user.id not in OWNER_TG_IDS)
 @with_typing
 async def handle_text_message(message: Message, state: FSMContext, professor_bot, professor_client):
     user_id = message.from_user.id

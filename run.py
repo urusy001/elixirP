@@ -3,11 +3,8 @@ import asyncio
 import signal
 import sys
 
-from config import TELETHON_PHONE, TELETHON_PASSWORD
-from src.giveaway.bot.main import run_bot as run_giveaway_bot
-from src.ai.bot.main import run_professor_bot, run_dose_bot
-from src.tg_methods import client as tg_client
-
+from src.delivery.sdek import client as cdek_client
+from src.webapp.main import run_app
 
 logging.basicConfig(
     level=logging.INFO,
@@ -21,10 +18,8 @@ logger = logging.getLogger("main")
 
 async def main():
     tasks = [
-        asyncio.create_task(tg_client.start(TELETHON_PHONE, TELETHON_PASSWORD)),
-        asyncio.create_task(run_dose_bot()),
-        asyncio.create_task(run_giveaway_bot()),
-        asyncio.create_task(run_professor_bot())
+        asyncio.create_task(cdek_client.token_worker(), name="antispam"),
+        asyncio.create_task(run_app())
     ]
 
     async def shutdown():
