@@ -14,17 +14,11 @@ from src.antispam.poll_questions import POLL_QUESTIONS_RU, PollQuestion
 from src.antispam.test_classifier import is_spam
 from src.helpers import append_message_to_csv, _notify_user, CHAT_ADMIN_FILTER
 from src.webapp.models import ChatUser
-from src.webapp.schemas import ChatUserCreate
+from src.webapp.schemas import ChatUserCreate, ChatUserUpdate
 from src.webapp.crud import (
     upsert_chat_user,
-    set_muted_until,
-    increment_messages_sent,
-    increment_times_reported,
     get_chat_user,
-    set_whitelist,
-    increment_times_muted,
-    set_banned_until,
-    increment_times_banned,
+    update_chat_user,
 )
 from src.webapp.database import get_session
 
@@ -92,10 +86,11 @@ async def safe_unrestrict(bot: Bot, chat_id: int, user_id: int) -> bool:
 
 
 async def pass_user(chat_id: int, user_id: int, bot: Bot, timer: int | float | None = 24 * 60 * 60):
+    """Авто-снятие мута по таймеру."""
     await asyncio.sleep(timer)
     await safe_unrestrict(bot, chat_id, user_id)
     async with get_session() as session:
-        await set_muted_until(session, user_id, None)
+        await update_chat_user(session, user_id, ChatUserUpdate(muted_until=None))
 
 
 async def start_captcha(bot: Bot, chat_id: int, user_id: int, thread_id: Optional[int]):
@@ -107,7 +102,8 @@ async def start_captcha(bot: Bot, chat_id: int, user_id: int, thread_id: Optiona
     async with get_session() as session:
         user = await get_chat_user(session, user_id)
         if user is None:
-            user = await upsert_chat_user(
+            # новый юзер в БД (или старый до внедрения капчи, но попавший сюда)
+            await upsert_chat_user(
                 session,
                 ChatUserCreate(
                     id=user_id,
@@ -131,6 +127,7 @@ async def start_captcha(bot: Bot, chat_id: int, user_id: int, thread_id: Optiona
                     poll_correct_option_id=None,
                 ),
             )
+            user = await get_chat_user(session, user_id)
 
         # Уже бессрочно забанен
         if user.banned_until and user.banned_until > now + timedelta(days=365 * 10):
@@ -181,12 +178,17 @@ async def start_captcha(bot: Bot, chat_id: int, user_id: int, thread_id: Optiona
         )
 
         # Сохраняем состояние капчи в БД
-        user.poll_active = True
-        user.poll_chat_id = chat_id
-        user.poll_message_id = poll_message.message_id
-        user.poll_id = poll_message.poll.id
-        user.poll_correct_option_id = correct_option_id
-        await session.commit()
+        await update_chat_user(
+            session,
+            user_id,
+            ChatUserUpdate(
+                poll_active=True,
+                poll_chat_id=chat_id,
+                poll_message_id=poll_message.message_id,
+                poll_id=poll_message.poll.id,
+                poll_correct_option_id=correct_option_id,
+            ),
+        )
 
         # Сохраняем соответствие poll_id -> thread_id в памяти
         POLL_THREADS[poll_message.poll.id] = thread_id
@@ -257,19 +259,22 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
             except Exception:
                 pass
 
-        # Сбрасываем признак активного опроса
-        user.poll_active = False
-        user.poll_chat_id = None
-        user.poll_message_id = None
-        user.poll_id = None
-
         correct_id = user.poll_correct_option_id
 
+        # Верный ответ
         if chosen is not None and correct_id is not None and chosen == correct_id:
-            # Успешное прохождение
-            user.passed_poll = True
-            user.poll_correct_option_id = None
-            await session.commit()
+            await update_chat_user(
+                session,
+                user_id,
+                ChatUserUpdate(
+                    passed_poll=True,
+                    poll_active=False,
+                    poll_chat_id=None,
+                    poll_message_id=None,
+                    poll_id=None,
+                    poll_correct_option_id=None,
+                ),
+            )
 
             text = (
                 f"{answer.user.mention_html()}, проверка пройдена.\n"
@@ -282,17 +287,26 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
             return
 
         # Неверный ответ – считаем попытку
-        user.poll_attempts = (user.poll_attempts or 0) + 1
-        attempts = user.poll_attempts
-        user.poll_correct_option_id = None
+        attempts = (user.poll_attempts or 0) + 1
 
         if attempts >= CAPTCHA_MAX_ATTEMPTS:
             # Блокируем
             far_future = now + timedelta(days=365 * 100)
-            user.banned_until = far_future
-            user.muted_until = far_future
-            await increment_times_banned(session, user_id, 1)
-            await session.commit()
+            await update_chat_user(
+                session,
+                user_id,
+                ChatUserUpdate(
+                    poll_attempts=attempts,
+                    poll_active=False,
+                    poll_chat_id=None,
+                    poll_message_id=None,
+                    poll_id=None,
+                    poll_correct_option_id=None,
+                    banned_until=far_future,
+                    muted_until=far_future,
+                    times_banned=(user.times_banned or 0) + 1,
+                ),
+            )
 
             if chat_id:
                 await safe_restrict(bot, chat_id, user_id, NEW_USER)
@@ -303,7 +317,18 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
                 )
                 await send_ephemeral_message(bot, chat_id, text, thread_id=thread_id, ttl=120)
         else:
-            await session.commit()
+            await update_chat_user(
+                session,
+                user_id,
+                ChatUserUpdate(
+                    poll_attempts=attempts,
+                    poll_active=False,
+                    poll_chat_id=None,
+                    poll_message_id=None,
+                    poll_id=None,
+                    poll_correct_option_id=None,
+                ),
+            )
             left = CAPTCHA_MAX_ATTEMPTS - attempts
             text = (
                 f"{answer.user.mention_html()}, ответ неверный.\n"
@@ -340,23 +365,25 @@ async def handle_poll_expired(poll: Poll, bot: Bot):
             except Exception:
                 pass
 
-        # Сбрасываем активный опрос
-        user.poll_active = False
-        user.poll_chat_id = None
-        user.poll_message_id = None
-        user.poll_id = None
-        user.poll_correct_option_id = None
-
-        # Считаем попытку
-        user.poll_attempts = (user.poll_attempts or 0) + 1
-        attempts = user.poll_attempts
+        attempts = (user.poll_attempts or 0) + 1
 
         if attempts >= CAPTCHA_MAX_ATTEMPTS:
             far_future = now + timedelta(days=365 * 100)
-            user.banned_until = far_future
-            user.muted_until = far_future
-            await increment_times_banned(session, user_id, 1)
-            await session.commit()
+            await update_chat_user(
+                session,
+                user_id,
+                ChatUserUpdate(
+                    poll_attempts=attempts,
+                    poll_active=False,
+                    poll_chat_id=None,
+                    poll_message_id=None,
+                    poll_id=None,
+                    poll_correct_option_id=None,
+                    banned_until=far_future,
+                    muted_until=far_future,
+                    times_banned=(user.times_banned or 0) + 1,
+                ),
+            )
 
             if chat_id:
                 await safe_restrict(bot, chat_id, user_id, NEW_USER)
@@ -367,7 +394,18 @@ async def handle_poll_expired(poll: Poll, bot: Bot):
                 )
                 await send_ephemeral_message(bot, chat_id, text, thread_id=thread_id, ttl=120)
         else:
-            await session.commit()
+            await update_chat_user(
+                session,
+                user_id,
+                ChatUserUpdate(
+                    poll_attempts=attempts,
+                    poll_active=False,
+                    poll_chat_id=None,
+                    poll_message_id=None,
+                    poll_id=None,
+                    poll_correct_option_id=None,
+                ),
+            )
             left = CAPTCHA_MAX_ATTEMPTS - attempts
             text = (
                 f'<a href="tg://user?id={user_id}">Пользователь</a> не успел ответить на проверочный вопрос.\n'
@@ -382,25 +420,35 @@ async def handle_poll_expired(poll: Poll, bot: Bot):
 @router.message(CHAT_ADMIN_FILTER, Command("spam"))
 async def handle_spam(message: Message):
     if not message.reply_to_message:
-        asyncio.create_task(
-            _notify_user(message, "<b>Ошибка команды: </b>отвечайте командой на нужное сообщение", 60)
+        await answer_ephemeral(
+            message,
+            "<b>Ошибка команды: </b>отвечайте командой на нужное сообщение",
+            ttl=60,
         )
         return
     if not message.reply_to_message.text:
-        asyncio.create_task(
-            _notify_user(message, "Сообщение без текста, пометить как спам нельзя.", 60)
+        await answer_ephemeral(
+            message,
+            "Сообщение без текста, пометить как спам нельзя.",
+            ttl=60,
         )
         return
 
     target = message.reply_to_message.from_user
-    await append_message_to_csv(message.reply_to_message.text.strip(), 1)
+    spam_text = message.reply_to_message.text.strip()
+    await append_message_to_csv(spam_text, 1)
 
     async with get_session() as session:
-        await increment_times_reported(
+        user = await get_chat_user(session, target.id)
+        times_reported = (user.times_reported if user else 0) + 1
+        await update_chat_user(
             session,
             target.id,
-            delta=1,
-            accused_spam=True,
+            ChatUserUpdate(
+                times_reported=times_reported,
+                accused_spam=True,
+                last_accused_text=spam_text,
+            ),
         )
 
     await safe_restrict(message.bot, message.chat.id, target.id, NEW_USER)
@@ -425,8 +473,10 @@ async def handle_spam(message: Message):
 @router.message(CHAT_ADMIN_FILTER, Command("mute"))
 async def handle_mute(message: Message):
     if not message.reply_to_message:
-        asyncio.create_task(
-            _notify_user(message, "<b>Ошибка команды: </b>отвечайте командой на нужное сообщение", 60)
+        await answer_ephemeral(
+            message,
+            "<b>Ошибка команды: </b>отвечайте командой на нужное сообщение",
+            ttl=60,
         )
         return
 
@@ -436,13 +486,18 @@ async def handle_mute(message: Message):
     timer = float(minutes_str) * 60 if minutes_str.isdigit() else None
 
     if timer:
+        mute_until = datetime.now(tz=MOSCOW_TZ) + timedelta(seconds=timer)
         async with get_session() as session:
-            await set_muted_until(
+            user = await get_chat_user(session, target.id)
+            times_muted = (user.times_muted if user else 0) + 1
+            await update_chat_user(
                 session,
                 target.id,
-                datetime.now(tz=MOSCOW_TZ) + timedelta(seconds=timer),
-                )
-            await increment_times_muted(session, target.id, 1)
+                ChatUserUpdate(
+                    muted_until=mute_until,
+                    times_muted=times_muted,
+                ),
+            )
         asyncio.create_task(pass_user(chat_id, target.id, message.bot, timer))
 
     await safe_restrict(message.bot, chat_id, target.id, NEW_USER)
@@ -492,10 +547,8 @@ async def handle_whitelist(message: Message):
 
     user_id: Optional[int] = None
 
-    # /whitelist add 123456789
     if len(args) >= 2 and args[1].isdigit():
         user_id = int(args[1])
-    # /whitelist add (в ответ на сообщение)
     elif message.reply_to_message and message.reply_to_message.from_user:
         user_id = message.reply_to_message.from_user.id
 
@@ -510,7 +563,7 @@ async def handle_whitelist(message: Message):
         )
 
     async with get_session() as session:
-        user = await set_whitelist(session, user_id, value)
+        user = await update_chat_user(session, user_id, ChatUserUpdate(whitelist=value))
 
     if not user:
         return await answer_ephemeral(
@@ -553,7 +606,7 @@ async def handle_unmute(message: Message):
     ok = await safe_unrestrict(message.bot, message.chat.id, user_id)
 
     async with get_session() as session:
-        await set_muted_until(session, user_id, None)
+        await update_chat_user(session, user_id, ChatUserUpdate(muted_until=None))
 
     msg = (
         "Пользователю успешно возвращены права"
@@ -586,11 +639,15 @@ async def handle_report(message: Message):
         )
 
     async with get_session() as session:
-        await increment_times_reported(
+        user = await get_chat_user(session, target.id)
+        times_reported = (user.times_reported if user else 0) + 1
+        await update_chat_user(
             session,
             target.id,
-            delta=1,
-            accused_spam=False,
+            ChatUserUpdate(
+                times_reported=times_reported,
+                accused_spam=False,
+            ),
         )
 
     await answer_ephemeral(
@@ -605,7 +662,6 @@ async def handle_report(message: Message):
 
 @router.message(CHAT_ADMIN_FILTER, Command("get_id"))
 async def handle_get_id(message: Message):
-    # Ответ в том же треде, удалится сам
     return await answer_ephemeral(message, f"{message.chat.id}", ttl=120)
 
 
@@ -626,7 +682,7 @@ async def handle_chat_message(message: Message):
 
         if chat_user is None:
             # Старые участники до внедрения капчи
-            chat_user = await upsert_chat_user(
+            await upsert_chat_user(
                 session,
                 ChatUserCreate(
                     id=user.id,
@@ -650,11 +706,17 @@ async def handle_chat_message(message: Message):
                     poll_correct_option_id=None,
                 ),
             )
+            chat_user = await get_chat_user(session, user.id)
             passed_poll = True
         else:
             whitelist = whitelist or bool(chat_user.whitelist)
             passed_poll = bool(chat_user.passed_poll)
-            await increment_messages_sent(session, user.id, 1)
+            new_messages_sent = (chat_user.messages_sent or 0) + 1
+            await update_chat_user(
+                session,
+                user.id,
+                ChatUserUpdate(messages_sent=new_messages_sent),
+            )
 
         # Если бессрочно забанен – на всякий случай ещё раз ограничиваем и удаляем сообщение
         if chat_user.banned_until and chat_user.banned_until > now + timedelta(days=365 * 10):
@@ -691,16 +753,24 @@ async def handle_chat_message(message: Message):
     if result:
         async with get_session() as session:
             chat_user = await get_chat_user(session, user.id)
-            times_muted = chat_user.times_muted if chat_user and chat_user.times_muted is not None else 0
 
-            await increment_times_reported(session, user.id, delta=1, accused_spam=True)
+            times_reported = (chat_user.times_reported if chat_user else 0) + 1
 
-            # p >= 0.8 → бессрочный мут
+            # p >= 0.8 → бессрочный мут / бан
             if p >= 0.8:
                 far_future = now + timedelta(days=365 * 100)
-                await set_banned_until(session, user.id, far_future)
-                await set_muted_until(session, user.id, far_future)
-                await increment_times_banned(session, user.id, 1)
+                await update_chat_user(
+                    session,
+                    user.id,
+                    ChatUserUpdate(
+                        times_reported=times_reported,
+                        accused_spam=True,
+                        last_accused_text=message.text[:1024],
+                        banned_until=far_future,
+                        muted_until=far_future,
+                        times_banned=(chat_user.times_banned if chat_user else 0) + 1,
+                    ),
+                )
 
                 await safe_restrict(message.bot, message.chat.id, user.id, NEW_USER)
 
@@ -712,11 +782,19 @@ async def handle_chat_message(message: Message):
 
             else:
                 # Лестница: 1-й раз – без мута, далее 1д / 7д / 30д / бесконечно
-                await increment_times_muted(session, user.id, 1)
-                new_count = times_muted + 1
+                new_count = (chat_user.times_muted if chat_user else 0) + 1
 
-                # 1-й раз – только удаляем и предупреждаем
                 if new_count == 1:
+                    await update_chat_user(
+                        session,
+                        user.id,
+                        ChatUserUpdate(
+                            times_reported=times_reported,
+                            accused_spam=True,
+                            last_accused_text=message.text[:1024],
+                            times_muted=new_count,
+                        ),
+                    )
                     text = (
                         "Сообщение похоже на спам.\n"
                         "Сообщение удалено. Это первое предупреждение, ограничения не выданы."
@@ -734,9 +812,19 @@ async def handle_chat_message(message: Message):
 
                     if mute_delta is None:
                         far_future = now + timedelta(days=365 * 100)
-                        await set_banned_until(session, user.id, far_future)
-                        await set_muted_until(session, user.id, far_future)
-                        await increment_times_banned(session, user.id, 1)
+                        await update_chat_user(
+                            session,
+                            user.id,
+                            ChatUserUpdate(
+                                times_reported=times_reported,
+                                accused_spam=True,
+                                last_accused_text=message.text[:1024],
+                                banned_until=far_future,
+                                muted_until=far_future,
+                                times_banned=(chat_user.times_banned if chat_user else 0) + 1,
+                                times_muted=new_count,
+                            ),
+                        )
                         await safe_restrict(message.bot, message.chat.id, user.id, NEW_USER)
 
                         text = (
@@ -747,7 +835,17 @@ async def handle_chat_message(message: Message):
                         await answer_ephemeral(message, text, ttl=120)
                     else:
                         mute_until = now + mute_delta
-                        await set_muted_until(session, user.id, mute_until)
+                        await update_chat_user(
+                            session,
+                            user.id,
+                            ChatUserUpdate(
+                                times_reported=times_reported,
+                                accused_spam=True,
+                                last_accused_text=message.text[:1024],
+                                muted_until=mute_until,
+                                times_muted=new_count,
+                            ),
+                        )
                         await safe_restrict(message.bot, message.chat.id, user.id, NEW_USER)
 
                         if mute_delta.days >= 30:
