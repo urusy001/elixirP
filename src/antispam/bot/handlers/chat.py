@@ -362,6 +362,7 @@ async def handle_poll_expired(poll: Poll, bot: Bot):
                 or not user.poll_active
                 or user.poll_id != poll.id
         ):
+            print('nothing 1')
             POLL_THREADS.pop(poll_id, None)
             return
 
@@ -376,10 +377,10 @@ async def handle_poll_expired(poll: Poll, bot: Bot):
                 print(e)
 
         attempts = (user.poll_attempts or 0) + 1
-
+        print('firing what sneeded')
         if attempts >= CAPTCHA_MAX_ATTEMPTS:
             far_future = now + timedelta(days=365 * 100)
-            await update_chat_user(
+            user = await update_chat_user(
                 session,
                 user_id,
                 ChatUserUpdate(
@@ -403,7 +404,7 @@ async def handle_poll_expired(poll: Poll, bot: Bot):
                 )
                 await send_ephemeral_message(bot, chat_id, text, thread_id=thread_id, ttl=120)
         else:
-            await update_chat_user(
+            user = await update_chat_user(
                 session,
                 user_id,
                 ChatUserUpdate(
@@ -422,7 +423,8 @@ async def handle_poll_expired(poll: Poll, bot: Bot):
                     f"Осталось попыток: {left}. Для новой попытки нужно отправить сообщение в чат."
                 )
                 await send_ephemeral_message(bot, chat_id, text, thread_id=thread_id, ttl=120)
-
+            print(user.poll_active)
+            print('end')
         POLL_THREADS.pop(poll_id, None)
 
 
