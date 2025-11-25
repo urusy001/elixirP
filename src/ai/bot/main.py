@@ -230,7 +230,7 @@ dose_dp.message.middleware(ContextMiddleware(dose_bot, dose_client))
 dose_dp.callback_query.middleware(ContextMiddleware(dose_bot, dose_client))
 
 new_dp = Dispatcher(storage=MemoryStorage())
-new_dp.include_routers(new_user_router, new_admin_router)
+new_dp.include_routers(new_user_router, new_admin_router, shop_admin_router)
 new_dp.message.middleware(ContextMiddleware(new_bot, new_client))
 new_dp.callback_query.middleware(ContextMiddleware(new_bot, new_client))
 

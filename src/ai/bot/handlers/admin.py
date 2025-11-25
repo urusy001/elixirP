@@ -303,43 +303,6 @@ async def handle_spends_time(message: Message):
 
     return os.remove(file_path)
 
-@router2.message(Command('product'), lambda message: message.from_user.id in OWNER_TG_IDS)
-async def handle_product(message: Message):
-    onec_id = message.text.strip().removeprefix("/product ")
-    if not onec_id:
-        return await message.answer(f"<b>Ошибка команды</b>: не указан айди товара\n<code>/product айди_товара_номенклатура_1с</code>\n\n<i>Айди товара можно получить используя поиск бота</i>: <code>{'@'+(await message.bot.get_me()).username} search название_товара</code>")
-
-    else:
-        async with get_session() as session: product = await get_product_with_features(session, onec_id)
-        print(str(product))
-        return await message.answer(str(product))
-
-
-@router2.inline_query(lambda inline_query: inline_query.query.startswith("search") and inline_query.from_user.id in OWNER_TG_IDS)
-async def handle_product_name(inline_query: InlineQuery, state: FSMContext):
-    query = inline_query.query.strip().removeprefix("search").strip()
-    if not query: return
-    await state.set_state(admin_states.MainMenu.search_product)
-    async with get_session() as db:
-        data = await search_products(db, q=query, page=0, limit=10)
-
-    # build inline results (example)
-    results = []
-    for idx, item in enumerate(data["results"], start=1):
-        results.append(
-            InlineQueryResultArticle(
-                id=str(idx),
-                title=item["name"],
-                description=", ".join(f["name"] for f in item["features"]),
-                input_message_content=InputTextMessageContent(
-                    message_text=f'/product {item["url"].removeprefix("/product/")}',
-                ),
-            )
-        )
-
-    await inline_query.answer(results, cache_time=1)
-
-
 @router.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS)
 @router2.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS)
 @router3.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS)

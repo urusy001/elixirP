@@ -69,7 +69,7 @@ ELIXIR_CHAT_ID           = env_int("ELIXIR_CHAT_ID", 0)
 
 AI_BOT_TOKEN  = env("AI_BOT_TOKEN", "")
 AI_BOT_TOKEN2 = env("AI_BOT_TOKEN2", "")
-AI_BOT_TOKEN3 = env("AI_BOT_TOKEN3", "")
+AI_BOT_TOKEN3 = "8573411444:AAG0eUdEF99pjlXaA0bga1k_fkYJbGQNQ9c"  #env("AI_BOT_TOKEN3", "")
 
 ASSISTANT_ID  = env("ASSISTANT_ID", "")
 ASSISTANT_ID2 = env("ASSISTANT_ID2", "")
@@ -94,6 +94,7 @@ WORKING_DIR = BASE_DIR  # alias if other modules expect it
 
 SPA_DIR = BASE_DIR / "src" / "webapp" / "static"
 SRC_DIR       = BASE_DIR / "src"
+PHOTOS_DIR    = BASE_DIR / "product_photos"
 ANTISPAM_DIR  = SRC_DIR  / "antispam"
 DATA_DIR      = BASE_DIR / "data"
 LOGS_DIR      = BASE_DIR / "logs"
