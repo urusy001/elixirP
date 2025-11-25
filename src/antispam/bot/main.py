@@ -12,7 +12,7 @@ from src.webapp.crud import get_users_with_active_mute
 
 bot = Bot(ANTISPAM_BOT_TOKEN)
 dp = Dispatcher()
-dp.include_routers(chat_router, admin_router)
+dp.include_routers(admin_router, chat_router)
 
 async def restore_mutes(chat_id: int):
     now = datetime.now(tz=MOSCOW_TZ)
