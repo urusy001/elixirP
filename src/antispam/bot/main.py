@@ -5,13 +5,14 @@ from datetime import datetime
 from aiogram import Dispatcher, Bot
 
 from config import ANTISPAM_BOT_TOKEN, MOSCOW_TZ, ELIXIR_CHAT_ID
-from src.antispam.bot.handlers.chat import pass_user, router
+from src.antispam.bot.handlers.chat import pass_user
+from src.antispam.bot.handlers import admin_router, chat_router
 from src.webapp import get_session
 from src.webapp.crud import get_users_with_active_mute
 
 bot = Bot(ANTISPAM_BOT_TOKEN)
 dp = Dispatcher()
-dp.include_router(router)
+dp.include_routers(chat_router, admin_router)
 
 async def restore_mutes(chat_id: int):
     now = datetime.now(tz=MOSCOW_TZ)
