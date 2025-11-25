@@ -25,5 +25,5 @@ class Product(Base):
         return (f"<b>{self.name}</b>\n"
                 f"Артикул: <i>{self.code}</i>\n"
                 f"\n"
-                f"{self.description if self.description else ''}\n\n"
+                f"{self.description[:128] if self.description else ''}\n\n"
                 f"<b>Дозировки:</b>\n{'\n'.join([f'{feature.name} — {feature.price}' for feature in self.features])}")

@@ -130,16 +130,16 @@ async def get_db_items(logger: Logger) -> None:
             return
 
         for table in tables:
-            logger.info(f"📋 Table: {table}")
+            logger.debug(f"📋 Table: {table}")
             try:
                 res = await conn.execute(text(f'SELECT * FROM "{table}";'))
                 rows = res.fetchall()  # ✅ await needed
                 if not rows:
-                    logger.info("  (empty)")
+                    logger.debug("  (empty)")
                     continue
                 colnames = res.keys()
-                logger.info("  Columns: " + ", ".join(colnames))
+                logger.debug("  Columns: " + ", ".join(colnames))
                 for row in rows:
-                    logger.info("  " + str(dict(zip(colnames, row))))
+                    logger.debug("  " + str(dict(zip(colnames, row))))
             except Exception as e:
                 logger.error(f"  Failed to fetch {table}: {e}")

@@ -1,7 +1,6 @@
 import logging
 import asyncio
 import signal
-import sys
 
 from config import TELETHON_PHONE, TELETHON_PASSWORD
 from src.ai.bot.main import run_dose_bot, run_new_bot, run_professor_bot
@@ -24,37 +23,30 @@ logger = logging.getLogger("main")
 
 async def main():
     tasks = [
-        asyncio.create_task(telegram_client.start(TELETHON_PHONE, TELETHON_PASSWORD)),
-        asyncio.create_task(cdek_client.token_worker()),
         asyncio.create_task(OneCEnterprise().postgres_worker()),
+        asyncio.create_task(cdek_client.token_worker()),
         asyncio.create_task(run_app())
     ]
 
     async def shutdown():
         logger.warning("🛑 Shutting down gracefully...")
         for task in tasks:
-            if not task.done():
-                task.cancel()
+            if not task.done(): task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
         logger.info("✅ All background tasks stopped cleanly.")
-        sys.exit(0)
 
-    # Signal handlers for graceful exit
     loop = asyncio.get_running_loop()
+
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(shutdown()))
 
-    try:
-        await asyncio.gather(*tasks)
-    except asyncio.CancelledError:
-        logger.info("Tasks cancelled — exiting gracefully.")
+    try: await asyncio.gather(*tasks)
+    except asyncio.CancelledError: logger.info("Tasks cancelled — exiting gracefully.")
     except Exception as e:
         logger.exception(f"Unexpected error: {e}")
         await shutdown()
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.warning("Interrupted manually (Ctrl+C). Exiting.")
+    try: asyncio.run(main())
+    except KeyboardInterrupt: logger.warning("Interrupted manually (Ctrl+C). Exiting.")

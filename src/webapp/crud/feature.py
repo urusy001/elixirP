@@ -1,5 +1,5 @@
+import logging
 from typing import List, Optional, Any
-
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +18,7 @@ async def create_feature(db: AsyncSession, feature: FeatureCreate) -> Feature | 
     try:
         # 🧩 1️⃣ Check that feature has a valid product_onec_id
         if not feature.product_onec_id:
-            print(f"⚠️ Skipping feature '{feature.name}' — no product_onec_id provided")
+            logging.debug(f"⚠️ Skipping feature '{feature.name}' — no product_onec_id provided")
             return None
 
         # 🧩 2️⃣ Check that referenced product exists in DB
@@ -26,7 +26,7 @@ async def create_feature(db: AsyncSession, feature: FeatureCreate) -> Feature | 
             select(Product.id).filter_by(onec_id=feature.product_onec_id)
         )
         if not exists:
-            print(f"⚠️ Skipping feature '{feature.name}' — product not found: {feature.product_onec_id}")
+            logging.debug(f"⚠️ Skipping feature '{feature.name}' — product not found: {feature.product_onec_id}")
             return None
 
         # 🧩 3️⃣ Build base insert statement
@@ -51,7 +51,7 @@ async def create_feature(db: AsyncSession, feature: FeatureCreate) -> Feature | 
 
         created = result.scalar_one_or_none()
         if created:
-            print(f"✅ Synced feature '{feature.name}' for product {feature.product_onec_id}")
+            logging.debug(f"✅ Synced feature '{feature.name}' for product {feature.product_onec_id}")
         return created
 
     except IntegrityError:
