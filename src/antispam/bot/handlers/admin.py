@@ -264,4 +264,4 @@ async def handle_report(message: Message):
 
 @router.message(CHAT_ADMIN_FILTER, Command("get_thread"))
 async def handle_get_id(message: Message):
-    return await answer_ephemeral(message.message_thread_id, f"{message.chat.id}", ttl=30)
+    return await answer_ephemeral(message, f"{message.message_thread_id}", ttl=30)
