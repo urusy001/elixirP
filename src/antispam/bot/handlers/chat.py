@@ -470,7 +470,7 @@ async def handle_poll_answer(answer: PollAnswer, bot: Bot):
 #       ОСНОВНОЙ ХЕНДЛЕР ЧАТА
 # ==========================
 
-@router.message(CHAT_USER_FILTER)
+@router.message(CHAT_USER_FILTER, lambda message: getattr(message, "message_thread_id", None) is None)
 async def handle_chat_message(message: Message):
     if not message.text or not message.text.strip():
         return
