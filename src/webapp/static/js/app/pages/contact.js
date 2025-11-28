@@ -1,7 +1,7 @@
-import { showLoader, hideLoader } from "../ui/loader.js";
-import { hideCartIcon } from "../ui/cart-icon.js";
-import { navigateTo } from "../router.js";
-import { state } from "../state.js";
+import {showLoader, hideLoader} from "../ui/loader.js";
+import {hideCartIcon} from "../ui/cart-icon.js";
+import {navigateTo} from "../router.js";
+import {state} from "../state.js";
 import {
     isTelegramApp,
     showMainButton,
@@ -18,6 +18,7 @@ import {
     searchBtnEl,
     toolbarEl
 } from "./constants.js";
+import {apiGet} from "../../services/api.js";
 
 const form = document.getElementById("contact-form");
 
@@ -97,7 +98,7 @@ export async function renderContactPage() {
     }
 
     function prefillFormFromUser(u) {
-        const map = { name: "name", surname: "surname", email: "email", phone: "phone" };
+        const map = {name: "name", surname: "surname", email: "email", phone: "phone"};
         Object.entries(map).forEach(([k, inputName]) => {
             const el = form.querySelector(`[name="${inputName}"]`);
             if (el && u?.[k]) el.value = u[k];
@@ -109,10 +110,7 @@ export async function renderContactPage() {
         try {
             showLoader();
             const url = `/users?column_name=tg_id&value=${encodeURIComponent(String(uid))}`;
-            const res = await fetch(url, {
-                method: "GET",
-                headers: { Accept: "application/json" },
-            });
+            const res = await apiGet(url);
             if (!res.ok) return null;
             const arr = await res.json(); // List[UserRead]
             return Array.isArray(arr) && arr.length ? arr[0] : null;

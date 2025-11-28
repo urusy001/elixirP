@@ -12,21 +12,14 @@ router = APIRouter(prefix="/cart", tags=["cart"])
 
 
 @router.get("/product/{onec_id}")
-async def get_cart_product(
-        onec_id: str,
-        feature_id: str = Query("", alias="feature_id"),
-        db: AsyncSession = Depends(get_db)
-):
-    # Fetch product
+async def get_cart_product(onec_id: str, feature_id: str = Query("", alias="feature_id"), db: AsyncSession = Depends(get_db)):
     product = await get_product(db, 'onec_id', onec_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+    if not product: raise HTTPException(status_code=404, detail="Product not found")
 
     feature = None
     if feature_id:
         feature = await get_feature(db, 'onec_id', feature_id)
-        if not feature:
-            raise HTTPException(status_code=404, detail="Feature not found")
+        if not feature: raise HTTPException(status_code=404, detail="Feature not found")
 
     return {"product": product, "feature": feature}
 
@@ -39,8 +32,7 @@ async def cart_json(cart_data: dict = Body(...), db: AsyncSession = Depends(get_
     """
 
     items = cart_data.get("items", [])
-    if not items:
-        return {"items": [], "total": 0}
+    if not items: return {"items": [], "total": 0}
 
     # Collect all featureIds in the cart
     feature_ids = [item["featureId"] for item in items if item.get("featureId")]

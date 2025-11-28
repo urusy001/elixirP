@@ -13,9 +13,7 @@ import {
     searchBtnEl,
     toolbarEl
 } from "./constants.js";
-
-
-const CHECKOUT_ENDPOINT = "/payments/create";
+import {apiPost} from "../../services/api.js";
 
 export async function renderPaymentPage() {
     showLoader();
@@ -147,15 +145,13 @@ async function handlePaymentSubmit() {
             source: "telegram",
         };
 
-        const res = await fetch(CHECKOUT_ENDPOINT, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+        const res = await apiPost("/payments/create", {
             body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
             const text = await res.text().catch(() => "");
-            throw new Error(`POST ${CHECKOUT_ENDPOINT} failed: ${res.status} ${text}`);
+            throw new Error(`POST /payments/create failed: ${res.status} ${text}`);
         }
 
         const data = await res.json().catch(() => ({}));
