@@ -102,10 +102,10 @@ export class YandexPvzWidget {
         const all = await withLoader(async () => {
             try {
                 const res = await apiGet(this.options.dataUrl);
-                alert(JSON.stringify(await res.json()));
                 return res.ok ? await res.json() : { points: [] };
             } catch { return { points: [] }; }
         });
+        alert(JSON.stringify(all));
 
         const src = Array.isArray(all?.points) ? all.points : (Array.isArray(all) ? all : []);
         const points = src.map((p) => this._normalizePoint(p));
