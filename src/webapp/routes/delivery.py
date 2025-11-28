@@ -308,6 +308,7 @@ async def get_all_pvz():
         { "points": [ ... ] }
     """
     if not YANDEX_DELIVERY_TOKEN:
+        print('no token bich')
         raise HTTPException(500, "Token missing")
 
     payload = {
@@ -328,6 +329,7 @@ async def get_all_pvz():
     async with httpx.AsyncClient(timeout=60) as client:
         resp = await client.post(url, json=payload, headers=headers)
 
+    print(resp.text)
     if resp.status_code != 200:
         raise HTTPException(resp.status_code, resp.text)
 
