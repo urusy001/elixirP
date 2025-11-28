@@ -219,7 +219,7 @@ async function initCDEKWidget(coords = [55.75, 37.61]) {
         window.cdekWidgetInstance = new window.CDEKWidget({
             root: CDEK_ID,
             apiKey: "bb7d36f8-1e64-415c-80d2-12d77317718d",
-            servicePath: "/delivery/cdek",
+            servicePath: "api/v1/delivery/cdek",
             from: {
                 city: "Уфа",
                 code: 256,
