@@ -108,8 +108,6 @@ export class YandexPvzWidget {
                 return { points: [] };
             }
         });
-        alert(JSON.stringify(all, null, 4));
-        alert(all)
 
         const src = Array.isArray(all?.points) ? all.points : (Array.isArray(all) ? all : []);
         const points = src.map((p) => this._normalizePoint(p));
