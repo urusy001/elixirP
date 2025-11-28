@@ -35,6 +35,7 @@ async function handle(res) {
 
 export async function apiGet(path) {
     const url = buildUrl(path);
+    alert(url);
     return handle(await fetch(url, { credentials: "same-origin" }));
 }
 
