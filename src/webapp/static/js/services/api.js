@@ -3,15 +3,6 @@
 const API_BASE = "/api/v1";
 
 function buildUrl(path) {
-    // чтобы можно было передавать и "products", и "/products"
-    if (path.startsWith("http://") || path.startsWith("https://")) {
-        alert(path);
-        return path; // на всякий случай поддержка внешних URL
-    }
-    if (!path.startsWith("/")) {
-        path = "/" + path;
-    }
-    alert(path);
     return API_BASE + path;
 }
 
