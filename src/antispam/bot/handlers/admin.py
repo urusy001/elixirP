@@ -3,12 +3,14 @@ from datetime import timedelta, datetime
 from typing import Optional
 
 from aiogram import Router
+from aiogram.enums import ChatType
 from aiogram.filters import Command
 from aiogram.types import Message
 
 from config import MOSCOW_TZ
 from src.antispam.bot.handlers.chat import answer_ephemeral, safe_unrestrict, safe_restrict, pass_user
 from src.antispam.bot.permissions import NEW_USER
+from src.antispam.test_classifier import is_spam
 from src.helpers import CHAT_ADMIN_FILTER, _notify_user, append_message_to_csv
 from src.webapp import get_session
 from src.webapp.crud import update_chat_user, get_chat_user
@@ -223,3 +225,16 @@ async def handle_unmute(message: Message):
 @router.message(CHAT_ADMIN_FILTER, Command("get_thread"))
 async def handle_get_id(message: Message):
     return await answer_ephemeral(message, f"{message.message_thread_id}", ttl=30)
+
+@router.message(lambda message: message.chat.type == ChatType.PRIVATE and CHAT_ADMIN_FILTER)
+async def handle_private(message: Message):
+    text = (message.text or "").strip()
+    if not text:
+        await message.answer("Нужен текст")
+        return
+
+    is_spam_flag, prob = await is_spam(text)
+    percent = f"{prob * 100:.2f}%"   # например, 12.34%
+    verdict = "Спам" if is_spam_flag else "Не спам"
+
+    await message.reply(f"{verdict}: {percent}")
