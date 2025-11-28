@@ -102,6 +102,7 @@ export class YandexPvzWidget {
         const all = await withLoader(async () => {
             try {
                 const res = await apiGet(this.options.dataUrl);
+                alert(JSON.stringify(await res.json()));
                 return res.ok ? await res.json() : { points: [] };
             } catch { return { points: [] }; }
         });
