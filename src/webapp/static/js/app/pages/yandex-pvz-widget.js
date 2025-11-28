@@ -101,11 +101,15 @@ export class YandexPvzWidget {
         // Load and render PVZ points
         const all = await withLoader(async () => {
             try {
-                const res = await apiGet(this.options.dataUrl);
-                return res.ok ? await res.json() : { points: [] };
-            } catch { return { points: [] }; }
+                const data = await apiGet(this.options.dataUrl); // <- тут уже JSON
+                // если сервер всегда отдаёт объект вида { points: [...] }:
+                return data ?? { points: [] };
+            } catch {
+                return { points: [] };
+            }
         });
-        alert(JSON.stringify(all));
+        alert(JSON.stringify(all, null, 4));
+        alert(all)
 
         const src = Array.isArray(all?.points) ? all.points : (Array.isArray(all) ? all : []);
         const points = src.map((p) => this._normalizePoint(p));
