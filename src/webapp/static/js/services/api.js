@@ -4,7 +4,6 @@ const API_BASE = "/api/v1";
 const WEBAPP_ORIGIN = "https://elixirpeptides.devsivanschostakov.org";
 
 function buildUrl(path) {
-    alert(`init ${path}`);
     if (path.startsWith(WEBAPP_ORIGIN)) {
         let relative = path.slice(WEBAPP_ORIGIN.length);
         if (!relative.startsWith("/")) {
@@ -36,6 +35,7 @@ async function handle(res) {
 
 export async function apiGet(path) {
     const url = buildUrl(path);
+    alert(url)
     return handle(await fetch(url, { credentials: "same-origin" }));
 }
 
