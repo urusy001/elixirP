@@ -93,7 +93,7 @@ async def safe_unrestrict(bot: Bot, chat_id: int, user_id: int) -> bool:
     return await safe_restrict(bot, chat_id, user_id, USER_PASSED)
 
 
-async def pass_user(chat_id: int, user_id: int, bot: Bot, timer: Optional[int, float] = 24 * 60 * 60):
+async def pass_user(chat_id: int, user_id: int, bot: Bot, timer: Optional[float] = 24 * 60 * 60):
     """Авто-снятие мута по таймеру."""
     await asyncio.sleep(timer)
     await safe_unrestrict(bot, chat_id, user_id)
