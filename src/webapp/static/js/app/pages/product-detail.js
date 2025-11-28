@@ -33,7 +33,7 @@ export async function renderProductDetailPage(onec_id) {
     searchBtnEl.style.display = "flex";
     detailEl.style.display = "block";
     processPaymentEl.style.display = "none";
-
+    fetch()
     const data = await withLoader(() => getProductDetail(onec_id));
     if (data?.error) {
         detailEl.innerHTML = `
