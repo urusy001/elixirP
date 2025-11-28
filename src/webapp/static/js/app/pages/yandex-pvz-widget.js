@@ -1,4 +1,5 @@
 import { withLoader } from "../ui/loader.js";
+import {apiGet} from "../../services/api.js";
 
 const SUGGEST_ROW_HEIGHT = 36;
 const DEFAULT_CENTER = [55.751, 37.618];
@@ -100,7 +101,7 @@ export class YandexPvzWidget {
         // Load and render PVZ points
         const all = await withLoader(async () => {
             try {
-                const res = await fetch(this.options.dataUrl, { method: "GET" });
+                const res = await apiGet(this.options.dataUrl);
                 return res.ok ? await res.json() : { points: [] };
             } catch { return { points: [] }; }
         });
@@ -304,7 +305,7 @@ export class YandexPvzWidget {
     async _resolveAddress(coords) {
         const [lat, lon] = coords;
         try {
-            const r = await fetch(`/delivery/yandex/reverse-geocode?lat=${lat}&lon=${lon}`);
+            const r = await apiGet(`/delivery/yandex/reverse-geocode?lat=${lat}&lon=${lon}`);
             if (r.ok) {
                 const info = await r.json();
                 if (info?.formatted) return info.formatted;

@@ -175,3 +175,5 @@ BOT_NAMES = {
     AI_BOT_TOKEN2: "Дозировки",
     AI_BOT_TOKEN3: "Новый 4.1",
 }
+
+API_PREFIX = "/api/v1"

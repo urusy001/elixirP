@@ -14,12 +14,9 @@ from src.ai.bot.states import admin_states
 
 router = Router()
 
-@router.message(CommandStart(), lambda message: message.from_user.id not in OWNER_TG_IDS)
 @router.message(Command('app'))
-async def open_app(message: Message, state: FSMContext):
-        await message.answer("Приветственный текст!!", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Открыть  магазин ", web_app=WebAppInfo(url="https://elixirpeptides.devsivanschostakov.org"))]
-        ]))
+@router.message(CommandStart(), lambda message: message.from_user.id not in OWNER_TG_IDS)
+async def open_app(message: Message): await message.answer("Приветственный текст!!", reply_markup=open_app)
 
 @router.message(Command('product'), lambda message: message.from_user.id in OWNER_TG_IDS)
 async def handle_product(message: Message):
@@ -36,10 +33,8 @@ async def handle_product_name(inline_query: InlineQuery, state: FSMContext):
     print(query)
     if not query: return
     await state.set_state(admin_states.MainMenu.search_product)
-    async with get_session() as db:
-        data = await search_products(db, q=query, page=0, limit=10)
+    async with get_session() as db: data = await search_products(db, q=query, page=0, limit=10)
 
-    # build inline results (example)
     results = []
     for idx, item in enumerate(data["results"], start=1):
         results.append(

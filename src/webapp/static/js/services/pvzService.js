@@ -1,3 +1,5 @@
+import {apiGet} from "./api.js";
+
 export function getSelectedPVZCode() {
     const els = Array.from(document.querySelectorAll(".cdek-1smek3"));
     for (const el of els) {
@@ -9,7 +11,7 @@ export function getSelectedPVZCode() {
 
 export async function fetchPVZByCode(code) {
     try {
-        const res = await fetch(`/delivery/cdek?action=offices&code=${encodeURIComponent(code)}`);
+        const res = await apiGet(`/delivery/cdek?action=offices&code=${encodeURIComponent(code)}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data?.length) renderPVZInfo(data[0]);
