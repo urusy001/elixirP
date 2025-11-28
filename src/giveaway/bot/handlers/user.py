@@ -155,7 +155,7 @@ async def handle_start(message: Message, state: FSMContext):
     async with get_session() as session:
         giveaways = await get_giveaways(session)
     logger.debug("Loaded %d giveaways for main menu", len(giveaways))
-    await message.answer(user_texts.main_menu, reply_markup=user_keyboards.ViewGiveaways([giveaway for giveaway in giveaways if not giveaway.closed]))
+    await message.answer(user_texts.main_menu.replace('*', message.from_user.full_name), reply_markup=user_keyboards.ViewGiveaways([giveaway for giveaway in giveaways if not giveaway.closed]))
     await message.delete()
 
 
