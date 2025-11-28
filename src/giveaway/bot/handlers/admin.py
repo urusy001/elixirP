@@ -225,7 +225,7 @@ async def handle_closed_text(message: Message, state: FSMContext):
 
     logger.info("Created giveaway | admin_id=%s | giveaway_id=%s | name=%r", message.from_user.id, giveaway.id, giveaway.name)
     await state.clear()
-    await message.answer(get_giveaway_text(giveaway), reply_markup=GiveawayMenu(giveaway.id))
+    await message.answer(get_giveaway_text(giveaway), reply_markup=GiveawayMenu(giveaway.id, giveaway.closed))
 
 
 @router.callback_query(lambda call: call.data.startswith("admin") and call.from_user and call.from_user.id in OWNER_TG_IDS and call.message.chat.type == "private")
@@ -263,7 +263,7 @@ async def handle_admin_call(call: CallbackQuery, state: FSMContext):
                 logger.info("Created giveaway via skip | admin_id=%s | giveaway_id=%s", admin_id, giveaway.id)
                 await call.message.edit_text(
                     get_giveaway_text(giveaway),
-                    reply_markup=GiveawayMenu(giveaway.id),
+                    reply_markup=GiveawayMenu(giveaway.id, giveaway.closed),
                 )
 
     elif data[0] == "view_giveaways":
@@ -287,7 +287,7 @@ async def handle_admin_call(call: CallbackQuery, state: FSMContext):
             async with get_session() as session: giveaway = await get_giveaway(session, giveaway_id)
             await call.message.edit_text(
                 get_giveaway_text(giveaway),
-                reply_markup=GiveawayMenu(giveaway_id),
+                reply_markup=GiveawayMenu(giveaway_id, giveaway.closed),
             )
 
     elif data[0] == "view_participants":
