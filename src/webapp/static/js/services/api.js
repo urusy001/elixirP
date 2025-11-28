@@ -4,6 +4,7 @@ const API_BASE = "/api/v1";
 const WEBAPP_ORIGIN = "https://elixirpeptides.devsivanschostakov.org";
 
 function buildUrl(path) {
+    alert(`init ${path}`);
     if (path.startsWith(WEBAPP_ORIGIN)) {
         let relative = path.slice(WEBAPP_ORIGIN.length);
         if (!relative.startsWith("/")) {
