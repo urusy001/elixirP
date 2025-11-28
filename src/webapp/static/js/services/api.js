@@ -48,4 +48,4 @@ export async function apiPost(path, data) {
     }));
 }
 
-export { API_BASE, WEBAPP_URL };
+export { API_BASE };
