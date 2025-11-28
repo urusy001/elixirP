@@ -1,8 +1,24 @@
 // src/webapp/static/js/services/api.js
 
 const API_BASE = "/api/v1";
+const WEBAPP_ORIGIN = "https://elixirpeptides.devsivanschostakov.org";
 
 function buildUrl(path) {
+    if (path.startsWith(WEBAPP_ORIGIN)) {
+        let relative = path.slice(WEBAPP_ORIGIN.length);
+        if (!relative.startsWith("/")) {
+            relative = "/" + relative;
+        }
+        return WEBAPP_ORIGIN + API_BASE + relative;
+    }
+
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+        return path;
+    }
+
+    if (!path.startsWith("/")) {
+        path = "/" + path;
+    }
     return API_BASE + path;
 }
 
@@ -32,4 +48,4 @@ export async function apiPost(path, data) {
     }));
 }
 
-export { API_BASE };
+export { API_BASE, WEBAPP_URL };
