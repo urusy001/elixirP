@@ -17,5 +17,6 @@ __all__ = [
     'get_usages', 'write_usage', 'get_giveaway', 'get_participant', 'get_tg_refs', 'upsert_user', 'increment_tokens',
     'create_giveaway', 'update_participant', 'create_participant', 'count_refs_for_participant', 'get_giveaways', 'get_participant_no_giveaway',
     'create_chat_user', 'get_chat_users', 'get_chat_user', 'delete_chat_user', 'update_chat_user', 'upsert_chat_user',
-    'set_passed_poll', 'set_muted_until', 'increment_messages_sent', 'increment_times_reported', 'get_users_with_active_mute'
+    'set_passed_poll', 'set_muted_until', 'increment_messages_sent', 'increment_times_reported', 'get_users_with_active_mute',
+    'get_participants', 'delete_giveaway', 'update_giveaway'
 ]

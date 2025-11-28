@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -11,7 +12,7 @@ from src.giveaway.bot.middleware import GiveawayMiddleware
 
 
 class GiveawayBot(Bot):
-    def __init__(self, api_key: str | None = TELEGRAM_BOT_TOKEN):
+    def __init__(self, api_key: Optional[str] = TELEGRAM_BOT_TOKEN):
         super().__init__(api_key, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
         self.__logger = logging.getLogger(self.__class__.__name__)
 
@@ -46,7 +47,6 @@ dp = Dispatcher(storage=MemoryStorage())
 dp.include_routers(user_router, admin_router)
 dp.message.middleware(GiveawayMiddleware(bot))
 dp.callback_query.middleware(GiveawayMiddleware(bot))
-
 
 async def run_bot():
     await bot.delete_webhook(drop_pending_updates=False)

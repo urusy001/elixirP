@@ -18,7 +18,6 @@ router2 = Router(name="user2")
 router3 = Router(name="user3")
 
 @router.message(CommandStart(), lambda message: message.from_user.id not in OWNER_TG_IDS)
-@router2.message(CommandStart(), lambda message: message.from_user.id not in OWNER_TG_IDS)
 @router3.message(CommandStart(), lambda message: message.from_user.id not in OWNER_TG_IDS)
 @with_typing
 async def handle_user_start(message: Message, state: FSMContext, professor_bot, professor_client):

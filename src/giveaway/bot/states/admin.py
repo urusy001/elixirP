@@ -8,4 +8,5 @@ class CreateGiveaway(StatesGroup):
     channel_username = State()
     referral_amount = State()
     end_date = State()
+    closed_text = State()
     delete = State()

@@ -3,7 +3,7 @@ import asyncio
 import signal
 
 from config import TELETHON_PHONE, TELETHON_PASSWORD
-from src.ai.bot.main import run_dose_bot, run_professor_bot
+from src.ai.bot.main import run_dose_bot, run_professor_bot, run_new_bot
 from src.antispam.bot.main import run_antispam_bot
 from src.giveaway.bot.main import run_bot
 from src.tg_methods import client as telegram_client
@@ -21,10 +21,7 @@ logger = logging.getLogger("main")
 async def main():
     await telegram_client.start(TELETHON_PHONE, TELETHON_PASSWORD)
     tasks = [
-        asyncio.create_task(run_antispam_bot()),
-        asyncio.create_task(run_dose_bot()),
-        asyncio.create_task(run_professor_bot()),
-        asyncio.create_task(run_bot()),
+        asyncio.create_task(run_new_bot())
     ]
 
     async def shutdown():

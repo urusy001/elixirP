@@ -1,12 +1,13 @@
 import asyncio
 from datetime import timedelta, datetime
+from typing import Optional
 
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from config import REPORTS_CHANNEL_ID, MOSCOW_TZ
-from src.antispam.bot.handlers.chat import answer_ephemeral, CHAT_USER_FILTER, safe_unrestrict, safe_restrict, pass_user
+from config import MOSCOW_TZ
+from src.antispam.bot.handlers.chat import answer_ephemeral, safe_unrestrict, safe_restrict, pass_user
 from src.antispam.bot.permissions import NEW_USER
 from src.helpers import CHAT_ADMIN_FILTER, _notify_user, append_message_to_csv
 from src.webapp import get_session
@@ -147,7 +148,7 @@ async def handle_whitelist(message: Message):
             ttl=120,
         )
 
-    user_id: int | None = None
+    user_id: Optional[int] = None
 
     if len(args) >= 2 and args[1].isdigit():
         user_id = int(args[1])
@@ -217,49 +218,6 @@ async def handle_unmute(message: Message):
     )
 
     return await answer_ephemeral(message, msg, ttl=60)
-
-
-@router.message(CHAT_USER_FILTER, Command("report"))
-async def handle_report(message: Message):
-    if not message.reply_to_message or not message.reply_to_message.from_user:
-        return await answer_ephemeral(
-            message,
-            (
-                "Ответьте командой <code>/report</code> на сообщение пользователя, "
-                "на которого хотите пожаловаться."
-            ),
-            ttl=90,
-        )
-
-    target = message.reply_to_message.from_user
-
-    if message.from_user and target.id == message.from_user.id:
-        return await answer_ephemeral(
-            message,
-            "Нельзя отправить жалобу на самого себя.",
-            ttl=60,
-        )
-
-    async with get_session() as session:
-        user = await get_chat_user(session, target.id)
-        times_reported = (user.times_reported if user else 0) + 1
-        await update_chat_user(
-            session,
-            target.id,
-            ChatUserUpdate(
-                times_reported=times_reported,
-                accused_spam=False,
-            ),
-        )
-
-    await answer_ephemeral(
-        message,
-        "Спасибо, жалоба отправлена. Администраторы чата смогут её увидеть.",
-        ttl=90,
-    )
-
-    await message.reply_to_message.forward(REPORTS_CHANNEL_ID)
-    await message.forward(REPORTS_CHANNEL_ID)
 
 
 @router.message(CHAT_ADMIN_FILTER, Command("get_thread"))

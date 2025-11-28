@@ -21,9 +21,16 @@ class Product(Base):
     features = relationship("Feature", back_populates="product", cascade="all, delete-orphan")
 
     def __str__(self) -> str:
-        print(self.expiration or '1', self.usage or '0')
+        expiration_text = f"<b>ИНСТРУКЦИИ К ХРАНЕНИЮ</b>\n{self.expiration or 'Не имеются или <i>указаны выше</i>'}"
+        usage_text = f"<b>ИНСТРУКЦИИ К ПРИМЕНЕНИЮ</b>\n{self.usage or 'Не имеются или <i>указаны выше</i>'}"
+        description_text = f"<b>ОПИСАНИЕ</b>\n{self.description or 'Не имеется'}"
+        prices_text = '\n'.join([f'{feature.name} — {feature.price}₽' for feature in self.features])
+
         return (f"<b>{self.name}</b>\n"
                 f"Артикул: <i>{self.code}</i>\n"
-                f"\n"
-                f"{self.description[:128] if self.description else ''}\n\n"
-                f"<b>Дозировки:</b>\n{'\n'.join([f'{feature.name} — {feature.price}' for feature in self.features])}")
+                f"\n\n"
+                f"{description_text}\n\n"
+                f"{usage_text}\n\n"
+                f"{expiration_text}\n\n"
+                f"<b>ДОЗИРОВКИ И ЦЕНЫ:</b>\n"
+                f"{prices_text}")

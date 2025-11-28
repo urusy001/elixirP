@@ -1,9 +1,11 @@
 from aiogram import Router
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import InputTextMessageContent, InlineQueryResultArticle, Message, InlineQuery, InlineKeyboardMarkup
+from aiogram.types import InputTextMessageContent, InlineQueryResultArticle, Message, InlineQuery, InlineKeyboardMarkup, \
+    InlineKeyboardButton, CallbackQuery, WebAppInfo
 
 from config import OWNER_TG_IDS
+from src.ai.bot.keyboards.shop_admin import ProductActions
 from src.helpers import normalize_html_for_telegram
 from src.webapp import get_session
 from src.webapp.crud import get_product_with_features
@@ -12,16 +14,21 @@ from src.ai.bot.states import admin_states
 
 router = Router()
 
-@router.message(Command('photo'), lambda message: message.from_user.id in OWNER_TG_IDS)
-async def handle_product(message: Message):
-    onec_id = message.text.strip().removeprefix("/photo ")
-    if not onec_id:
-        return await message.answer(f"<b>Ошибка команды</b>: не указан айди товара\n<code>/photo айди_товара_номенклатура_1с</code>\n\n<i>Айди товара можно получить используя поиск бота</i>: <code>{'@'+(await message.bot.get_me()).username} search название_товара</code>")
+@router.message(CommandStart(), lambda message: message.from_user.id not in OWNER_TG_IDS)
+@router.message(Command('app'))
+async def open_app(message: Message, state: FSMContext):
+        await message.answer("Приветственный текст!!", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="Открыть  магазин ", web_app=WebAppInfo(url="https://elixirpeptides.devsivanschostakov.org"))]
+        ]))
 
+@router.message(Command('product'), lambda message: message.from_user.id in OWNER_TG_IDS)
+async def handle_product(message: Message):
+    onec_id = message.text.strip().removeprefix("/product ")
+    if not onec_id: await message.answer(f"<b>Ошибка команды</b>: не указан айди товара\n<code>/product айди_товара_номенклатура_1с</code>\n\n<i>Айди товара можно получить используя поиск бота</i>: <code>{'@'+(await message.bot.get_me()).username} search название_товара</code>")
     else:
         async with get_session() as session: product = await get_product_with_features(session, onec_id)
-        await message.answer(str(product), reply_markup=InlineKeyboardMarkup())
-
+        text = normalize_html_for_telegram(str(product))
+        await message.answer(text, reply_markup=ProductActions(onec_id))
 
 @router.inline_query(lambda inline_query: inline_query.query.startswith("search") and inline_query.from_user.id in OWNER_TG_IDS)
 async def handle_product_name(inline_query: InlineQuery, state: FSMContext):
@@ -41,9 +48,13 @@ async def handle_product_name(inline_query: InlineQuery, state: FSMContext):
                 title=item["name"],
                 description=", ".join(f["name"] for f in item["features"]),
                 input_message_content=InputTextMessageContent(
-                    message_text=f'/photo {item["url"].removeprefix("/product/")}',
+                    message_text=f'/product {item["url"].removeprefix("/product/")}',
                 ),
             )
         )
 
     await inline_query.answer(results, cache_time=1)
+
+@router.callback_query(lambda query: query.from_user.id in OWNER_TG_IDS)
+async def handle_shopadmin_callback(query: CallbackQuery, state: FSMContext):
+    pass

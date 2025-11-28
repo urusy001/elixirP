@@ -4,14 +4,14 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict
 
 from aiogram import Router, Bot
-from aiogram.filters import ChatMemberUpdatedFilter, JOIN_TRANSITION, Command
+from aiogram.filters import ChatMemberUpdatedFilter, JOIN_TRANSITION
 from aiogram.types import Message, ChatMemberUpdated, PollAnswer
 
-from config import MOSCOW_TZ, ELIXIR_CHAT_ID, REPORTS_CHANNEL_ID
+from config import MOSCOW_TZ, ELIXIR_CHAT_ID
 from src.antispam.bot.permissions import NEW_USER, USER_PASSED
 from src.antispam.poll_questions import POLL_QUESTIONS_RU, PollQuestion
 from src.antispam.test_classifier import is_spam
-from src.helpers import append_message_to_csv, _notify_user, CHAT_ADMIN_FILTER
+from src.helpers import append_message_to_csv, CHAT_ADMIN_FILTER
 from src.webapp.schemas import ChatUserCreate, ChatUserUpdate
 from src.webapp.crud import (
     upsert_chat_user,
@@ -93,7 +93,7 @@ async def safe_unrestrict(bot: Bot, chat_id: int, user_id: int) -> bool:
     return await safe_restrict(bot, chat_id, user_id, USER_PASSED)
 
 
-async def pass_user(chat_id: int, user_id: int, bot: Bot, timer: int | float | None = 24 * 60 * 60):
+async def pass_user(chat_id: int, user_id: int, bot: Bot, timer: Optional[int, float] = 24 * 60 * 60):
     """Авто-снятие мута по таймеру."""
     await asyncio.sleep(timer)
     await safe_unrestrict(bot, chat_id, user_id)

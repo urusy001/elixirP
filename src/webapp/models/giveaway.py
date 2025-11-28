@@ -1,7 +1,7 @@
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, Numeric, JSON
+from sqlalchemy import Column, Integer, String, Text, DateTime, Numeric, JSON, Boolean
 from sqlalchemy.orm import relationship
 
 from config import MOSCOW_TZ
@@ -23,7 +23,7 @@ class Giveaway(Base):
     start_date = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(MOSCOW_TZ),
-        nullable=True
+        nullable=True,
     )
     channel_username = Column(String, nullable=False, default="peptides_ru")
     minimal_order_amount = Column(Numeric(10, 2), nullable=False, default=0.00)
@@ -31,9 +31,17 @@ class Giveaway(Base):
     minimal_review_length = Column(Integer, nullable=False, default=100)
     minimal_referral_amount = Column(Integer, nullable=False, default=3)
 
-    end_date = Column(DateTime(timezone=True), nullable=True)
+    end_date = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(MOSCOW_TZ) + timedelta(days=30),
+    )
+
+    closed = Column(Boolean, nullable=False, default=False)
+    closed_message = Column(Text, nullable=True)
+
     participants = relationship(
         "Participant",
         back_populates="giveaway",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
