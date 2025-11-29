@@ -14,7 +14,7 @@ import {
     searchBtnEl,
     toolbarEl
 } from "./constants.js";
-import {apiPost} from "../../services/api";
+import {apiPost} from "../../services/api.js";
 
 let page = 0;
 let loading = false;
