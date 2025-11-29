@@ -160,11 +160,12 @@ async function getUser() {
         initData,
         initDataUnsafe,
     }
-    apiPost('/user/login', payload);
+    alert(JSON.stringify(payload));
+    await apiPost('/user/login', payload);
 }
 
 export async function renderHomePage() {
-    getUser();
+    await getUser();
     hideMainButton();
     hideBackButton();
     showCartIcon();
