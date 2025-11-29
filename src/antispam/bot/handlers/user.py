@@ -19,7 +19,6 @@ async def handle_report(message: Message):
                 "Ответьте командой <code>/report</code> на сообщение пользователя, "
                 "на которого хотите пожаловаться."
             ),
-            ttl=90,
         )
 
     target = message.reply_to_message.from_user
@@ -28,7 +27,6 @@ async def handle_report(message: Message):
         return await answer_ephemeral(
             message,
             "Нельзя отправить жалобу на самого себя.",
-            ttl=60,
         )
 
     async with get_session() as session:
@@ -46,7 +44,6 @@ async def handle_report(message: Message):
     await answer_ephemeral(
         message,
         "Спасибо, жалоба отправлена. Администраторы чата смогут её увидеть.",
-        ttl=90,
     )
 
     await message.reply_to_message.forward(REPORTS_CHANNEL_ID)

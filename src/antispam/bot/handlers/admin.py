@@ -28,14 +28,12 @@ async def handle_spam(message: Message):
         await answer_ephemeral(
             message,
             "<b>Ошибка команды: </b>отвечайте командой на нужное сообщение",
-            ttl=60,
         )
         return
     if not message.reply_to_message.text:
         await answer_ephemeral(
             message,
             "Сообщение без текста, пометить как спам нельзя.",
-            ttl=60,
         )
         return
 
@@ -81,7 +79,6 @@ async def handle_mute(message: Message):
         await answer_ephemeral(
             message,
             "<b>Ошибка команды: </b>отвечайте командой на нужное сообщение",
-            ttl=60,
         )
         return
 
@@ -134,7 +131,6 @@ async def handle_whitelist(message: Message):
                 "<code>/whitelist remove [user_id]</code> — убрать из белого списка\n\n"
                 "Можно указать <code>user_id</code> или ответить командой на сообщение пользователя."
             ),
-            ttl=180,
         )
 
     action = args[0].lower()
@@ -147,7 +143,6 @@ async def handle_whitelist(message: Message):
             message,
             "<b>Ошибка команды:</b> неизвестное действие.\n"
             "Используйте <code>add</code> или <code>remove</code>.",
-            ttl=120,
         )
 
     user_id: Optional[int] = None
@@ -164,7 +159,6 @@ async def handle_whitelist(message: Message):
                 "Укажите <code>user_id</code> или ответьте командой на сообщение пользователя.\n\n"
                 "<b>Пример:</b> <code>/whitelist add 123456789</code>"
             ),
-            ttl=150,
         )
 
     async with get_session() as session:
@@ -177,7 +171,6 @@ async def handle_whitelist(message: Message):
                 "Пользователь не найден в базе.\n"
                 "Он должен хотя бы один раз написать в чат, чтобы бот его сохранил."
             ),
-            ttl=120,
         )
 
     status = "добавлен в <b>белый список</b>" if value else "убран из <b>белого списка</b>"
@@ -185,7 +178,6 @@ async def handle_whitelist(message: Message):
     return await answer_ephemeral(
         message,
         f"Пользователь с <code>user_id={user_id}</code> {status}.",
-        ttl=90,
     )
 
 
@@ -205,7 +197,6 @@ async def handle_unmute(message: Message):
                 "Либо укажите user_id пользователя, либо ответьте командой на его сообщение\n\n"
                 "<i>Напишите @ShostakovIV в ТГ, если не знаете как получить user_id</i>"
             ),
-            ttl=120,
         )
 
     ok = await safe_unrestrict(message.bot, message.chat.id, user_id)
@@ -219,12 +210,12 @@ async def handle_unmute(message: Message):
         else "Не удалось вернуть права: пользователь не найден или уже покинул чат"
     )
 
-    return await answer_ephemeral(message, msg, ttl=60)
+    return await answer_ephemeral(message, msg)
 
 
 @router.message(CHAT_ADMIN_FILTER, Command("get_thread"))
 async def handle_get_id(message: Message):
-    return await answer_ephemeral(message, f"{message.message_thread_id}", ttl=30)
+    return await answer_ephemeral(message, f"{message.message_thread_id}")
 
 @router.message(lambda message: message.chat.type == ChatType.PRIVATE and CHAT_ADMIN_FILTER)
 async def handle_private(message: Message):
