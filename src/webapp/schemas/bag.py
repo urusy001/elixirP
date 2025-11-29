@@ -1,34 +1,26 @@
 from __future__ import annotations
 
-from pydantic import Field, BaseModel
+from typing import Optional
+from pydantic import BaseModel, ConfigDict
+
+from src.webapp.schemas.bag_item import BagItemRead
 
 
 class BagBase(BaseModel):
-    """Common fields for Bag (excluding PK and FKs)."""
-    name: str | None = Field("Корзина #X", max_length=32, description="Human-friendly bag name")
-    note: str = Field("", description="Optional note attached to this bag")
+    name: Optional[str] = None
 
 
 class BagCreate(BagBase):
-    """Schema used when creating a new bag."""
-    tg_id: int = Field(..., description="Telegram user ID that owns this bag")
-    cart_id: int = Field(..., description="Associated cart ID")
+    cart_id: int
 
 
 class BagUpdate(BaseModel):
-    """Schema used when updating an existing bag."""
-    name: str | None = None
-    note: str | None = None
-    tg_id: int | None = None
-    cart_id: int | None = None
+    name: Optional[str] = None
 
 
 class BagRead(BagBase):
-    """Schema used when returning a bag from the database."""
     id: int
-    tg_id: int
     cart_id: int
+    items: list[BagItemRead] = []
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = ConfigDict(from_attributes=True)

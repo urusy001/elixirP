@@ -1,74 +1,68 @@
-from datetime import datetime
 from typing import Optional, Sequence
-from sqlalchemy.orm import Session
 
-from src.webapp.models import Cart
+from sqlalchemy import select, update, delete
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.webapp.models.cart import Cart
+from src.webapp.models.bag import Bag
+from src.webapp.models.bag_item import BagItem
 
 
-def get_cart(db: Session, cart_id: int) -> Optional[Cart]:
-    return db.query(Cart).filter(Cart.id == cart_id).first()
+# === CART CRUD ===
 
-
-def get_cart_by_tg_id(db: Session, tg_id: int) -> Optional[Cart]:
-    """
-    Текущая активная корзина пользователя (если логика "одна активная корзина").
-    """
-    return (
-        db.query(Cart)
-        .filter(Cart.tg_id == tg_id)
-        .order_by(Cart.last_updated.desc())
-        .first()
+async def get_cart_by_id(
+        db: AsyncSession,
+        cart_id: int,
+) -> Optional[Cart]:
+    result = await db.execute(
+        select(Cart).where(Cart.id == cart_id)
     )
+    return result.scalar_one_or_none()
 
 
-def list_carts_by_tg_id(db: Session, tg_id: int) -> Sequence[Cart]:
-    return (
-        db.query(Cart)
-        .filter(Cart.tg_id == tg_id)
-        .order_by(Cart.last_updated.desc())
-        .all()
-    )
-
-
-def create_cart(
-        db: Session,
+async def get_user_carts(
+        db: AsyncSession,
         tg_id: int,
-        bag_id: Optional[int] = None,
-        total: float = 0.0,
-        **extra_fields,
-) -> Cart:
-    """
-    Создать новую Cart для пользователя.
-    Можно привязать к существующей Bag (bag_id).
-    """
-    now = datetime.utcnow()
-    cart = Cart(
-        tg_id=tg_id,
-        bag_id=bag_id,
-        total=total,
-        last_updated=now,
-        **extra_fields,
+) -> Sequence[Cart]:
+    result = await db.execute(
+        select(Cart).where(Cart.tg_id == tg_id)
     )
-    db.add(cart)
-    db.commit()
-    db.refresh(cart)
+    return result.scalars().all()
+
+
+async def get_or_create_cart_for_user(
+        db: AsyncSession,
+        tg_id: int,
+) -> Cart:
+    result = await db.execute(
+        select(Cart).where(Cart.tg_id == tg_id)
+    )
+    cart = result.scalar_one_or_none()
+
+    if cart is None:
+        cart = Cart(tg_id=tg_id)
+        db.add(cart)
+        await db.flush()  # to get cart.id
+
     return cart
 
 
-def update_cart(db: Session, cart: Cart, **fields) -> Cart:
-    """
-    Обновить Cart (total, bag_id, status и т.д.).
-    last_updated обновляем автоматически.
-    """
-    for key, value in fields.items():
-        setattr(cart, key, value)
-    cart.last_updated = datetime.utcnow()
+async def update_cart_total(
+        db: AsyncSession,
+        cart: Cart,
+        new_total,
+) -> Cart:
+    cart.total = new_total
     db.add(cart)
-    db.commit()
-    db.refresh(cart)
+    await db.flush()
     return cart
 
 
-def delete_cart(db: Session, cart: Cart) -> None:
-    db.delete(cart)
-    db.commit()
+async def delete_cart(
+        db: AsyncSession,
+        cart_id: int,
+) -> None:
+    await db.execute(
+        delete(Cart).where(Cart.id == cart_id)
+    )
+    await db.flush()

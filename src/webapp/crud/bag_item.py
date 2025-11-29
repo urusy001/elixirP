@@ -1,66 +1,65 @@
 from typing import Optional, Sequence
-from sqlalchemy.orm import Session
 
-from src.webapp.models import BagItem
+from sqlalchemy import select, delete
+from sqlalchemy.ext.asyncio import AsyncSession
 
-
-def get_bag_item(db: Session, item_id: int) -> Optional[BagItem]:
-    return db.query(BagItem).filter(BagItem.id == item_id).first()
+from src.webapp.models.bag_item import BagItem
 
 
-def list_bag_items(db: Session, bag_id: int) -> Sequence[BagItem]:
-    return (
-        db.query(BagItem)
-        .filter(BagItem.bag_id == bag_id)
-        .order_by(BagItem.id.asc())
-        .all()
-    )
+# === BAG ITEM CRUD ===
 
-
-def create_bag_item(
-        db: Session,
+async def add_item_to_bag(
+        db: AsyncSession,
         bag_id: int,
-        quantity: int,
-        **extra_fields,
+        product_id: int,
+        quantity: int = 1,
 ) -> BagItem:
-    """
-    Создать BagItem внутри конкретной Bag.
-    extra_fields — любые доп. поля: product_id, price, total и т.п.
-    """
     item = BagItem(
         bag_id=bag_id,
+        product_id=product_id,
         quantity=quantity,
-        **extra_fields,
     )
     db.add(item)
-    db.commit()
-    db.refresh(item)
+    await db.flush()
     return item
 
 
-def update_bag_item(db: Session, item: BagItem, **fields) -> BagItem:
-    """
-    Обновить BagItem. Например, quantity, total и т.п.
-    """
-    for key, value in fields.items():
-        setattr(item, key, value)
+async def get_item_by_id(
+        db: AsyncSession,
+        item_id: int,
+) -> Optional[BagItem]:
+    result = await db.execute(
+        select(BagItem).where(BagItem.id == item_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_items_for_bag(
+        db: AsyncSession,
+        bag_id: int,
+) -> Sequence[BagItem]:
+    result = await db.execute(
+        select(BagItem).where(BagItem.bag_id == bag_id)
+    )
+    return result.scalars().all()
+
+
+async def update_item_quantity(
+        db: AsyncSession,
+        item: BagItem,
+        quantity: int,
+) -> BagItem:
+    item.quantity = quantity
     db.add(item)
-    db.commit()
-    db.refresh(item)
+    await db.flush()
     return item
 
 
-def delete_bag_item(db: Session, item: BagItem) -> None:
-    db.delete(item)
-    db.commit()
-
-
-def delete_bag_items_by_bag(db: Session, bag_id: int) -> int:
-    """
-    Удалить все BagItem для конкретной Bag.
-    Возвращает количество удалённых записей.
-    """
-    q = db.query(BagItem).filter(BagItem.bag_id == bag_id)
-    deleted = q.delete(synchronize_session=False)
-    db.commit()
-    return deleted
+async def remove_item(
+        db: AsyncSession,
+        item_id: int,
+) -> None:
+    await db.execute(
+        delete(BagItem).where(BagItem.id == item_id)
+    )
+    await db.flush()

@@ -1,65 +1,60 @@
-from datetime import datetime
 from typing import Optional, Sequence
 
-from sqlalchemy.orm import Session
+from sqlalchemy import select, delete
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.webapp.models.bag import Bag
 
 
-def get_bag(db: Session, bag_id: int) -> Optional[Bag]:
-    return db.query(Bag).filter(Bag.id == bag_id).first()
+# === BAG CRUD ===
 
-
-def get_bag_by_tg_id(db: Session, tg_id: int) -> Optional[Bag]:
-    """Вернуть текущую сумку юзера (если логика одна сумка на юзера)."""
-    return (
-        db.query(Bag)
-        .filter(Bag.tg_id == tg_id)
-        .order_by(Bag.last_updated.desc())
-        .first()
-    )
-
-
-def list_bags_by_tg_id(db: Session, tg_id: int) -> Sequence[Bag]:
-    return (
-        db.query(Bag)
-        .filter(Bag.tg_id == tg_id)
-        .order_by(Bag.last_updated.desc())
-        .all()
-    )
-
-
-def create_bag(db: Session, tg_id: int, **extra_fields) -> Bag:
-    """
-    Создать новую Bag для пользователя.
-    extra_fields — любые дополнительные поля модели Bag (meta, status и т.п.).
-    """
-    now = datetime.utcnow()
-    bag = Bag(
-        tg_id=tg_id,
-        last_updated=now,
-        **extra_fields,
-    )
+async def create_bag(
+        db: AsyncSession,
+        cart_id: int,
+        name: str | None = None,
+) -> Bag:
+    bag = Bag(cart_id=cart_id, name=name)
     db.add(bag)
-    db.commit()
-    db.refresh(bag)
+    await db.flush()
     return bag
 
 
-def update_bag(db: Session, bag: Bag, **fields) -> Bag:
-    """
-    Обновить поля Bag. fields может содержать любые валидные атрибуты модели.
-    """
-    for key, value in fields.items():
-        setattr(bag, key, value)
-    bag.last_updated = datetime.utcnow()
+async def get_bag_by_id(
+        db: AsyncSession,
+        bag_id: int,
+) -> Optional[Bag]:
+    result = await db.execute(
+        select(Bag).where(Bag.id == bag_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_bags_for_cart(
+        db: AsyncSession,
+        cart_id: int,
+) -> Sequence[Bag]:
+    result = await db.execute(
+        select(Bag).where(Bag.cart_id == cart_id)
+    )
+    return result.scalars().all()
+
+
+async def rename_bag(
+        db: AsyncSession,
+        bag: Bag,
+        new_name: str,
+) -> Bag:
+    bag.name = new_name
     db.add(bag)
-    db.commit()
-    db.refresh(bag)
+    await db.flush()
     return bag
 
 
-def delete_bag(db: Session, bag: Bag) -> None:
-    db.delete(bag)
-    db.commit()
-
+async def delete_bag(
+        db: AsyncSession,
+        bag_id: int,
+) -> None:
+    await db.execute(
+        delete(Bag).where(Bag.id == bag_id)
+    )
+    await db.flush()
