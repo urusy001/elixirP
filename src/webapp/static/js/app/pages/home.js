@@ -161,7 +161,7 @@ async function getUser() {
         initDataUnsafe,
     }
     alert(JSON.stringify(payload));
-    await apiPost('/user/login', payload);
+    await apiPost('/auth', payload);
 }
 
 export async function renderHomePage() {
