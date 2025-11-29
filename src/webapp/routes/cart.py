@@ -10,7 +10,6 @@ from src.webapp.models import Feature
 
 router = APIRouter(prefix="/cart", tags=["cart"])
 
-
 @router.get("/product/{onec_id}")
 async def get_cart_product(onec_id: str, feature_id: str = Query("", alias="feature_id"), db: AsyncSession = Depends(get_db)):
     product = await get_product(db, 'onec_id', onec_id)
@@ -22,7 +21,6 @@ async def get_cart_product(onec_id: str, feature_id: str = Query("", alias="feat
         if not feature: raise HTTPException(status_code=404, detail="Feature not found")
 
     return {"product": product, "feature": feature}
-
 
 @router.post("/json")
 async def cart_json(cart_data: dict = Body(...), db: AsyncSession = Depends(get_db)):

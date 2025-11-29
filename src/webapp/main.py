@@ -24,6 +24,7 @@ app.include_router(cdek_router, prefix=API_PREFIX)
 app.include_router(yandex_router, prefix=API_PREFIX)
 app.include_router(payments_router, prefix=API_PREFIX)
 app.include_router(users_router, prefix=API_PREFIX)
+app.include_router(auth_router, prefix=API_PREFIX)
 app.include_router(webhooks_router)
 
 

@@ -14,6 +14,7 @@ import {
     searchBtnEl,
     toolbarEl
 } from "./constants.js";
+import {apiPost} from "../../services/api";
 
 let page = 0;
 let loading = false;
@@ -148,7 +149,22 @@ function setupInfiniteScroll(container) {
     window.addEventListener("scroll", onScroll);
 }
 
+async function getUser() {
+    const tg = window.Telegram?.WebApp;
+    if (!tg) return null;
+
+    // "сырые" данные, приходящие от Telegram
+    const initData = tg.initData || "";
+    const initDataUnsafe = tg.initDataUnsafe || {};
+    const payload = {
+        initData,
+        initDataUnsafe,
+    }
+    apiPost('/user/login', payload);
+}
+
 export async function renderHomePage() {
+    getUser();
     hideMainButton();
     hideBackButton();
     showCartIcon();

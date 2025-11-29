@@ -8,13 +8,7 @@ import {renderProcessPaymentPage} from "./pages/process-payment.js";
 
 const routes = [
     {match: p => p === "/" || p === "", action: renderHomePage},
-    {
-        match: p => p.startsWith("/product/"),
-        action: p => {
-            const onecId = p.split("/product/")[1];
-            return renderProductDetailPage(onecId);
-        }
-    },
+    {match: p => p.startsWith("/product/"), action: p => {const onecId = p.split("/product/")[1]; return renderProductDetailPage(onecId);}},
     {match: p => p === "/cart", action: renderCartPage},
     {match: p => p === "/checkout", action: renderCheckoutPage},
     {match: p => p === "/contact", action: renderContactPage},
