@@ -17,10 +17,9 @@ const routes = [
 ];
 
 function getCurrentPath() {
-    // URL: https://.../#/cart или https://.../#/product/123
     const raw = window.location.hash || "";
-    const path = raw.replace(/^#/, ""); // "#/cart" -> "/cart"
-    return path || "/";                 // по умолчанию "/"
+    const path = raw.replace(/^#/, "");
+    return path || "/";
 }
 
 export async function renderCurrentPath() {
@@ -37,16 +36,13 @@ export async function renderCurrentPath() {
 export function navigateTo(path) {
     const normalized = path.startsWith("/") ? path : `/${path}`;
 
-    // Реальный pathname не трогаем, меняем только hash.
     const targetHash = `#${normalized}`;
     if (window.location.hash === targetHash) return;
 
-    // Меняем hash — это само вызовет hashchange → renderCurrentPath()
     window.location.hash = normalized;
 }
 
 export function enablePopstate() {
-    // Для hash-роутинга слушаем hashchange
     window.addEventListener("hashchange", () => {
         void renderCurrentPath();
     });

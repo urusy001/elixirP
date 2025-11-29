@@ -10,7 +10,7 @@ from .unit import Unit
 from .user import User
 from .usertokenusage import UserTokenUsage, BotEnum
 from .bag import Bag
-from .bag_items import BagItem
+from .bag_item import BagItem
 from .cart import Cart
 from .chatuser import ChatUser
 

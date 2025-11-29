@@ -4,18 +4,23 @@ import asyncio
 import csv
 import hashlib
 import hmac
+import json
 import random
 import re
 import string
+import time
+
 from functools import wraps
 from logging import Logger
 from typing import Optional, Literal
-
+from urllib.parse import parse_qsl
 from aiogram import Bot
 from aiogram.types import Message
+from fastapi import HTTPException
+from pydantic import BaseModel
 from transliterate import translit
 
-from config import YOOKASSA_SECRET_KEY, CSV_PATH, ELIXIR_CHAT_ID
+from config import YOOKASSA_SECRET_KEY, CSV_PATH, ELIXIR_CHAT_ID, AI_BOT_TOKEN3
 
 MAX_TG_MSG_LEN = 4096  # Telegram limit
 
@@ -575,4 +580,42 @@ async def CHAT_ADMIN_FILTER(message: Message, bot: Bot) -> bool:
 
     # 4) Всё остальное — не админ
     return False
+
+
+class TelegramAuthPayload(BaseModel):
+    init_data: str
+
+def verify_telegram_init_data(init_data: str, bot_token: str = AI_BOT_TOKEN3, max_age_seconds: int = 300) -> dict:
+    """
+    Проверка initData от Telegram WebApp.
+    Возвращает dict с полями (user, chat_instance, auth_date, ...) если все ок.
+    Кидает HTTPException если подпись/время неверные.
+    """
+    if not bot_token: raise RuntimeError("TELEGRAM_BOT_TOKEN is not set")
+
+    data = dict(parse_qsl(init_data, keep_blank_values=True))
+    received_hash = data.pop("hash", None)
+
+    if not received_hash: raise HTTPException(status_code=400, detail="Missing hash")
+    check_string = "\n".join(f"{k}={v}" for k, v in sorted(data.items()))
+
+    secret_key = hashlib.sha256(bot_token.encode("utf-8")).digest()
+    computed_hash = hmac.new(secret_key, check_string.encode("utf-8"), hashlib.sha256).hexdigest()
+
+    if not hmac.compare_digest(computed_hash, received_hash): raise HTTPException(status_code=401, detail="Invalid init data hash")
+
+    auth_date_str = data.get("auth_date")
+    if auth_date_str:
+        try: auth_ts = int(auth_date_str)
+        except ValueError: raise HTTPException(status_code=400, detail="Invalid auth_date")
+        now = int(time.time())
+        if now - auth_ts > max_age_seconds: raise HTTPException(status_code=401, detail="Init data is too old")
+
+    user_raw = data.get("user")
+    try: user = json.loads(user_raw) if user_raw else None
+    except json.JSONDecodeError: raise HTTPException(status_code=400, detail="Invalid user JSON")
+
+    data["user"] = user
+    return data
+
 
