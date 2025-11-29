@@ -26,13 +26,6 @@ class User(Base):
     # Blocking system
     blocked_until = Column(DateTime(timezone=True), nullable=True, default=None)
 
-    # Relationships
-    bags = relationship(
-        "Bag",
-        back_populates="user",
-        cascade="all, delete-orphan",
-    )
-
     carts = relationship(
         "Cart",
         back_populates="user",
