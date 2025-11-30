@@ -6,6 +6,7 @@ from telethon.tl.types import UpdateUser
 from src.helpers import TelegramAuthPayload, validate_init_data
 from src.webapp import get_session
 from src.webapp.crud import upsert_user
+from src.webapp.crud.cart import
 from src.webapp.schemas import UserCreate
 
 router = APIRouter(prefix="/auth", tags=["auth"])
