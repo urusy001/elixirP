@@ -1,3 +1,4 @@
+# cart_item.py
 from sqlalchemy import BigInteger, Column, DateTime, String, ForeignKey, func, Integer
 from sqlalchemy.orm import relationship
 
@@ -24,14 +25,14 @@ class CartItem(Base):
 
     product_onec_id = Column(
         String,
-        ForeignKey("products.onec_id"),
+        ForeignKey("products.onec_id", ondelete="CASCADE"),  # 👈 тут
         nullable=False,
         index=True,
     )
 
     feature_onec_id = Column(
         String,
-        ForeignKey("features.onec_id"),
+        ForeignKey("features.onec_id", ondelete="CASCADE"),  # 👈 и тут
         nullable=False,
         index=True,
     )
@@ -54,10 +55,7 @@ class CartItem(Base):
 
     # ---------- relationships ----------
 
-    cart = relationship(
-        "Cart",
-        back_populates="items",
-    )
+    cart = relationship("Cart", back_populates="items")
 
     product = relationship(
         "Product",

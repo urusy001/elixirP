@@ -14,12 +14,24 @@ class Product(Base):
     description = Column(String, nullable=True)
     usage = Column(String, nullable=True)
     expiration = Column(String, nullable=True)
-    category_onec_id = Column(String, ForeignKey("categories.onec_id", ondelete="SET NULL"), nullable=True, index=True)
+    category_onec_id = Column(
+        String,
+        ForeignKey("categories.onec_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     # Relationships
     category = relationship("Category", back_populates="products")
     features = relationship("Feature", back_populates="product", cascade="all, delete-orphan")
-    cart_items = relationship("CartItem", back_populates="product", lazy="selectin", cascade="all, delete-orphan")
+
+    cart_items = relationship(
+        "CartItem",
+        back_populates="product",
+        foreign_keys="CartItem.product_onec_id",
+        lazy="selectin",
+        passive_deletes=True,   # 👈 доверяем БД делать CASCADE
+    )
 
     def __str__(self) -> str:
         expiration_text = f"<b>ИНСТРУКЦИИ К ХРАНЕНИЮ</b>\n{self.expiration or 'Не имеются или <i>указаны выше</i>'}"

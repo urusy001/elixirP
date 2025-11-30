@@ -1,3 +1,5 @@
+/* ---------------- TOS OVERLAY (full-screen) ---------------- */
+
 #tos-overlay {
     position: fixed;
     top: 0;
@@ -64,4 +66,51 @@
     font-weight: 500;
     text-decoration: underline;
     text-underline-offset: 2px;
+}
+
+/* строка с чекбоксом */
+.tos-checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: #222;
+    margin-top: 6px;
+}
+
+.tos-checkbox-row input[type="checkbox"] {
+    margin-top: 2px;
+    cursor: pointer;
+}
+
+.tos-checkbox-row span {
+    flex: 1;
+}
+
+/* кнопка "Продолжить" */
+#tos-accept-btn {
+    margin-top: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: none;
+    background: #1E669E;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease, opacity 0.2s ease;
+}
+
+#tos-accept-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#tos-accept-btn:not(:disabled):hover {
+    background: #17517D;
+}
+
+#tos-accept-btn:not(:disabled):active {
+    transform: scale(0.98);
 }

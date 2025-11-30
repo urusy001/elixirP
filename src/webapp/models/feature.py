@@ -1,3 +1,4 @@
+# feature.py
 from sqlalchemy import Column, Integer, String, Numeric, ForeignKey
 from sqlalchemy.orm import relationship
 
@@ -9,7 +10,12 @@ class Feature(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     onec_id = Column(String, index=True, unique=True, nullable=False)
-    product_onec_id = Column(String, ForeignKey("products.onec_id", ondelete="CASCADE"), index=True, nullable=False)
+    product_onec_id = Column(
+        String,
+        ForeignKey("products.onec_id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
     name = Column(String, index=True, nullable=False)
     code = Column(String, index=True, nullable=False)
     file_id = Column(String, index=True, nullable=True)
@@ -18,4 +24,11 @@ class Feature(Base):
 
     # Relationship
     product = relationship("Product", back_populates="features")
-    cart_items = relationship("CartItem", back_populates="product", lazy="selectin", cascade="all, delete-orphan")
+
+    cart_items = relationship(
+        "CartItem",
+        back_populates="feature",
+        foreign_keys="CartItem.feature_onec_id",
+        lazy="selectin",
+        passive_deletes=True,   # 👈 сюда тоже
+    )

@@ -181,9 +181,21 @@ async function openHomePage() {
     setupInfiniteScroll(listEl);
 }
 
-async function openTosOverlay() {
-    tosOverlayEl.style.display = "block";
-    showMainButton("Прочел и соглашаюсь", () => openHomePage());
+function openTosOverlay() {
+    if (!tosOverlayEl) return;
+
+    tosOverlayEl.classList.remove("hidden");
+    tosOverlayEl.style.display = "flex";
+    document.body.style.overflow = "hidden";
+
+    showMainButton("Прочитал(а) и соглашаюсь", async () => {
+        // тут можно сначала дернуть /auth/accept-terms, если нужно
+        await openHomePage();
+        // прячем оверлей и возвращаем скролл
+        tosOverlayEl.style.display = "none";
+        tosOverlayEl.classList.add("hidden");
+        document.body.style.overflow = "";
+    });
 }
 
 export async function renderHomePage() {
@@ -193,4 +205,5 @@ export async function renderHomePage() {
     } else if (user && !user.accepted_terms) {
         openTosOverlay()
     } else openHomePage()
+
 }
