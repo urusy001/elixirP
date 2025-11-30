@@ -385,3 +385,19 @@ async def handle_admin_callback(call: CallbackQuery, state: FSMContext):
         await call.message.delete()
     except Exception:
         pass
+
+@router2.message(Command('app'))
+@router2.message(CommandStart(), lambda message: message.from_user.id not in OWNER_TG_IDS)
+async def open_app(message: Message): await message.answer("Приветственный текст!!", reply_markup=open_app)
+
+
+@router2.message(Command('about'))
+async def about(message: Message):
+    await message.answer("""<b>ИП</b>: ХАКИМОВ РУСЛАН РАЛИФОВИЧ
+<b>Юридический адрес:</b> 450150 Республика Башкортостан, г. Уфа, улица Набережная р. Уфы, 39, корп. 1, кв. 87
+<b>Почтовый адрес:</b> 450150 Республика Башкортостан, г. Уфа, улица Набережная р. Уфы, 39, корп. 1, кв. 87
+<b>ИНН:</b> 027614099149
+<b>ОГРНИП:</b> 323028000061111
+
+<b>Телефон:</b> +7 961 038 79 77
+<b>Электронная почта:</b> elixirpeptide@yandex.ru""")
