@@ -1,12 +1,8 @@
-import json
-
 from fastapi import APIRouter, HTTPException
-from telethon.tl.types import UpdateUser
 
 from src.helpers import TelegramAuthPayload, validate_init_data
 from src.webapp import get_session
 from src.webapp.crud import upsert_user
-from src.webapp.crud.cart import
 from src.webapp.schemas import UserCreate
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -30,7 +26,6 @@ async def auth(payload: TelegramAuthPayload):
     )
     async with get_session() as session:
         user = await upsert_user(session, user_upsert)
-        cart = await get_user_carts(session, user.tg_id)
 
     if not user: raise HTTPException(status_code=400, detail="No user in init data")
     internal_user_id = user["id"]
