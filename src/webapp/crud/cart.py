@@ -1,7 +1,8 @@
 from typing import Optional, Sequence
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.webapp.models import CartItem
 from src.webapp.models.cart import Cart
 from src.webapp.schemas.cart import CartCreate, CartUpdate
 
@@ -14,7 +15,7 @@ async def get_cart_by_id(db: AsyncSession, cart_id: int) -> Optional[Cart]:
     return result.scalar_one_or_none()
 
 
-async def list_carts_for_user(db: AsyncSession, user_id: int, is_active: Optional[bool] = None) -> Sequence[Cart]:
+async def get_user_carts(db: AsyncSession, user_id: int, is_active: Optional[bool] = None) -> Sequence[Cart]:
     """
     List carts for a user.
     - if is_active is None  -> return all carts
@@ -29,7 +30,7 @@ async def list_carts_for_user(db: AsyncSession, user_id: int, is_active: Optiona
     return result.scalars().all()
 
 
-async def get_active_carts_for_user(db: AsyncSession, user_id: int) -> Sequence[Cart]:
+async def get_active_user_carts(db: AsyncSession, user_id: int) -> Sequence[Cart]:
     """
     Return ALL active (unpaid/unprocessed) carts for this user.
     """
@@ -75,4 +76,14 @@ async def update_cart(db: AsyncSession, cart: Cart, data: CartUpdate) -> Cart:
 async def delete_cart(db: AsyncSession, cart: Cart) -> None:
     """Delete cart and all its items (cascade)."""
     await db.delete(cart)
+    await db.commit()
+
+
+async def clear_cart(db: AsyncSession, cart_id: int) -> None:
+    """
+    Delete all items for a given cart.
+    """
+    await db.execute(
+        delete(CartItem).where(CartItem.cart_id == cart_id)
+    )
     await db.commit()

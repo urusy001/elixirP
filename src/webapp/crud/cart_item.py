@@ -70,13 +70,3 @@ async def update_cart_item(db: AsyncSession, item: CartItem, data: CartItemUpdat
 async def remove_cart_item(db: AsyncSession, item: CartItem) -> None:
     await db.delete(item)
     await db.commit()
-
-
-async def clear_cart(db: AsyncSession, cart_id: int) -> None:
-    """
-    Delete all items for a given cart.
-    """
-    await db.execute(
-        delete(CartItem).where(CartItem.cart_id == cart_id)
-    )
-    await db.commit()
