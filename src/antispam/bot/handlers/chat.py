@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import random
 from datetime import datetime, timedelta
 from typing import Optional, Dict
@@ -35,7 +36,7 @@ async def delete_later(bot: Bot, chat_id: int, message_id: int, delay: int = 31)
     """Удалить сообщение через delay секунд."""
     await asyncio.sleep(delay)
     try: await bot.delete_message(chat_id, message_id)
-    except Exception: pass
+    except Exception as e: logging.getLogger("main").warning(f"Couldnt delete message with id {message_id} in chat {chat_id}: {e.__class__.__name__}")
 
 async def send_ephemeral_message(bot: Bot, chat_id: int, text: str, *, thread_id: Optional[int] = None, parse_mode: str = "HTML",):
     """Отправить сообщение и удалить его через ttl секунд."""
@@ -49,6 +50,7 @@ async def send_ephemeral_message(bot: Bot, chat_id: int, text: str, *, thread_id
 async def answer_ephemeral(message: Message, text: str,):
     """Ответить на сообщение и удалить ответ через ttl секунд."""
     msg = await message.answer(text, parse_mode="HTML")
+    asyncio.create_task(delete_later(message.bot, message.chat.id, message.message_id, 31))
     asyncio.create_task(delete_later(message.bot, message.chat.id, msg.message_id, 31))
     return msg
 
