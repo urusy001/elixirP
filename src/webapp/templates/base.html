@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="{{ request.url_for('static', path='css/home.css') }}">
     <link rel="stylesheet" href="{{ request.url_for('static', path='css/checkout.css') }}">
     <link rel="stylesheet" href="{{ request.url_for('static', path='css/payment.css') }}">
+    <link rel="stylesheet" href="{{ request.url_for('static', path='css/tos-overlay.css') }}">
     <link rel="stylesheet" href="{{ request.url_for('static', path='css/overrides.css') }}">
     {% block extra_css %}{% endblock %}
 
@@ -38,6 +39,25 @@
 <!-- Global loader -->
 <div id="global-loading-screen" class="hidden">
     <div class="spinner"></div>
+</div>
+
+<div id="tos-overlay" class="hidden">
+    <div class="tos-modal">
+        <h2 class="tos-title">Условия покупки</h2>
+        <p class="tos-text">
+            Перед тем как продолжить, пожалуйста, ознакомьтесь с условиями публичной оферты
+            и подтвердите своё согласие.
+        </p>
+
+        <a
+                href="https://elixirpeptide.com/privacy/offer/"
+                target="_blank"
+                rel="noreferrer"
+                class="tos-link"
+        >
+            Ознакомиться с офертой
+        </a>
+    </div>
 </div>
 
 <!-- Main SPA container -->

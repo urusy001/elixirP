@@ -19,6 +19,7 @@ class Product(Base):
     # Relationships
     category = relationship("Category", back_populates="products")
     features = relationship("Feature", back_populates="product", cascade="all, delete-orphan")
+    cart_items = relationship("CartItem", back_populates="product", lazy="selectin", cascade="all, delete-orphan")
 
     def __str__(self) -> str:
         expiration_text = f"<b>ИНСТРУКЦИИ К ХРАНЕНИЮ</b>\n{self.expiration or 'Не имеются или <i>указаны выше</i>'}"

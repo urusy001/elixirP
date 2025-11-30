@@ -29,22 +29,6 @@ async def get_user_carts(db: AsyncSession, user_id: int, is_active: Optional[boo
     result = await db.execute(query)
     return result.scalars().all()
 
-
-async def get_active_user_carts(db: AsyncSession, user_id: int) -> Sequence[Cart]:
-    """
-    Return ALL active (unpaid/unprocessed) carts for this user.
-    """
-    result = await db.execute(
-        select(Cart)
-        .where(
-            Cart.user_id == user_id,
-            Cart.is_active.is_(True),
-            )
-        .order_by(Cart.created_at.desc())
-    )
-    return result.scalars().all()
-
-
 async def create_cart(db: AsyncSession, data: CartCreate) -> Cart:
     """
     Create a new cart.

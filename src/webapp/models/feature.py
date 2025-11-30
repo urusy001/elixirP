@@ -18,3 +18,4 @@ class Feature(Base):
 
     # Relationship
     product = relationship("Product", back_populates="features")
+    cart_items = relationship("CartItem", back_populates="product", lazy="selectin", cascade="all, delete-orphan")

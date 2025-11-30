@@ -2,7 +2,7 @@ import {searchProducts} from "../../services/productService.js";
 import {withLoader} from "../ui/loader.js";
 import {navigateTo} from "../router.js";
 import {state, saveCart} from "../state.js";
-import {hideBackButton, hideMainButton} from "../ui/telegram.js";
+import {hideBackButton, hideMainButton, showMainButton} from "../ui/telegram.js";
 import {showCartIcon} from "../ui/cart-icon.js";
 import {
     cartPageEl,
@@ -12,7 +12,7 @@ import {
     paymentPageEl,
     processPaymentEl,
     searchBtnEl,
-    toolbarEl
+    toolbarEl, tosOverlayEl
 } from "./constants.js";
 import {apiPost} from "../../services/api.js";
 
@@ -155,21 +155,17 @@ async function getUser() {
 
     // "сырые" данные, приходящие от Telegram
     const initData = tg.initData || "";
-    const initDataUnsafe = tg.initDataUnsafe || {};
-    const payload = {
-        initData,
-        initDataUnsafe,
-    }
-    alert(JSON.stringify(payload));
-    await apiPost('/auth', payload);
+    const payload = {initData}
+    const result = await apiPost('/auth', payload);
+    return result.user;
 }
 
-export async function renderHomePage() {
-    await getUser();
+async function openHomePage() {
     hideMainButton();
     hideBackButton();
     showCartIcon();
     headerTitle.textContent = "Магазин ElixirPeptide";
+    tosOverlayEl.style.display = "none";
     listEl.style.display = "grid";
     toolbarEl.style.display = "flex";
     searchBtnEl.style.display = "flex";
@@ -183,4 +179,18 @@ export async function renderHomePage() {
     page = 1;
     await loadMore(listEl, false);
     setupInfiniteScroll(listEl);
+}
+
+async function openTosOverlay() {
+    tosOverlayEl.style.display = "block";
+    showMainButton("Прочел и соглашаюсь", () => openHomePage());
+}
+
+export async function renderHomePage() {
+    const user = await getUser();
+    if (!user) {
+        console.warn("[Home] invalid user (auth failed)");
+    } else if (user && !user.accepted_terms) {
+        openTosOverlay()
+    } else openHomePage()
 }

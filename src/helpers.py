@@ -582,7 +582,6 @@ async def CHAT_ADMIN_FILTER(message: Message, bot: Bot) -> bool:
 
 class TelegramAuthPayload(BaseModel):
     initData: str
-    initDataUnsafe: dict
 
 
 class TelegramInitDataError(Exception):
