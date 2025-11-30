@@ -181,7 +181,7 @@ async function openHomePage() {
     setupInfiniteScroll(listEl);
 }
 
-function openTosOverlay() {
+function openTosOverlay(user) {
     if (!tosOverlayEl) return;
 
     tosOverlayEl.classList.remove("hidden");
@@ -189,7 +189,11 @@ function openTosOverlay() {
     document.body.style.overflow = "hidden";
 
     showMainButton("Прочитал(а) и соглашаюсь", async () => {
-        // тут можно сначала дернуть /auth/accept-terms, если нужно
+        const payload = {
+            is_active: true,
+            user_id: user.tg_id,
+        }
+        await apiPost('/cart/create', payload);
         await openHomePage();
         // прячем оверлей и возвращаем скролл
         tosOverlayEl.style.display = "none";
@@ -203,7 +207,7 @@ export async function renderHomePage() {
     if (!user) {
         console.warn("[Home] invalid user (auth failed)");
     } else if (user && !user.accepted_terms) {
-        openTosOverlay()
+        openTosOverlay(user)
     } else openHomePage()
 
 }

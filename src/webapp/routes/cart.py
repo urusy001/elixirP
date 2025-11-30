@@ -4,9 +4,10 @@ from fastapi import APIRouter, HTTPException, Query, Depends, Body
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.webapp.crud import get_product, get_feature
+from src.webapp.crud import get_product, get_feature, create_cart
 from src.webapp.database import get_db
 from src.webapp.models import Feature
+from src.webapp.schemas import CartCreate
 
 router = APIRouter(prefix="/cart", tags=["cart"])
 
@@ -21,6 +22,11 @@ async def get_cart_product(onec_id: str, feature_id: str = Query("", alias="feat
         if not feature: raise HTTPException(status_code=404, detail="Feature not found")
 
     return {"product": product, "feature": feature}
+
+@router.post("/create")
+async def create(cart_data: CartCreate, db: AsyncSession = Depends(get_db)):
+    cart = await create_cart(db, cart_data)
+    return cart.to_dict()
 
 @router.post("/json")
 async def cart_json(cart_data: dict = Body(...), db: AsyncSession = Depends(get_db)):
