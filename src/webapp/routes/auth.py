@@ -1,5 +1,11 @@
+import json
+
 from fastapi import APIRouter, HTTPException
+
+from config import AI_BOT_TOKEN3
 from src.helpers import TelegramAuthPayload, verify_telegram_init_data
+from src.webapp import get_session
+from src.webapp.crud import upsert_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -12,11 +18,12 @@ async def auth(payload: TelegramAuthPayload):
 
     Фронт: apiPost("/auth", { init_data: tg.initData })
     """
+    data = verify_telegram_init_data(payload.initData, AI_BOT_TOKEN3)
 
-    data = verify_telegram_init_data(payload.init_data)
-
-    user = data.get("user")
-    if not user: raise HTTPException(status_code=400, detail="No user in init data")
+    tg_user = data.get("user")
+    print(json.dumps(tg_user, ensure_ascii=False, indent=4))
+    async with get_session() as session: user = await upsert_user(session, )
+    if not tg_user: raise HTTPException(status_code=400, detail="No user in init data")
     internal_user_id = user["id"]
 
     result = {

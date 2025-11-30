@@ -3,10 +3,10 @@ import asyncio
 import signal
 
 from config import TELETHON_PHONE, TELETHON_PASSWORD
-from src.ai.bot.main import run_dose_bot, run_professor_bot
-from src.antispam.bot.main import run_antispam_bot
-from src.giveaway.bot.main import run_bot as run_giveaway_bot
+from src.delivery.sdek import client as cdek_client
+from src.onec import OneCEnterprise
 from src.tg_methods import client as telegram_client
+from src.webapp.main import run_app
 
 logging.basicConfig(
     level=logging.INFO,
@@ -21,10 +21,9 @@ logger = logging.getLogger("main")
 async def main():
     await telegram_client.start(TELETHON_PHONE, TELETHON_PASSWORD)
     tasks = [
-        asyncio.create_task(run_antispam_bot()),
-        asyncio.create_task(run_dose_bot()),
-        asyncio.create_task(run_professor_bot()),
-        asyncio.create_task(run_giveaway_bot())
+        asyncio.create_task(OneCEnterprise().postgres_worker()),
+        asyncio.create_task(run_app()),
+        asyncio.create_task(cdek_client.token_worker())
     ]
 
     async def shutdown():

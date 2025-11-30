@@ -583,7 +583,8 @@ async def CHAT_ADMIN_FILTER(message: Message, bot: Bot) -> bool:
 
 
 class TelegramAuthPayload(BaseModel):
-    init_data: str
+    initData: str
+    initDataUnsafe: dict
 
 def verify_telegram_init_data(init_data: str, bot_token: str = AI_BOT_TOKEN3, max_age_seconds: int = 300) -> dict:
     """
@@ -602,14 +603,18 @@ def verify_telegram_init_data(init_data: str, bot_token: str = AI_BOT_TOKEN3, ma
     secret_key = hashlib.sha256(bot_token.encode("utf-8")).digest()
     computed_hash = hmac.new(secret_key, check_string.encode("utf-8"), hashlib.sha256).hexdigest()
 
-    if not hmac.compare_digest(computed_hash, received_hash): raise HTTPException(status_code=401, detail="Invalid init data hash")
+    if not hmac.compare_digest(computed_hash, received_hash):
+        print(1)
+        raise HTTPException(status_code=401, detail="Invalid init data hash")
 
     auth_date_str = data.get("auth_date")
     if auth_date_str:
         try: auth_ts = int(auth_date_str)
         except ValueError: raise HTTPException(status_code=400, detail="Invalid auth_date")
         now = int(time.time())
-        if now - auth_ts > max_age_seconds: raise HTTPException(status_code=401, detail="Init data is too old")
+        if now - auth_ts > max_age_seconds:
+            print(2)
+            raise HTTPException(status_code=401, detail="Init data is too old")
 
     user_raw = data.get("user")
     try: user = json.loads(user_raw) if user_raw else None
@@ -617,5 +622,3 @@ def verify_telegram_init_data(init_data: str, bot_token: str = AI_BOT_TOKEN3, ma
 
     data["user"] = user
     return data
-
-
