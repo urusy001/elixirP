@@ -18,6 +18,18 @@ router = Router()
 @router.message(CommandStart(), lambda message: message.from_user.id not in OWNER_TG_IDS)
 async def open_app(message: Message): await message.answer("Приветственный текст!!", reply_markup=open_app)
 
+@router.message(Command('about'))
+async def about(message: Message):
+    await message.answer("""<b>ИП</b>: ХАКИМОВ РУСЛАН РАЛИФОВИЧ
+<b>Юридический адрес:</b> 450150 Республика Башкортостан, г. Уфа, улица Набережная р. Уфы, 39, корп. 1, кв. 87
+<b>Почтовый адрес:</b> 450150 Республика Башкортостан, г. Уфа, улица Набережная р. Уфы, 39, корп. 1, кв. 87
+<b>ИНН:</b> 027614099149
+<b>ОГРНИП:</b> 323028000061111
+
+<b>Телефон:</b> +7 961 038 79 77
+<b>Электронная почта:</b> elixirpeptide@yandex.ru""")
+
+
 @router.message(Command('product'), lambda message: message.from_user.id in OWNER_TG_IDS)
 async def handle_product(message: Message):
     onec_id = message.text.strip().removeprefix("/product ")
