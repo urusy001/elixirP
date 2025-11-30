@@ -10,6 +10,7 @@ from aiogram.types import Message
 from config import MOSCOW_TZ
 from src.antispam.bot.handlers.chat import answer_ephemeral, safe_unrestrict, safe_restrict, pass_user
 from src.antispam.bot.permissions import NEW_USER
+from src.antispam.image import extract_text_from_image
 from src.antispam.test_classifier import is_spam
 from src.helpers import CHAT_ADMIN_FILTER, _notify_user, append_message_to_csv
 from src.webapp import get_session
@@ -219,12 +220,24 @@ async def handle_get_id(message: Message):
 
 @router.message(lambda message: message.chat.type == ChatType.PRIVATE and CHAT_ADMIN_FILTER)
 async def handle_private(message: Message):
-    text = (message.text or "").strip()
+    text = ""
+    if message.text and message.text.strip(): text += '\n'+message.text.strip()
+
+    if message.caption and message.caption.strip(): text += '\n'+message.caption.strip()
+
+    if message.photo:
+        largest_photo = message.photo[-1]
+        file = await message.bot.get_file(largest_photo.file_id)
+        image_bytes = await message.bot.download_file(file.file_path)
+        ocr_text = await asyncio.to_thread(extract_text_from_image(), image_bytes)
+        print(ocr_text)
+        if ocr_text and ocr_text.strip(): text += '\n'+ocr_text.strip()
+
     if not text:
         await message.answer("Нужен текст")
         return
 
-    is_spam_flag, prob = await is_spam(text)
+    is_spam_flag, prob = await is_spam(text.strip())
     percent = f"{prob * 100:.2f}%"   # например, 12.34%
     verdict = "Спам" if is_spam_flag else "Не спам"
 
