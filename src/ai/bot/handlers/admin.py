@@ -401,3 +401,7 @@ async def about(message: Message):
 
 <b>Телефон:</b> +7 961 038 79 77
 <b>Электронная почта:</b> elixirpeptide@yandex.ru""")
+
+@router2.message(Command('offer'))
+async def offer(message: Message):
+    await message.answer('https://elixirpeptide.com/privacy/offer/')
