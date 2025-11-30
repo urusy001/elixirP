@@ -1,7 +1,7 @@
 import { apiGet } from "./api.js";
 
 export async function searchProducts({ q = "", page = 0, limit } = {}) {
-  const url = new URL("api/v1/search", location.origin);
+  const url = new URL("/search", location.origin);
   url.searchParams.set("q", q);
   url.searchParams.set("page", page);
   if (limit) url.searchParams.set("limit", limit);
