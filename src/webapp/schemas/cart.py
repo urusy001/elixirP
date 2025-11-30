@@ -1,29 +1,29 @@
-from __future__ import annotations
-
 from datetime import datetime
-from decimal import Decimal
-from typing import List, Optional
-
+from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
+from src.webapp.schemas.cart_item import CartItemRead
+
+
 class CartBase(BaseModel):
-    tg_id: int
+    is_active: bool = True
 
 
 class CartCreate(CartBase):
-    pass
+    user_id: int
 
 
 class CartUpdate(BaseModel):
-    # e.g. if you want to manually override total
-    total: Optional[Decimal] = None
+    is_active: Optional[bool] = None
+    name: Optional[str] = None
 
 
 class CartRead(CartBase):
     id: int
-    total: Decimal
+    user_id: int
+    name: str
     created_at: datetime
     updated_at: datetime
-    bags: List[BagRead] = []
+    items: list[CartItemRead] = []
 
     model_config = ConfigDict(from_attributes=True)

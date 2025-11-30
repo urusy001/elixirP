@@ -17,6 +17,7 @@ class UserBase(BaseModel):
     input_tokens: int = Field(0, ge=0)
     output_tokens: int = Field(0, ge=0)
     blocked_until: datetime | None = Field(None, description="User blocked until this datetime")
+    photo_url: str | None = Field(None, description="User photo URL")
 
 
 class UserCreate(UserBase):

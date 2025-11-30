@@ -9,12 +9,11 @@ from .product import Product
 from .unit import Unit
 from .user import User
 from .usertokenusage import UserTokenUsage, BotEnum
-from .bag import Bag
-from .bag_item import BagItem
+from .cart_item import CartItem
 from .cart import Cart
 from .chatuser import ChatUser
 
-__all__ = ['Category', 'Product', 'Unit', 'Feature', 'User', 'UserTokenUsage', 'Giveaway', 'Participant', 'BotEnum', 'PVZRequest', 'Bag', 'BagItem', 'Cart', 'ChatUser']
+__all__ = ['Category', 'Product', 'Unit', 'Feature', 'User', 'UserTokenUsage', 'Giveaway', 'Participant', 'BotEnum', 'PVZRequest', 'CartItem', 'Cart', 'ChatUser']
 
 class PVZRequest(BaseModel):
     latitude: Optional[float] = Field(None, description="Latitude (if geo_id not provided)")
