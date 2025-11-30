@@ -16,7 +16,8 @@ from logging import Logger
 from typing import Optional, Literal
 from urllib.parse import parse_qsl
 from aiogram import Bot
-from aiogram.types import Message
+from aiogram.enums import ChatMemberStatus
+from aiogram.types import Message, CallbackQuery
 from bs4 import BeautifulSoup, Tag
 from fastapi import HTTPException
 from pydantic import BaseModel
@@ -546,7 +547,6 @@ async def append_message_to_csv(text: str, label: int | str = 0) -> None:
                 quotechar='"',
                 quoting=csv.QUOTE_MINIMAL,  # можно csv.QUOTE_ALL если хочешь всегда в кавычках
             )
-            # если файл только что создан — пишем заголовок
             if not file_exists:
                 writer.writerow(["Message", "Label"])
 
@@ -562,22 +562,22 @@ async def _notify_user(message: Message, text: str, timer: float | None = None, 
 
 
 async def CHAT_ADMIN_FILTER(message: Message, bot: Bot) -> bool:
-    # 1) Работаем только в нужном чате
-    if getattr(message.chat, "id") not in [-1003182914098, ELIXIR_CHAT_ID]:
-        return False
+    if getattr(message.chat, "id") not in [-1003182914098, ELIXIR_CHAT_ID]: return False
+    if message.sender_chat and message.sender_chat.id == message.chat.id: return True
 
-    # 2) Сообщение отправлено "от имени чата" (sender_chat)
-    #    Такое вообще может сделать только админ, так что считаем это админом
-    if message.sender_chat and message.sender_chat.id == message.chat.id:
-        return True
-
-    # 3) Обычный юзер (from_user) — проверяем через get_chat_member
     if message.from_user:
         member = await bot.get_chat_member(message.chat.id, message.from_user.id)
         return member.status in ("administrator", "creator")
 
-    # 4) Всё остальное — не админ
     return False
+
+async def CHAT_NOT_BANNED_FILTER(user_id: int) -> bool:
+    from src.antispam.bot.main import bot
+    try:
+        member = await bot.get_chat_member(ELIXIR_CHAT_ID, user_id)
+        if member.status in [ChatMemberStatus.KICKED]: return False
+        else: return True
+    except: return True
 
 
 class TelegramAuthPayload(BaseModel):

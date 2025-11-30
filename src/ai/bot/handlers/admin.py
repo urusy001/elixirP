@@ -5,15 +5,14 @@ import pandas as pd
 from aiogram import Router
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, InlineQueryResultArticle, \
-    InputTextMessageContent
+from aiogram.types import Message, CallbackQuery, FSInputFile
 
 from config import OWNER_TG_IDS, SPENDS_DIR, AI_BOT_TOKEN, AI_BOT_TOKEN2
 from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
+from src.ai.bot.texts import greeting
 from src.webapp import get_session
-from src.webapp.crud import get_usages, get_user, update_user, get_product, get_product_with_features
-from src.webapp.routes.search import search_products
+from src.webapp.crud import get_usages, get_user, update_user
 from src.webapp.schemas import UserUpdate
 from src.tg_methods import get_user_id_by_phone, normalize_phone
 
@@ -22,13 +21,13 @@ router2 = Router(name="admin")
 router3 = Router(name="admin")
 
 
+@router2.message(Command('test'), lambda message: message.from_user.id in OWNER_TG_IDS)
+async def test(message: Message): await message.answer(greeting, reply_markup=admin_keyboards.open_test)
+
 @router.message(CommandStart(), lambda message: message.from_user.id in OWNER_TG_IDS)
 @router2.message(CommandStart(), lambda message: message.from_user.id in OWNER_TG_IDS)
 @router3.message(CommandStart(), lambda message: message.from_user.id in OWNER_TG_IDS)
-async def handle_admin_start(message: Message):
-    await message.answer(
-        f'{message.from_user.full_name}, Добро пожаловать в <b>админ панель</b>\n\nВыберите действие кнопками ниже',
-        reply_markup=admin_keyboards.main_menu, parse_mode="html")
+async def handle_admin_start(message: Message): await message.answer(f'{message.from_user.full_name}, Добро пожаловать в <b>админ панель</b>\n\nВыберите действие кнопками ниже', reply_markup=admin_keyboards.main_menu, parse_mode="html")
 
 @router.message(Command('block'), lambda message: message.from_user.id in OWNER_TG_IDS)
 @router2.message(Command('block'), lambda message: message.from_user.id in OWNER_TG_IDS)
@@ -385,23 +384,3 @@ async def handle_admin_callback(call: CallbackQuery, state: FSMContext):
         await call.message.delete()
     except Exception:
         pass
-
-@router2.message(Command('app'))
-@router2.message(CommandStart(), lambda message: message.from_user.id not in OWNER_TG_IDS)
-async def open_app(message: Message): await message.answer("Приветственный текст!!", reply_markup=open_app)
-
-
-@router2.message(Command('about'))
-async def about(message: Message):
-    await message.answer("""<b>ИП</b>: ХАКИМОВ РУСЛАН РАЛИФОВИЧ
-<b>Юридический адрес:</b> 450150 Республика Башкортостан, г. Уфа, улица Набережная р. Уфы, 39, корп. 1, кв. 87
-<b>Почтовый адрес:</b> 450150 Республика Башкортостан, г. Уфа, улица Набережная р. Уфы, 39, корп. 1, кв. 87
-<b>ИНН:</b> 027614099149
-<b>ОГРНИП:</b> 323028000061111
-
-<b>Телефон:</b> +7 961 038 79 77
-<b>Электронная почта:</b> elixirpeptide@yandex.ru""")
-
-@router2.message(Command('offer'))
-async def offer(message: Message):
-    await message.answer('https://elixirpeptide.com/privacy/offer/')
