@@ -1,11 +1,4 @@
-from sqlalchemy import (
-    BigInteger,
-    Numeric,
-    Column,
-    ForeignKey,
-    DateTime,
-    func,
-)
+from sqlalchemy import BigInteger, Column, String, Boolean, DateTime, func, event, ForeignKey
 from sqlalchemy.orm import relationship
 
 from src.webapp.database import Base
@@ -22,16 +15,26 @@ class Cart(Base):
         nullable=False,
     )
 
-    # Owner (Telegram user)
-    tg_id = Column(
+    user_id = Column(
         BigInteger,
-        ForeignKey("users.tg_id"),
+        ForeignKey("users.tg_id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
-    # Aggregates (optional: you can recompute from bags/items)
-    total = Column(Numeric(10, 2), nullable=False, default=0.00)
+    name = Column(
+        String,
+        nullable=False,
+        default="",  # will be overwritten by after_insert
+    )
+
+    is_active = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="true",
+        index=True,
+    )
 
     created_at = Column(
         DateTime(timezone=True),
@@ -47,15 +50,25 @@ class Cart(Base):
         index=True,
     )
 
-    # Relationships
     user = relationship(
         "User",
         back_populates="carts",
     )
 
-    # One cart → many bags
-    bags = relationship(
-        "Bag",
+    items = relationship(
+        "CartItem",
         back_populates="cart",
         cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+
+@event.listens_for(Cart, "after_insert")
+def set_cart_name(mapper, connection, target: Cart):
+    cart_name = f"Корзина #{target.id}"
+    connection.execute(
+        Cart.__table__
+        .update()
+        .where(Cart.id == target.id)
+        .values(name=cart_name)
     )

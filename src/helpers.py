@@ -9,6 +9,7 @@ import random
 import re
 import string
 import time
+import html
 
 from functools import wraps
 from logging import Logger
@@ -16,6 +17,7 @@ from typing import Optional, Literal
 from urllib.parse import parse_qsl
 from aiogram import Bot
 from aiogram.types import Message
+from bs4 import BeautifulSoup, Tag
 from fastapi import HTTPException
 from pydantic import BaseModel
 from transliterate import translit
@@ -386,10 +388,6 @@ def normalize_address_for_cf(address: object, service: Literal["cdek", "yandex"]
             s = s[:255]
         return s or None
 
-import html
-import re
-from bs4 import BeautifulSoup, Tag
-
 # Базовый список допустимых тегов по Telegram
 ALLOWED_TAGS = {
     "b", "strong",
@@ -586,39 +584,91 @@ class TelegramAuthPayload(BaseModel):
     initData: str
     initDataUnsafe: dict
 
-def verify_telegram_init_data(init_data: str, bot_token: str = AI_BOT_TOKEN3, max_age_seconds: int = 300) -> dict:
+
+class TelegramInitDataError(Exception):
+    """Base error for init data validation issues."""
+
+
+class TelegramInitDataSignatureError(TelegramInitDataError):
+    """Signature does not match, init data is not trusted."""
+
+
+class TelegramInitDataExpiredError(TelegramInitDataError):
+    """auth_date is too old."""
+
+
+def validate_init_data(
+        init_data: str,
+        bot_token: str = AI_BOT_TOKEN3,
+        max_age_seconds: int = 600  # e.g. 10 minutes; adjust as you like
+) -> Dict[str, Any]:
     """
-    Проверка initData от Telegram WebApp.
-    Возвращает dict с полями (user, chat_instance, auth_date, ...) если все ок.
-    Кидает HTTPException если подпись/время неверные.
+    Validate Telegram Mini App init data according to the official algorithm.
+
+    :param init_data: Raw query string from Telegram (window.Telegram.WebApp.initData).
+    :param bot_token: Your bot token (from BotFather).
+    :param max_age_seconds: Max allowed age for auth_date (0 to skip this check).
+    :return: Dict with parsed parameters (user, query_id, auth_date, etc.).
+    :raises TelegramInitDataError: On invalid or expired data.
     """
-    if not bot_token: raise RuntimeError("TELEGRAM_BOT_TOKEN is not set")
 
-    data = dict(parse_qsl(init_data, keep_blank_values=True))
-    received_hash = data.pop("hash", None)
+    # 1. Parse query string
+    # parse_qsl returns a list of (key, value) with URL-decoding applied.
+    params_list = parse_qsl(init_data, keep_blank_values=True)
 
-    if not received_hash: raise HTTPException(status_code=400, detail="Missing hash")
-    check_string = "\n".join(f"{k}={v}" for k, v in sorted(data.items()))
+    params: Dict[str, str] = {}
+    received_hash: Optional[str] = None
 
-    secret_key = hashlib.sha256(bot_token.encode("utf-8")).digest()
-    computed_hash = hmac.new(secret_key, check_string.encode("utf-8"), hashlib.sha256).hexdigest()
+    for key, value in params_list:
+        if key == "hash":
+            received_hash = value
+        else:
+            params[key] = value
 
-    if not hmac.compare_digest(computed_hash, received_hash):
-        print(1)
-        raise HTTPException(status_code=401, detail="Invalid init data hash")
+    if received_hash is None:
+        raise TelegramInitDataSignatureError("Missing 'hash' parameter in init data.")
 
-    auth_date_str = data.get("auth_date")
-    if auth_date_str:
-        try: auth_ts = int(auth_date_str)
-        except ValueError: raise HTTPException(status_code=400, detail="Invalid auth_date")
+    # 2. Build data_check_string: "key=value" sorted by key and joined with '\n'
+    data_check_string_parts = [f"{k}={v}" for k, v in sorted(params.items(), key=lambda kv: kv[0])]
+    data_check_string = "\n".join(data_check_string_parts)
+
+    # 3. Create secret key: HMAC_SHA256("WebAppData", bot_token)
+    secret_key = hmac.new(
+        key=b"WebAppData",
+        msg=bot_token.encode("utf-8"),
+        digestmod=hashlib.sha256
+    ).digest()  # IMPORTANT: keep as raw bytes
+
+    # 4. Compute check hash: HMAC_SHA256(secret_key, data_check_string)
+    check_hash = hmac.new(
+        key=secret_key,
+        msg=data_check_string.encode("utf-8"),
+        digestmod=hashlib.sha256
+    ).hexdigest()
+
+    # 5. Constant-time comparison
+    if not hmac.compare_digest(check_hash, received_hash):
+        raise TelegramInitDataSignatureError("Init data signature mismatch.")
+
+    # 6. Optional: auth_date freshness check
+    if "auth_date" in params and max_age_seconds > 0:
+        try:
+            auth_date = int(params["auth_date"])
+        except ValueError:
+            raise TelegramInitDataError("Invalid auth_date format.")
+
         now = int(time.time())
-        if now - auth_ts > max_age_seconds:
-            print(2)
-            raise HTTPException(status_code=401, detail="Init data is too old")
+        if now - auth_date > max_age_seconds:
+            raise TelegramInitDataExpiredError("Init data is too old.")
 
-    user_raw = data.get("user")
-    try: user = json.loads(user_raw) if user_raw else None
-    except json.JSONDecodeError: raise HTTPException(status_code=400, detail="Invalid user JSON")
+    # 7. Parse complex fields (e.g., user) from JSON if needed
+    result: Dict[str, Any] = dict(params)
 
-    data["user"] = user
-    return data
+    if "user" in result:
+        try:
+            result["user"] = json.loads(result["user"])
+        except json.JSONDecodeError:
+            # Leave as raw string if something’s wrong
+            pass
+
+    return result

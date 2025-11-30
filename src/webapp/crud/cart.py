@@ -1,68 +1,78 @@
 from typing import Optional, Sequence
-
-from sqlalchemy import select, update, delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.webapp.models.cart import Cart
-from src.webapp.models.bag import Bag
-from src.webapp.models.bag_item import BagItem
+from src.webapp.schemas.cart import CartCreate, CartUpdate
 
 
-# === CART CRUD ===
-
-async def get_cart_by_id(
-        db: AsyncSession,
-        cart_id: int,
-) -> Optional[Cart]:
+async def get_cart_by_id(db: AsyncSession, cart_id: int) -> Optional[Cart]:
+    """Get a single cart by its ID."""
     result = await db.execute(
         select(Cart).where(Cart.id == cart_id)
     )
     return result.scalar_one_or_none()
 
 
-async def get_user_carts(
-        db: AsyncSession,
-        tg_id: int,
-) -> Sequence[Cart]:
+async def list_carts_for_user(db: AsyncSession, user_id: int, is_active: Optional[bool] = None) -> Sequence[Cart]:
+    """
+    List carts for a user.
+    - if is_active is None  -> return all carts
+    - if is_active is True  -> only unpaid/unprocessed carts
+    - if is_active is False -> only closed/processed carts
+    """
+    query = select(Cart).where(Cart.user_id == user_id)
+
+    if is_active is not None: query = query.where(Cart.is_active.is_(is_active))
+    query = query.order_by(Cart.created_at.desc())
+    result = await db.execute(query)
+    return result.scalars().all()
+
+
+async def get_active_carts_for_user(db: AsyncSession, user_id: int) -> Sequence[Cart]:
+    """
+    Return ALL active (unpaid/unprocessed) carts for this user.
+    """
     result = await db.execute(
-        select(Cart).where(Cart.tg_id == tg_id)
+        select(Cart)
+        .where(
+            Cart.user_id == user_id,
+            Cart.is_active.is_(True),
+            )
+        .order_by(Cart.created_at.desc())
     )
     return result.scalars().all()
 
 
-async def get_or_create_cart_for_user(
-        db: AsyncSession,
-        tg_id: int,
-) -> Cart:
-    result = await db.execute(
-        select(Cart).where(Cart.tg_id == tg_id)
+async def create_cart(db: AsyncSession, data: CartCreate) -> Cart:
+    """
+    Create a new cart.
+    is_active in CartCreate decides whether it starts as unpaid/processed.
+    """
+    cart = Cart(
+        user_id=data.user_id,
+        is_active=data.is_active,
     )
-    cart = result.scalar_one_or_none()
-
-    if cart is None:
-        cart = Cart(tg_id=tg_id)
-        db.add(cart)
-        await db.flush()  # to get cart.id
-
-    return cart
-
-
-async def update_cart_total(
-        db: AsyncSession,
-        cart: Cart,
-        new_total,
-) -> Cart:
-    cart.total = new_total
     db.add(cart)
-    await db.flush()
+    await db.commit()
+    await db.refresh(cart)
     return cart
 
 
-async def delete_cart(
-        db: AsyncSession,
-        cart_id: int,
-) -> None:
-    await db.execute(
-        delete(Cart).where(Cart.id == cart_id)
-    )
-    await db.flush()
+async def update_cart(db: AsyncSession, cart: Cart, data: CartUpdate) -> Cart:
+    """
+    Update cart fields (is_active, name).
+    Use this e.g. to mark cart as processed: is_active = False.
+    """
+    if data.is_active is not None: cart.is_active = data.is_active
+    if data.name is not None: cart.name = data.name
+
+    await db.commit()
+    await db.refresh(cart)
+    return cart
+
+
+async def delete_cart(db: AsyncSession, cart: Cart) -> None:
+    """Delete cart and all its items (cascade)."""
+    await db.delete(cart)
+    await db.commit()
