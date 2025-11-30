@@ -37,6 +37,7 @@ class UserTokenUsage(Base):
     output_cost_usd = Column(Float, default=0.0)
 
     # Enforced enum at DB-level, fast to filter, indexed
+    total_requests = Column(BigInteger, default=0)
     bot = Column(SAEnum(BotEnum, name="bot_enum"), index=True, nullable=False)
 
     user = relationship("User", backref="token_usage")

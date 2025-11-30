@@ -1,23 +1,18 @@
 from datetime import date
-from typing import List, Dict, Tuple
-from typing import Literal
-from typing import Optional
+from typing import Dict, Optional, List, Tuple
 
-from sqlalchemy import func
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.webapp.models import User
-from src.webapp.models import UserTokenUsage, BotEnum
-
-BotLiteral = Literal["dose", "professor", "new"]
+from src.webapp.models import BotEnum, UserTokenUsage, User
+from src.webapp.schemas import BotLiteral
 
 
 async def get_usages(
         db: AsyncSession,
         start_date: date,
         end_date: Optional[date] = None,
-        bot: Optional[BotLiteral] = None,  # ⬅️ separate variable for bot
+        bot: Optional[BotLiteral] = None,
 ) -> Tuple[str, List[Dict[str, float]]]:
     end_date = end_date or date.today()
     if end_date < start_date:
@@ -26,7 +21,7 @@ async def get_usages(
     where_clauses = [
         UserTokenUsage.date >= start_date,
         UserTokenUsage.date <= end_date,
-    ]
+        ]
     if bot:
         where_clauses.append(UserTokenUsage.bot == bot)
 
@@ -34,7 +29,7 @@ async def get_usages(
         select(
             UserTokenUsage.user_id,
             User.tg_phone,
-            func.count(UserTokenUsage.id).label("total_requests"),
+            func.coalesce(func.sum(UserTokenUsage.total_requests), 0).label("total_requests"),  # ⬅️ changed
             func.coalesce(func.sum(UserTokenUsage.input_tokens), 0).label("input_tokens"),
             func.coalesce(func.sum(UserTokenUsage.output_tokens), 0).label("output_tokens"),
             func.coalesce(func.sum(UserTokenUsage.input_cost_usd), 0).label("input_cost_usd"),
@@ -70,7 +65,7 @@ async def get_usages(
         output_cost = (output_tokens / 1_000_000) * output_per_m
         total_cost = input_cost + output_cost
 
-        total_requests = int(row.total_requests)
+        total_requests = int(row.total_requests)  # ⬅️ now sum from DB
         avg_cost = round(total_cost / total_requests, 4) if total_requests else 0.0
 
         usage_list.append({
@@ -88,20 +83,17 @@ async def get_usages(
 
     return period_label, usage_list
 
-
-BotLiteral = Literal["dose", "professor", "new"]
-
-
 async def write_usage(
         db: AsyncSession,
         user_id: int,
         input_tokens: int,
         output_tokens: int,
-        bot: BotLiteral,  # ⬅️ separate param
+        bot: BotLiteral,
         usage_date: Optional[date] = None,
 ):
     """
     Create or increment token usage for (user_id, date, bot).
+    Every call is treated as 1 request.
     """
     usage_date = usage_date or date.today()
 
@@ -109,8 +101,8 @@ async def write_usage(
         select(UserTokenUsage).where(
             UserTokenUsage.user_id == user_id,
             UserTokenUsage.date == usage_date,
-            UserTokenUsage.bot == BotEnum(bot),  # Enum cast
-        )
+            UserTokenUsage.bot == BotEnum(bot),
+            )
     )
     usage = result.scalar_one_or_none()
 
@@ -118,6 +110,7 @@ async def write_usage(
         # triggers @validates to recompute costs
         usage.input_tokens += input_tokens
         usage.output_tokens += output_tokens
+        usage.total_requests = (usage.total_requests or 0) + 1   # ⬅️ increment
     else:
         usage = UserTokenUsage(
             user_id=user_id,
@@ -125,6 +118,7 @@ async def write_usage(
             bot=BotEnum(bot),
             input_tokens=input_tokens,
             output_tokens=output_tokens,
+            total_requests=1,  # ⬅️ first request for this day/bot
         )
         db.add(usage)
 
