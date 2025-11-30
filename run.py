@@ -3,6 +3,7 @@ import asyncio
 import signal
 
 from config import TELETHON_PHONE, TELETHON_PASSWORD
+from src.ai.bot.main import run_new_bot
 from src.onec import OneCEnterprise
 from src.webapp.main import run_app
 from src.delivery.sdek import client as cdek_client
@@ -21,6 +22,7 @@ logger = logging.getLogger("main")
 async def main():
     tasks = [
         asyncio.create_task(run_app(), name="WebApp"),
+        asyncio.create_task(run_new_bot(), name="NewBot"),
         asyncio.create_task(cdek_client.token_worker(), name="CdekTokenWorker"),
         asyncio.create_task(OneCEnterprise().postgres_worker(), name="PostgresWorker"),
     ]
