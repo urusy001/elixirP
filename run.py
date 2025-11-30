@@ -22,7 +22,6 @@ logger = logging.getLogger("main")
 async def main():
     tasks = [
         asyncio.create_task(run_app(), name="WebApp"),
-        asyncio.create_task(run_new_bot(), name="NewBot"),
         asyncio.create_task(cdek_client.token_worker(), name="CdekTokenWorker"),
         asyncio.create_task(OneCEnterprise().postgres_worker(), name="PostgresWorker"),
     ]

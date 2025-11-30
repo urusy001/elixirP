@@ -1,4 +1,3 @@
-import {hideCartIcon} from "../ui/cart-icon.js";
 import {showLoader} from "../ui/loader.js";
 import {
     cartPageEl,
@@ -13,7 +12,6 @@ import {
 
 export async function renderProcessPaymentPage() {
     showLoader();
-    hideCartIcon();
     toolbarEl.style.display = "none";
     listEl.style.display = "none";
     detailEl.style.display = "none";

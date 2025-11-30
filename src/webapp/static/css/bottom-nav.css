@@ -1,0 +1,81 @@
+.bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    height: 64px;
+    padding: 8px 0;
+
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 4px;
+
+    background: #ffffff;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    z-index: 1000;
+}
+
+/* чтобы контент не залезал под навбар */
+.app-root,
+.app-container {
+    padding-bottom: 72px; /* подгони под реальную высоту */
+}
+
+/* Кнопка */
+.bottom-nav__item {
+    flex: 1 1 0;
+    min-width: 0;
+
+    border: none;
+    background: none;
+    padding: 4px 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+
+    font: inherit;
+    color: #9b9b9b;
+    cursor: pointer;
+}
+
+/* Активный таб */
+.bottom-nav__item--active {
+    color: #2f80ed; /* синий как на скрине, подстрой под свои токены */
+}
+
+/* Подпись */
+.bottom-nav__label {
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+/* Иконки (простые «болванки», можно заменить на SVG) */
+.bottom-nav__icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: #bfbfbf;
+}
+
+/* Домик активный будет синим, остальные серые */
+.bottom-nav__item--active .bottom-nav__icon {
+    background: #2f80ed;
+}
+
+/* Кружок-профиль */
+.bottom-nav__avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 0, #ffb3ff, #c56cff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+}

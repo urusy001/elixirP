@@ -1,5 +1,4 @@
 import {showLoader, hideLoader} from "../ui/loader.js";
-import {hideCartIcon} from "../ui/cart-icon.js";
 import {navigateTo} from "../router.js";
 import {state} from "../state.js";
 import {
@@ -31,7 +30,6 @@ export async function renderContactPage() {
         return;
     }
 
-    hideCartIcon();
     cartPageEl.style.display = "none";
     detailEl.style.display = "none";
     listEl.style.display = "none";

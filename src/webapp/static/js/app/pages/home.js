@@ -3,7 +3,6 @@ import {withLoader} from "../ui/loader.js";
 import {navigateTo} from "../router.js";
 import {state, saveCart} from "../state.js";
 import {hideBackButton, hideMainButton, showMainButton} from "../ui/telegram.js";
-import {showCartIcon} from "../ui/cart-icon.js";
 import {
     cartPageEl,
     checkoutPageEl,
@@ -163,7 +162,6 @@ async function getUser() {
 async function openHomePage() {
     hideMainButton();
     hideBackButton();
-    showCartIcon();
     headerTitle.textContent = "Магазин ElixirPeptide";
     tosOverlayEl.style.display = "none";
     listEl.style.display = "grid";

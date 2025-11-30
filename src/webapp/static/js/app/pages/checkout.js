@@ -1,12 +1,11 @@
 // ============================================================================
 // checkout.js — Unified Delivery Checkout (CDEK + Yandex auto-locating PVZ widget)
 // ============================================================================
-import { showLoader, hideLoader } from "../ui/loader.js";
-import { hideCartIcon } from "../ui/cart-icon.js";
+import {showLoader, hideLoader} from "../ui/loader.js";
 import {isTelegramApp, showBackButton, showMainButton} from "../ui/telegram.js";
-import { navigateTo } from "../router.js";
-import { fetchPVZByCode, getSelectedPVZCode } from "../../services/pvzService.js";
-import { YandexPvzWidget } from "./yandex-pvz-widget.js";
+import {navigateTo} from "../router.js";
+import {fetchPVZByCode, getSelectedPVZCode} from "../../services/pvzService.js";
+import {YandexPvzWidget} from "./yandex-pvz-widget.js";
 import {
     cartPageEl,
     checkoutPageEl,
@@ -72,6 +71,7 @@ function ensureListContainer(id, afterEl) {
 // Yandex Maps API Loader
 // ---------------------------------------------------------------------------
 let _ymapsReady;
+
 async function ensureYmapsReady() {
     if (window.ymaps?.Map) {
         await new Promise((res) => ymaps.ready(res));
@@ -83,8 +83,8 @@ async function ensureYmapsReady() {
             const onLoad = () => ymaps.ready(resolve);
             const onError = () => reject(new Error("Failed to load Yandex Maps"));
             if (existing) {
-                existing.addEventListener("load", onLoad, { once: true });
-                existing.addEventListener("error", onError, { once: true });
+                existing.addEventListener("load", onLoad, {once: true});
+                existing.addEventListener("error", onError, {once: true});
             } else {
                 const s = document.createElement("script");
                 s.id = "ymaps-api";
@@ -230,9 +230,9 @@ async function initCDEKWidget(coords = [55.75, 37.61]) {
             },
             defaultLocation: coords,
             canChoose: true,
-            hideFilters: { have_cashless: false, have_cash: false, is_dressing_room: false },
-            hideDeliveryOptions: { office: false, door: false },
-            goods: [{ width: 10, height: 10, length: 10, weight: 10 }],
+            hideFilters: {have_cashless: false, have_cash: false, is_dressing_room: false},
+            hideDeliveryOptions: {office: false, door: false},
+            goods: [{width: 10, height: 10, length: 10, weight: 10}],
             onReady: () => {
                 container.style.display = "block";
                 hideLoader();
@@ -240,7 +240,7 @@ async function initCDEKWidget(coords = [55.75, 37.61]) {
             onChoose: (mode, tariff, address) => {
                 sessionStorage.setItem(
                     "selected_delivery",
-                    JSON.stringify({ deliveryMode: mode, tariff, address }),
+                    JSON.stringify({deliveryMode: mode, tariff, address}),
                 );
                 if (address?.code) fetchPVZByCode(address.code);
                 createProceedButton("Продолжить оформление");
@@ -282,7 +282,8 @@ async function initYandexWidget() {
             radiusMeters: 12000,
             autoLocate: true,
             autoSearch: true,
-            onReady: () => {},
+            onReady: () => {
+            },
             onChoose: (_pvz, payload) => {
                 sessionStorage.setItem(
                     "selected_delivery",
@@ -314,13 +315,19 @@ async function initYandexWidget() {
             if (ydwInstance._doorPlacemark) {
                 ydwInstance._doorPlacemark.balloon?.open?.();
             } else if (ydwInstance._selectedId) {
-                try { ydwInstance.manager?.objects.balloon.close(); } catch {}
+                try {
+                    ydwInstance.manager?.objects.balloon.close();
+                } catch {
+                }
                 ydwInstance.manager?.objects.balloon.open(ydwInstance._selectedId);
             }
         } catch (e) {
             console.warn("Yandex widget reopen failed, falling back to init:", e);
             // fallback: if something went wrong (e.g., map was destroyed), re-init once
-            try { await ydwInstance.init(); } catch {}
+            try {
+                await ydwInstance.init();
+            } catch {
+            }
         }
     }
 
@@ -363,8 +370,6 @@ export async function renderCheckoutPage() {
     headerTitle.textContent = "Доставка";
     paymentPageEl.style.display = "none";
     processPaymentEl.style.display = "none";
-
-    hideCartIcon();
 
     checkoutPageEl.style.display = "block";
     await new Promise((r) => requestAnimationFrame(r));

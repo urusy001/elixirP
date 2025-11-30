@@ -1,4 +1,3 @@
-import {hideCartIcon} from "../ui/cart-icon.js";
 import {showLoader, hideLoader} from "../ui/loader.js";
 import {isTelegramApp, showBackButton, showMainButton} from "../ui/telegram.js";
 import {navigateTo} from "../router.js";
@@ -19,7 +18,6 @@ export async function renderPaymentPage() {
     showLoader();
     setupPaymentPage();
 
-    hideCartIcon();
     toolbarEl.style.display = "none";
     listEl.style.display = "none";
     detailEl.style.display = "none";

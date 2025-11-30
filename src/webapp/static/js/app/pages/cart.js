@@ -9,7 +9,6 @@ import {
     showMainButton,
     updateMainButton,
 } from "../ui/telegram.js";
-import {hideCartIcon} from "../ui/cart-icon.js";
 import {
     cartPageEl,
     checkoutPageEl,
@@ -174,7 +173,6 @@ export async function handleCheckout() {
 }
 
 export async function renderCartPage() {
-    hideCartIcon();
     toolbarEl.style.display = "none";
     listEl.style.display = "none";
     detailEl.style.display = "none";

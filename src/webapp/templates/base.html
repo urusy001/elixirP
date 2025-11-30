@@ -18,10 +18,32 @@
     <link rel="stylesheet" href="{{ request.url_for('static', path='css/checkout.css') }}">
     <link rel="stylesheet" href="{{ request.url_for('static', path='css/payment.css') }}">
     <link rel="stylesheet" href="{{ request.url_for('static', path='css/tos-overlay.css') }}">
+    <link rel="stylesheet" href="{{ request.url_for('static', path='css/bottom-nav.css') }}">
     <link rel="stylesheet" href="{{ request.url_for('static', path='css/overrides.css') }}">
     {% block extra_css %}{% endblock %}
 
 </head>
+<nav class="bottom-nav">
+    <button class="bottom-nav__item bottom-nav__item--active" data-route="home">
+        <span class="bottom-nav__icon bottom-nav__icon--home"></span>
+        <span class="bottom-nav__label">Главная</span>
+    </button>
+
+    <button class="bottom-nav__item" data-route="favorites">
+        <span class="bottom-nav__icon bottom-nav__icon--favorites"></span>
+        <span class="bottom-nav__label">Избранное</span>
+    </button>
+
+    <button class="bottom-nav__item" data-route="cart">
+        <span class="bottom-nav__icon bottom-nav__icon--cart"></span>
+        <span class="bottom-nav__label">Корзина</span>
+    </button>
+
+    <button class="bottom-nav__item" data-route="profile">
+        <span class="bottom-nav__avatar">ИШ</span>
+        <span class="bottom-nav__label">Профиль</span>
+    </button>
+</nav>
 <body>
 <!-- Header -->
 <header>
