@@ -16,7 +16,7 @@ model = AutoModel.from_pretrained(HF_SAVE_DIR).to(device)
 model.eval()
 artifact = joblib.load(CLF_PATH)
 clf = artifact["classifier"]
-threshold = artifact.get("threshold", 0.35)
+threshold = .52
 
 @torch.no_grad()
 def embed_one(text: str) -> np.ndarray:
