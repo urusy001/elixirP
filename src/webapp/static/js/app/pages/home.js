@@ -7,7 +7,7 @@ import {
     cartPageEl,
     checkoutPageEl,
     contactPageEl, detailEl,
-    headerTitle, listEl,
+    headerTitle, listEl, navBottomEl,
     paymentPageEl,
     processPaymentEl,
     searchBtnEl,
@@ -156,12 +156,28 @@ async function getUser() {
     const initData = tg.initData || "";
     const payload = {initData}
     const result = await apiPost('/auth', payload);
+    state.user = result.user;
     return result.user;
+}
+
+function setupBottomNav() {
+    const items = document.querySelectorAll(".bottom-nav__item");
+    items.forEach(item => {
+        item.addEventListener("click", () => {
+            const route = item.dataset.route; // "cart", "home", etc.
+
+            items.forEach(i => i.classList.remove("bottom-nav__item--active"));
+            item.classList.add("bottom-nav__item--active");
+            navigateTo(route);
+        });
+    });
 }
 
 async function openHomePage() {
     hideMainButton();
     hideBackButton();
+    setupBottomNav();
+    navBottomEl.style.display = "flex";
     headerTitle.textContent = "Магазин ElixirPeptide";
     tosOverlayEl.style.display = "none";
     listEl.style.display = "grid";
@@ -201,11 +217,14 @@ function openTosOverlay(user) {
 }
 
 export async function renderHomePage() {
-    const user = await getUser();
+    const user = state.user || await getUser();
     if (!user) {
         console.warn("[Home] invalid user (auth failed)");
-    } else if (user && !user.accepted_terms) {
-        openTosOverlay(user)
-    } else openHomePage()
-
+    } else {
+        document.getElementById("bottom-nav-avatar").src = user.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
+        state.user = user;
+        if (!user.accepted_terms) {
+            openTosOverlay(user)
+        } else openHomePage()
+    }
 }

@@ -9,3 +9,4 @@ export const searchBtnEl = document.getElementById("search-btn");
 export const paymentPageEl = document.getElementById("payment-page");
 export const processPaymentEl = document.getElementById("process-payment-page");
 export const tosOverlayEl = document.getElementById("tos-overlay");
+export const navBottomEl = document.getElementById("nav-bottom");

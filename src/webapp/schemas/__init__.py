@@ -9,6 +9,7 @@ from .usertokenusage import *
 from .chatuser import *
 from .cart import *
 from .cart_item import *
+from .favourite import *
 
 __all__ = [
     'CategoryUpdate', 'CategoryBase', 'CategoryRead', 'CategoryCreate',
@@ -21,4 +22,5 @@ __all__ = [
     'ParticipantBase', 'ParticipantRead', 'ParticipantCreate', 'ParticipantUpdate',
     'ChatUserCreate', 'ChatUserBase', 'ChatUserOut', 'ChatUserUpdate',
     'CartCreate', 'CartUpdate', 'CartItemCreate', 'CartItemUpdate',
+    'FavouriteOut', 'FavouriteCreate', 'FavouriteDelete', 'FavouriteBase'
 ]

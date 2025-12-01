@@ -1,15 +1,19 @@
-from fastapi import APIRouter, HTTPException
+import json
+
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.helpers import TelegramAuthPayload, validate_init_data
 from src.webapp import get_session
-from src.webapp.crud import upsert_user, get_user_carts
+from src.webapp.crud import upsert_user, get_user_carts, get_user_favourites
+from src.webapp.database import get_db
 from src.webapp.schemas import UserCreate
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/")
-async def auth(payload: TelegramAuthPayload):
+async def auth(payload: TelegramAuthPayload, db: AsyncSession = Depends(get_db)):
     """
     Принимает init_data из Telegram WebApp, проверяет подпись,
     возвращает инфу о пользователе.
@@ -24,11 +28,14 @@ async def auth(payload: TelegramAuthPayload):
         surname=user["last_name"],
         photo_url=user["photo_url"],
     )
+    user = await upsert_user(db, user_upsert)
+    carts = await get_user_carts(db, user.tg_id)
+    favourites = await get_user_favourites(db, user.tg_id)
 
-    async with get_session() as session:
-        user = await upsert_user(session, user_upsert)
-        carts = await get_user_carts(session, user.tg_id)
+    user_dict = user.to_dict()
 
-    result = {"user": user.to_dict()}
-    result["user"].update({"accepted_terms": bool(carts)})
-    return result
+    user_dict["accepted_terms"] = bool(carts)
+    user_dict["favourites"] = [fav.onec_id for fav in favourites]
+    print(json.dumps(user_dict, indent=4, ensure_ascii=False))
+
+    return {"user": user_dict}

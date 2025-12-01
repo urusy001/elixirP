@@ -14,15 +14,18 @@ import {
     cartPageEl,
     checkoutPageEl,
     contactPageEl, detailEl,
-    headerTitle, listEl,
+    headerTitle, listEl, navBottomEl,
     paymentPageEl,
     processPaymentEl,
     searchBtnEl,
     toolbarEl
 } from "./constants.js";
+import {setSearchButtonToFavorite} from "./search.js";
+import {apiDelete, apiGet, apiPost} from "../../services/api.js";
 
 
 export async function renderProductDetailPage(onec_id) {
+    navBottomEl.style.display = "none";
     toolbarEl.style.display = "none";
     listEl.style.display = "none";
     contactPageEl.style.display = "none";
@@ -33,7 +36,18 @@ export async function renderProductDetailPage(onec_id) {
     searchBtnEl.style.display = "flex";
     detailEl.style.display = "block";
     processPaymentEl.style.display = "none";
-    fetch()
+    const isFav = !(onec_id in state.user.favourites);
+    const payload = {
+        user_id: state.user.tg_id,
+        onec_id,
+    }
+    let onClick = null
+    if (isFav) {
+        onClick = () => apiPost('/favourites', payload);
+    } else {
+        onClick = () => apiDelete('/favourites', payload);
+    }
+    setSearchButtonToFavorite(onClick);
     const data = await withLoader(() => getProductDetail(onec_id));
     if (data?.error) {
         detailEl.innerHTML = `

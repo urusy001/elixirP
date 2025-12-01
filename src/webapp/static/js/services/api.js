@@ -33,19 +33,44 @@ async function handle(res) {
     return text ? JSON.parse(text) : null;
 }
 
-export async function apiGet(path) {
+// optional generic helper if you want
+async function apiRequest(method, path, data) {
     const url = buildUrl(path);
-    return handle(await fetch(url, { credentials: "same-origin" }));
+
+    const options = {
+        method,
+        credentials: "same-origin",
+        headers: {}
+    };
+
+    if (data !== undefined) {
+        options.headers["Content-Type"] = "application/json";
+        options.body = JSON.stringify(data);
+    }
+
+    return handle(await fetch(url, options));
+}
+
+export async function apiGet(path) {
+    return apiRequest("GET", path);
 }
 
 export async function apiPost(path, data) {
-    const url = buildUrl(path);
-    return handle(await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify(data),
-    }));
+    return apiRequest("POST", path, data);
+}
+
+export async function apiPut(path, data) {
+    return apiRequest("PUT", path, data);
+}
+
+export async function apiPatch(path, data) {
+    return apiRequest("PATCH", path, data);
+}
+
+export async function apiDelete(path, data) {
+    // some backends ignore body on DELETE; if yours doesn’t need it,
+    // you can call apiRequest("DELETE", path) without data
+    return apiRequest("DELETE", path, data);
 }
 
 export { API_BASE };

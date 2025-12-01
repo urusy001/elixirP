@@ -33,6 +33,12 @@ class Product(Base):
         passive_deletes=True,   # 👈 доверяем БД делать CASCADE
     )
 
+    favourited_by = relationship(
+        "Favourite",
+        back_populates="product",
+        cascade="all, delete-orphan",
+    )
+
     def __str__(self) -> str:
         expiration_text = f"<b>ИНСТРУКЦИИ К ХРАНЕНИЮ</b>\n{self.expiration or 'Не имеются или <i>указаны выше</i>'}"
         usage_text = f"<b>ИНСТРУКЦИИ К ПРИМЕНЕНИЮ</b>\n{self.usage or 'Не имеются или <i>указаны выше</i>'}"

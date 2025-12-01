@@ -18,45 +18,29 @@ async def cdek_proxy(request: Request):
 
     params = request.query_params
     raw_body = await request.body()
-    try:
-        body = json.loads(raw_body.decode("utf-8"))
-    except json.JSONDecodeError:
-        body = {}
+    try: body = json.loads(raw_body.decode("utf-8"))
+    except json.JSONDecodeError: body = {}
     method = request.method
 
     action = params.get("action") or body.get("action")
-    if action == "offices":
-        endpoint = f"{CDEK_API_URL}/deliverypoints"
+    if action == "offices": endpoint = f"{CDEK_API_URL}/deliverypoints"
     elif action == "calculate":
         if isinstance(body, dict):
             to_location = body.get("to_location", None)
-            if to_location and isinstance(to_location, dict):
-                endpoint = f"{CDEK_API_URL}/calculator/tarifflist"
-            else:
-                return Response(status_code=400, content='{"error": "Invalid to_location"}')
-        else:
-            return Response(status_code=400, content='{"error": "Invalid body"}')
-    else:
-        return Response(status_code=400, content='{"error": "Unknown action"}')
+            if to_location and isinstance(to_location, dict): ndpoint = f"{CDEK_API_URL}/calculator/tarifflist"
+            else: return Response(status_code=400, content='{"error": "Invalid to_location"}')
+        else: return Response(status_code=400, content='{"error": "Invalid body"}')
+    else: return Response(status_code=400, content='{"error": "Unknown action"}')
 
     async with httpx.AsyncClient() as client:
-        if method == "GET":
-            resp = await client.get(endpoint, params=params, headers=headers)
-        else:
-            resp = await client.post(
-                endpoint,
-                content=raw_body,
-                headers={**headers, "Content-Type": "application/json"},
-            )
+        if method == "GET": resp = await client.get(endpoint, params=params, headers=headers)
+        else: resp = await client.post(endpoint, content=raw_body, headers={**headers, "Content-Type": "application/json"})
 
-    with open(f'{action}.json', 'w', encoding="utf-8") as f:
-        json.dump(json.loads(resp.text), f, ensure_ascii=False, indent=4)
+    with open(f'{action}.json', 'w', encoding="utf-8") as f: json.dump(json.loads(resp.text), f, ensure_ascii=False, indent=4)
 
     if action == "calculate" and resp.status_code == 200:
         try:
             data = resp.json()
-
-            # "tariff_codes" contains list of tariff options
             tariffs = data.get("tariff_codes", [])
             filtered = [
                 t for t in tariffs
@@ -65,7 +49,6 @@ async def cdek_proxy(request: Request):
             ]
 
             data["tariff_codes"] = filtered
-            print(f"🟢 Filtered {len(filtered)} tariffs (дверь → ...)")
 
             return Response(
                 content=json.dumps(data, ensure_ascii=False),
@@ -75,7 +58,6 @@ async def cdek_proxy(request: Request):
         except Exception as e:
             print("⚠️ Error filtering tariffs:", e)
 
-    # --- fallback: return raw response ---
     return Response(
         content=resp.content,
         status_code=resp.status_code,
@@ -86,7 +68,6 @@ async def cdek_proxy(request: Request):
 def _http_err(detail: str, status: int = 502) -> HTTPException:
     return HTTPException(status_code=status, detail=detail)
 
-# ---------- CDEK proxy (unchanged except small safety tweaks) ----------
 
 @cdek_router.api_route(path="", methods=["GET", "POST"])
 async def cdek_proxy(request: Request):

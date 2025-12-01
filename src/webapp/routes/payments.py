@@ -12,7 +12,6 @@ from config import (
 )
 from src.delivery.sdek import client as cdek_client
 from src.helpers import format_order_for_amocrm
-from src.webapp import get_session
 from src.webapp.crud import upsert_user
 from src.webapp.database import get_db
 from src.webapp.models.checkout import CheckoutData
@@ -40,7 +39,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     payload_dict = payload.model_dump()
 
     user_upsert = UserCreate(**contact_info.model_dump(), tg_id=user_id)
-    async with get_session() as session: user = await upsert_user(session, user_upsert)
+    user = await upsert_user(db, user_upsert)
 
     log.info("Create payment payload: %s", ())
     order_number = str(datetime.now().timestamp())

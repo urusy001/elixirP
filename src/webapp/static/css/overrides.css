@@ -40,3 +40,28 @@
     /* Makes the width scale automatically */
     width: 1.2em;
 }
+
+.bottom-nav .bottom-nav__avatar-img {
+    width: 28px !important;          /* подгони под высоту таббара */
+    height: 28px !important;
+    border-radius: 50% !important;   /* делаем круг */
+    object-fit: cover !important;    /* если будет png/jpg — обрежется по кругу */
+    display: block !important;
+    flex-shrink: 0;
+}
+
+/* На всякий случай перебьём глобальные правила для img */
+.bottom-nav .bottom-nav__avatar-img {
+    max-width: none;
+}
+
+.bottom-nav__svg {
+    width: 24px !important;
+    height: 24px !important;
+    display: block;
+}
+
+.bottom-nav__item[data-route="cart"] .bottom-nav__svg {
+    transform: scale(1.2);
+    transform-origin: center;
+}
