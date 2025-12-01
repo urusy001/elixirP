@@ -70,29 +70,53 @@ function updateQuantity(key, delta) {
     updateTotal();
 }
 
-// 🔽 UPDATED FUNCTION
+// === LOTTIE EMPTY STATE HERE ===
 async function renderCart() {
     const keys = Object.keys(state.cart);
     cartItemsEl.innerHTML = "";
     cartRows = {};
 
     if (!keys.length) {
-        // пустая корзина
         cartItemsEl.innerHTML = `
-            <div class="cart-empty" style="text-align:center; padding:24px 12px;">
+            <div style="grid-column:1 / -1; text-align:center; padding:24px 12px;">
                 <h2 style="margin-bottom:8px; font-size:18px;">Ваша корзина пуста</h2>
                 <p style="margin:0; font-size:14px; color:#6b7280;">
                     Добавьте товары в корзину, чтобы оформить заказ.
                 </p>
-                <img
-                    src="/static/stickers/rabby-shop.json"
-                    alt="Пустая корзина"
-                    style="margin-top:16px; max-width:220px; width:100%; display:block; margin-left:auto; margin-right:auto; border-radius:12px;"
-                />
+                <div
+                    id="cart-empty-lottie"
+                    style="
+                        margin-top:16px;
+                        max-width:220px;
+                        width:100%;
+                        height:220px;
+                        display:block;
+                        margin-left:auto;
+                        margin-right:auto;
+                        border-radius:12px;
+                        overflow:hidden;
+                    "
+                ></div>
             </div>
         `;
 
-        // убираем блок "Итого"
+        // Инициализируем Lottie-анимацию rabby-shop.json
+        const animContainer = document.getElementById("cart-empty-lottie");
+        if (animContainer && window.lottie && typeof window.lottie.loadAnimation === "function") {
+            window.lottie.loadAnimation({
+                container: animContainer,
+                renderer: "svg",
+                loop: true,
+                autoplay: true,
+                // поправь путь, если статику раздаёшь по-другому
+                path: "/static/stickers/rabby-shop.json",
+                rendererSettings: {
+                    preserveAspectRatio: "xMidYMid meet",
+                },
+            });
+        }
+
+        // убираем "Итого" целиком
         cartTotalEl.innerHTML = "";
 
         // прячем веб-кнопку оформления, если она есть
@@ -101,16 +125,13 @@ async function renderCart() {
             checkoutBtn.style.display = "none";
         }
 
-        // в Телеграме показываем кнопку "К товарам"
+        // в Telegram показываем "К товарам"
         if (isTelegramApp()) {
             showMainButton("К товарам", () => navigateTo("/"));
         }
 
         return;
     }
-
-    // есть товары — убедимся, что блок суммы видимый (если ты его где-то скрываешь стилями)
-    // cartTotalEl.style.display = "";
 
     const products = await Promise.all(
         keys.map(async key => {
