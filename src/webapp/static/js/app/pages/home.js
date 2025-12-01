@@ -329,6 +329,7 @@ function openTosOverlay(user) {
 }
 
 export async function renderHomePage() {
+    showLoader();
     const user = state.user || await getUser();
     if (!user) {
         console.warn("[Home] invalid user (auth failed)");
@@ -339,8 +340,9 @@ export async function renderHomePage() {
         state.user = user;
         if (!user.accepted_terms) {
             openTosOverlay(user);
-        } else await withLoader(openHomePage);
+        } else await openHomePage();
     }
+    hideLoader();
 }
 
 /**
