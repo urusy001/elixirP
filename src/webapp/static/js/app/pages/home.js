@@ -358,6 +358,6 @@ export async function renderFavouritesPage() {
         state.user = user;
         if (!user.accepted_terms) {
             openTosOverlay(user);
-        } else openFavouritesPage();
+        } else await withLoader(openFavouritesPage);
     }
 }
