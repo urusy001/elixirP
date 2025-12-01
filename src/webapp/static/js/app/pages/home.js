@@ -215,7 +215,7 @@ async function openFavouritesPage() {
     headerTitle.textContent = "Избранное";
     tosOverlayEl.style.display = "none";
     listEl.style.display = "grid";
-    toolbarEl.style.display = "flex";
+    toolbarEl.style.display = "none";
     searchBtnEl.style.display = "flex";
     detailEl.style.display = "none";
     cartPageEl.style.display = "none";
