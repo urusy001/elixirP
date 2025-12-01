@@ -1,4 +1,4 @@
-import {renderHomePage} from "./pages/home.js";
+import {renderFavouritesPage, renderHomePage} from "./pages/home.js";
 import {renderProductDetailPage} from "./pages/product-detail.js";
 import {renderCartPage} from "./pages/cart.js";
 import {renderCheckoutPage} from "./pages/checkout.js";
@@ -14,6 +14,7 @@ const routes = [
     {match: p => p === "/contact", action: renderContactPage},
     {match: p => p === "/payment", action: renderPaymentPage},
     {match: p => p === "/process-payment", action: renderProcessPaymentPage},
+    {match: p => p === "/favourites", action: renderFavouritesPage},
 ];
 
 function getCurrentPath() {

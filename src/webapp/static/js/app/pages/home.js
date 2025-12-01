@@ -17,6 +17,8 @@ import {apiPost} from "../../services/api.js";
 
 let page = 0;
 let loading = false;
+// "home" | "favourites" (влияет на бесконечный скролл)
+let mode = "home";
 
 function productCardHTML(p) {
     const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
@@ -138,7 +140,10 @@ async function loadMore(container, append = false, useLoader = true) {
 
 function setupInfiniteScroll(container) {
     function onScroll() {
+        // бесконечная прокрутка только в режиме "home"
+        if (mode !== "home") return;
         if (container.style.display === "none") return;
+
         const st = document.documentElement.scrollTop || document.body.scrollTop;
         const sh = document.documentElement.scrollHeight || document.body.scrollHeight;
         const ch = document.documentElement.clientHeight;
@@ -154,7 +159,7 @@ async function getUser() {
 
     // "сырые" данные, приходящие от Telegram
     const initData = tg.initData || "";
-    const payload = {initData}
+    const payload = {initData};
     const result = await apiPost('/auth', payload);
     state.user = result.user;
     return result.user;
@@ -174,6 +179,7 @@ function setupBottomNav() {
 }
 
 async function openHomePage() {
+    mode = "home";
     hideMainButton();
     hideBackButton();
     setupBottomNav();
@@ -195,6 +201,83 @@ async function openHomePage() {
     setupInfiniteScroll(listEl);
 }
 
+/**
+ * Открыть страницу избранного.
+ * Показывает те же карточки, но только для товаров,
+ * onec_id которых лежат в state.user.favourites.
+ */
+async function openFavouritesPage() {
+    mode = "favourites";
+    hideMainButton();
+    hideBackButton();
+    setupBottomNav();
+    navBottomEl.style.display = "flex";
+    headerTitle.textContent = "Избранное";
+    tosOverlayEl.style.display = "none";
+    listEl.style.display = "grid";
+    toolbarEl.style.display = "flex";
+    searchBtnEl.style.display = "flex";
+    detailEl.style.display = "none";
+    cartPageEl.style.display = "none";
+    checkoutPageEl.style.display = "none";
+    contactPageEl.style.display = "none";
+    paymentPageEl.style.display = "none";
+    processPaymentEl.style.display = "none";
+
+    const favIds = state?.user?.favourites || [];
+    if (!favIds.length) {
+        listEl.innerHTML = `
+            <div style="grid-column:1 / -1; text-align:center; padding:24px 12px;">
+                <h2 style="margin-bottom:8px; font-size:18px;">У вас пока нет избранных товаров</h2>
+                <p style="margin:0; font-size:14px; color:#6b7280;">
+                    Нажимайте на сердечко на странице товара, чтобы добавить его в избранное.
+                </p>
+            </div>
+        `;
+        return;
+    }
+
+    const favSet = new Set(favIds.map(String));
+
+    const fetchFn = async () => {
+        // Берём побольше товаров и фильтруем по избранным.
+        const data = await searchProducts({q: "", page: 0, limit: 500});
+        const all = Array.isArray(data?.results) ? data.results : [];
+        return all.filter((p) => {
+            const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
+            return favSet.has(String(onecId));
+        });
+    };
+
+    try {
+        const results = await withLoader(fetchFn);
+        if (!results.length) {
+            listEl.innerHTML = `
+                <div style="grid-column:1 / -1; text-align:center; padding:24px 12px;">
+                    <h2 style="margin-bottom:8px; font-size:18px;">Не удалось загрузить избранные</h2>
+                    <p style="margin:0; font-size:14px; color:#6b7280;">
+                        Попробуйте позже.
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        listEl.innerHTML = results.map(productCardHTML).join("");
+        attachProductInteractions(listEl);
+    } catch (err) {
+        console.error("[Favourites] load failed:", err);
+        listEl.innerHTML = `
+            <div style="grid-column:1 / -1; text-align:center; padding:24px 12px;">
+                <h2 style="margin-bottom:8px; font-size:18px;">Ошибка загрузки избранных</h2>
+                <p style="margin:0; font-size:14px; color:#6b7280;">
+                    Пожалуйста, попробуйте позже.
+                </p>
+            </div>
+        `;
+    }
+}
+
 function openTosOverlay(user) {
     if (!tosOverlayEl) return;
 
@@ -206,7 +289,7 @@ function openTosOverlay(user) {
         const payload = {
             is_active: true,
             user_id: user.tg_id,
-        }
+        };
         await apiPost('/cart/create', payload);
         await openHomePage();
         // прячем оверлей и возвращаем скролл
@@ -221,10 +304,31 @@ export async function renderHomePage() {
     if (!user) {
         console.warn("[Home] invalid user (auth failed)");
     } else {
-        document.getElementById("bottom-nav-avatar").src = user.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
+        document.getElementById("bottom-nav-avatar").src =
+            user.photo_url ||
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
         state.user = user;
         if (!user.accepted_terms) {
-            openTosOverlay(user)
-        } else openHomePage()
+            openTosOverlay(user);
+        } else openHomePage();
+    }
+}
+
+/**
+ * Рендер страницы избранного (аналог renderHomePage,
+ * но вместо openHomePage вызывает openFavouritesPage).
+ */
+export async function renderFavouritesPage() {
+    const user = state.user || await getUser();
+    if (!user) {
+        console.warn("[Favourites] invalid user (auth failed)");
+    } else {
+        document.getElementById("bottom-nav-avatar").src =
+            user.photo_url ||
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
+        state.user = user;
+        if (!user.accepted_terms) {
+            openTosOverlay(user);
+        } else openFavouritesPage();
     }
 }
