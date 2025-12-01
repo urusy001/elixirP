@@ -70,19 +70,47 @@ function updateQuantity(key, delta) {
     updateTotal();
 }
 
+// 🔽 UPDATED FUNCTION
 async function renderCart() {
     const keys = Object.keys(state.cart);
     cartItemsEl.innerHTML = "";
     cartRows = {};
 
     if (!keys.length) {
-        cartItemsEl.innerHTML = "<p>Корзина пуста</p>";
-        cartTotalEl.innerHTML = `
-            <span class="total-label">Итого:</span>
-            <span class="total-amount">0 ₽</span>
+        // пустая корзина
+        cartItemsEl.innerHTML = `
+            <div class="cart-empty" style="text-align:center; padding:24px 12px;">
+                <h2 style="margin-bottom:8px; font-size:18px;">Ваша корзина пуста</h2>
+                <p style="margin:0; font-size:14px; color:#6b7280;">
+                    Добавьте товары в корзину, чтобы оформить заказ.
+                </p>
+                <img
+                    src="rabby-shop.json"
+                    alt="Пустая корзина"
+                    style="margin-top:16px; max-width:220px; width:100%; display:block; margin-left:auto; margin-right:auto; border-radius:12px;"
+                />
+            </div>
         `;
+
+        // убираем блок "Итого"
+        cartTotalEl.innerHTML = "";
+
+        // прячем веб-кнопку оформления, если она есть
+        const checkoutBtn = document.getElementById("checkout-btn");
+        if (checkoutBtn) {
+            checkoutBtn.style.display = "none";
+        }
+
+        // в Телеграме показываем кнопку "К товарам"
+        if (isTelegramApp()) {
+            showMainButton("К товарам", () => navigateTo("/"));
+        }
+
         return;
     }
+
+    // есть товары — убедимся, что блок суммы видимый (если ты его где-то скрываешь стилями)
+    // cartTotalEl.style.display = "";
 
     const products = await Promise.all(
         keys.map(async key => {
