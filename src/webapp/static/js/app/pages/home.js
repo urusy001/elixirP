@@ -320,7 +320,7 @@ function openTosOverlay(user) {
             user_id: user.tg_id,
         };
         await apiPost('/cart/create', payload);
-        await openHomePage();
+        await withLoader(openHomePage);
         // прячем оверлей и возвращаем скролл
         tosOverlayEl.style.display = "none";
         tosOverlayEl.classList.add("hidden");
@@ -339,7 +339,7 @@ export async function renderHomePage() {
         state.user = user;
         if (!user.accepted_terms) {
             openTosOverlay(user);
-        } else openHomePage();
+        } else await withLoader(openHomePage);
     }
 }
 
