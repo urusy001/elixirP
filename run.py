@@ -4,6 +4,7 @@ import signal
 
 from config import TELETHON_PHONE, TELETHON_PASSWORD
 from src.ai.bot.main import run_new_bot, run_dose_bot, run_professor_bot
+from src.antispam.bot.main import run_antispam_bot
 from src.giveaway.bot.main import run_bot as run_giveaway_bot
 from src.tg_methods import client as telegram_client
 
@@ -24,6 +25,7 @@ async def main():
         asyncio.create_task(run_dose_bot()),
         asyncio.create_task(run_professor_bot()),
         asyncio.create_task(run_giveaway_bot()),
+        asyncio.coroutine(run_antispam_bot())
     ]
 
     async def shutdown():
