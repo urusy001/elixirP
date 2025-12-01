@@ -25,7 +25,7 @@ async def main():
         asyncio.create_task(run_dose_bot()),
         asyncio.create_task(run_professor_bot()),
         asyncio.create_task(run_giveaway_bot()),
-        asyncio.coroutine(run_antispam_bot())
+        asyncio.create_task(run_antispam_bot())
     ]
 
     async def shutdown():
