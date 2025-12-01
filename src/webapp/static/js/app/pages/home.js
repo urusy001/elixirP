@@ -232,6 +232,11 @@ async function openFavouritesPage() {
                 <p style="margin:0; font-size:14px; color:#6b7280;">
                     Нажимайте на сердечко на странице товара, чтобы добавить его в избранное.
                 </p>
+                <img
+                    src="/static/images/utya-shop.gif"
+                    alt="Нет избранных товаров"
+                    style="margin-top:16px; max-width:220px; width:100%; display:block; margin-left:auto; margin-right:auto; border-radius:12px;"
+                />
             </div>
         `;
         return;
