@@ -2,7 +2,7 @@ import {searchProducts} from "../../services/productService.js";
 import {hideLoader, showLoader, withLoader} from "../ui/loader.js";
 import {navigateTo} from "../router.js";
 import {state, saveCart} from "../state.js";
-import {hideBackButton, hideMainButton, showMainButton} from "../ui/telegram.js";
+import {hideBackButton, hideMainButton, showBackButton, showMainButton} from "../ui/telegram.js";
 import {
     cartPageEl,
     checkoutPageEl,
@@ -209,7 +209,7 @@ async function openHomePage() {
 async function openFavouritesPage() {
     mode = "favourites";
     hideMainButton();
-    hideBackButton();
+    showBackButton(() => navigateTo("/"));
     setupBottomNav();
     navBottomEl.style.display = "flex";
     headerTitle.textContent = "Избранное";
@@ -361,9 +361,7 @@ export async function renderFavouritesPage() {
         if (!user.accepted_terms) {
             openTosOverlay(user);
         } else {
-            showLoader();
-            await withLoader(openFavouritesPage);
-            hideLoader();
+            await openFavouritesPage();
         }
     }
 }
