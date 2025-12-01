@@ -362,7 +362,7 @@ export async function renderFavouritesPage() {
             openTosOverlay(user);
         } else {
             showLoader();
-            await openFavouritesPage();
+            await withLoader(openFavouritesPage);
             hideLoader();
         }
     }
