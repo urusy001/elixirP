@@ -1,0 +1,67 @@
+/* Qty button overrides (square, centered, immune to global button styles) */
+.features-table .cart-qty-ctrl .qty-dec,
+.features-table .cart-qty-ctrl .qty-inc {
+    /* sizing */
+    --qty-size: 20px;            /* tweak once to resize */
+    width: var(--qty-size) !important;
+    height: var(--qty-size) !important;
+    aspect-ratio: 1 / 1;         /* keeps it square if size changes */
+
+    /* reset globals that make them “pill” shaped or tall */
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 4px !important;  /* set your exact corner radius */
+    box-shadow: none !important;
+    appearance: none;               /* iOS/Safari */
+    -webkit-appearance: none;
+
+    /* layout */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+
+    /* colors/typography */
+    background: #2AABEE;
+    color: #fff;
+    font-size: 1rem;               /* follows table text; adjust if needed */
+    cursor: pointer;
+}
+
+.features-table .cart-qty-ctrl .qty-val {
+    min-width: 1.6em;
+    text-align: center;
+    font-weight: 500;
+}
+
+.cart-icon {
+    /* Makes the icon's height match the text's line-height */
+    height: 1.2em;
+    /* Makes the width scale automatically */
+    width: 1.2em;
+}
+
+.bottom-nav .bottom-nav__avatar-img {
+    width: 28px !important;          /* подгони под высоту таббара */
+    height: 28px !important;
+    border-radius: 50% !important;   /* делаем круг */
+    object-fit: cover !important;    /* если будет png/jpg — обрежется по кругу */
+    display: block !important;
+    flex-shrink: 0;
+}
+
+/* На всякий случай перебьём глобальные правила для img */
+.bottom-nav .bottom-nav__avatar-img {
+    max-width: none;
+}
+
+.bottom-nav__svg {
+    width: 24px !important;
+    height: 24px !important;
+    display: block;
+}
+
+.bottom-nav__item[data-route="cart"] .bottom-nav__svg {
+    transform: scale(1.2);
+    transform-origin: center;
+}

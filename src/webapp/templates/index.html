@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}ElixirPeptides{% endblock %}
+
+{% block extra_css %}
+{% endblock %}
+
+{% block content %}
+<!-- 🔍 Search overlay -->
+<div class="search-overlay" id="search-overlay">
+    <div class="search-header">
+        <input type="text" id="search-input" placeholder="Поиск продуктов..."/>
+        <button id="close-search">✕</button>
+    </div>
+    <ul id="history-list"></ul>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar" id="toolbar">
+    <button class="toolbar-btn" id="sort-btn">Сортировка</button>
+    <button class="toolbar-btn" id="filter-btn">Категории</button>
+</div>
+
+<!-- Root App container -->
+<div id="app">
+    <div id="tos-overlay" class="hidden">
+        <div class="tos-modal">
+            <h2 class="tos-title">Условия покупки</h2>
+            <p class="tos-text">
+                Перед тем как продолжить, пожалуйста, ознакомьтесь с условиями публичной оферты
+                и подтвердите своё согласие.
+            </p>
+
+            <a
+                    href="https://elixirpeptide.com/privacy/offer/"
+                    target="_blank"
+                    rel="noreferrer"
+                    class="tos-link"
+            >
+                Ознакомиться с офертой
+            </a>
+        </div>
+    </div>
+
+    <!-- Product list view -->
+    <div id="product-list" class="product-grid"></div>
+
+    <!-- Product detail view -->
+    <div id="product-detail" style="display:none;"></div>
+
+    <!-- 🛒 Cart page view -->
+    <div id="cart-page" style="display:none;">
+        <div id="cart-summary">
+            <p class="total-label" id="summary-label">
+                <span class="total-label">Итого:</span>
+                <span class="total-amount">0 ₽</span>
+            </p>
+            <div class="promo">
+                <label for="promo" style="display: none">Промо-код</label>
+                <input type="text" id="promo" placeholder="Введите промо-код"/>
+            </div>
+        </div>
+        <div id="cart-items"></div>
+    </div>
+
+    <!-- ✅ Checkout page view -->
+    <div id="checkout-page" style="display:none;">
+
+        <div id="delivery-header-container"></div>
+
+        <div id="delivery-widget-container">
+            <div id="cdek-map-container" class="delivery-widget"></div>
+            <div id="yandex-map-container" class="delivery-widget"></div>
+        </div>
+
+        <div id="checkout-actions"></div>
+
+    </div>
+
+    <!-- ✉️ Contact form page -->
+    <div id="contact-page" style="display:none;">
+        <form id="contact-form" novalidate>
+            <input type="text" name="name" placeholder="Имя" required/>
+            <input type="text" name="surname" placeholder="Фамилия" required/>
+            <input type="tel" name="phone" placeholder="Телефон" required/>
+            <input type="email" name="email" placeholder="Email" required/>
+        </form>
+    </div>
+    <div id="payment-page" style="display:none;">
+        <div class="payment-card">
+            <div class="payment-summary-row total">
+                <span>К оплате</span>
+                <span id="payment-total">0 ₽</span>
+            </div>
+            <div class="payment-summary-row" id="payment-delivery-row" style="display:none;">
+                <span>Доставка</span>
+                <span id="payment-delivery-amount">0 ₽</span>
+            </div>
+        </div>
+
+        <!-- Methods -->
+        <div class="payment-card">
+            <div class="payment-summary-row" style="margin-bottom:8px;">
+                <span>Способ оплаты</span>
+            </div>
+
+            <div class="payment-method-list" id="payment-methods">
+
+                <!-- Crypto USDT -->
+                <label class="payment-method active">
+                    <input type="radio" name="payment_method" value="usdt" checked>
+                    <div>
+                        <div class="payment-method-title">Криптовалюта USDT</div>
+                        <div class="payment-method-desc">
+                            Оплата заказа в USDT после подтверждения. Мы покажем адрес кошелька и сумму.
+                        </div>
+                    </div>
+                </label>
+
+                <!-- YooKassa -->
+                <label class="payment-method">
+                    <input type="radio" name="payment_method" value="yookassa">
+                    <div>
+                        <div class="payment-method-title">ЮKassa (карта, СБП и др.)</div>
+                        <div class="payment-method-desc">
+                            Перенаправим вас на защищённую страницу ЮKassa для онлайн-оплаты.
+                        </div>
+                    </div>
+                </label>
+
+                <!-- Pay later -->
+                <label class="payment-method">
+                    <input type="radio" name="payment_method" value="later">
+                    <div>
+                        <div class="payment-method-title">Оплатить позже</div>
+                        <div class="payment-method-desc">
+                            Оформить заказ без оплаты сейчас. Мы свяжемся с вами и уточним детали.
+                        </div>
+                    </div>
+                </label>
+
+            </div>
+
+            <div class="payment-note" id="payment-method-note" style="margin-top: 8px !important;">
+                Способ оплаты: USDT. После оформления мы покажем вам реквизиты.
+            </div>
+        </div>
+        <div id="process-payment-page" class="payment-card" style="display: none;">
+            <div id="usdt" style="display: none;">
+                <div id="qr-code">
+
+                </div>
+                <span id="usdt-address"></span>
+                <label id="txid">
+                    <input type="text" name="tx_id">
+                </label>
+            </div>
+            <div id="yookassa" style="display: none;">
+                <svg class="redirect-svg"></svg>
+            </div>
+            <div id="later" style="display: none">
+                С вами скоро свяжутся
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Optional delivery service widgets -->
+<script src="https://cdn.jsdelivr.net/npm/@cdek-it/widget@3" charset="utf-8"></script>
+<script async src="https://ndd-widget.landpro.site/widget.js"></script>
+{% endblock %}
