@@ -20,7 +20,7 @@ async def main():
     tasks = [
         asyncio.create_task(OneCEnterprise().postgres_worker(), name="OneCEnterprise"),
         asyncio.create_task(run_app(), name="WebApp"),
-        asyncio.coroutine(cdek_client.token_worker(), name="TokenWorker"),
+        asyncio.create_task(cdek_client.token_worker(), name="TokenWorker"),
     ]
 
     async def shutdown():
