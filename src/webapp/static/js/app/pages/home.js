@@ -233,7 +233,7 @@ async function openFavouritesPage() {
                     Нажимайте на сердечко на странице товара, чтобы добавить его в избранное.
                 </p>
                 <img
-                    src="/static/images/utya-shop.gif"
+                    src="/static/images/utya-fav.gif"
                     alt="Нет избранных товаров"
                     style="margin-top:16px; max-width:220px; width:100%; display:block; margin-left:auto; margin-right:auto; border-radius:12px;"
                 />
