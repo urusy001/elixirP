@@ -27,7 +27,19 @@ const cartItemsEl = document.getElementById("cart-items");
 
 let cartRows = {};
 
+// === TOTAL & QTY HANDLING ===
 function updateTotal() {
+    const keys = Object.keys(state.cart);
+
+    // если в корзине вообще нет ключей — показываем "к товарам"
+    if (!keys.length) {
+        cartTotalEl.innerHTML = "";
+        if (isTelegramApp()) {
+            showMainButton("К товарам", () => navigateTo("/"));
+        }
+        return;
+    }
+
     let total = 0;
 
     for (const key in cartRows) {
@@ -37,19 +49,15 @@ function updateTotal() {
         total += price * qty;
     }
 
-    if (total === 0) {
-        cartTotalEl.innerHTML = `
-            <span class="total-label">Итого:</span>
-            <span class="total-amount">0 ₽</span>
-        `;
-        showMainButton("К товарам", () => navigateTo("/"));
-        return;
-    }
-
     cartTotalEl.innerHTML = `
         <span class="total-label">Итого:</span>
         <span class="total-amount">${total.toLocaleString("ru-RU")} ₽</span>
     `;
+
+    // если есть хоть что-то в корзине — показываем "Оформить заказ"
+    if (isTelegramApp()) {
+        showMainButton("Оформить заказ", () => handleCheckout());
+    }
 }
 
 function updateQuantity(key, delta) {
@@ -67,10 +75,18 @@ function updateQuantity(key, delta) {
     }
 
     saveCart();
+
+    // если после изменения корзина стала пустой — перерисуем страницу,
+    // чтобы показать лотти "rabby-shop"
+    if (!Object.keys(state.cart).length) {
+        renderCart();
+        return;
+    }
+
     updateTotal();
 }
 
-// === LOTTIE EMPTY STATE HERE ===
+// === RENDER CART (WITH RABBY-SHOP LOTTIE) ===
 async function renderCart() {
     const keys = Object.keys(state.cart);
     cartItemsEl.innerHTML = "";
@@ -100,7 +116,7 @@ async function renderCart() {
             </div>
         `;
 
-        // Инициализируем Lottie-анимацию rabby-shop.json
+        // лотти-анимация rabby-shop.json
         const animContainer = document.getElementById("cart-empty-lottie");
         if (animContainer && window.lottie && typeof window.lottie.loadAnimation === "function") {
             window.lottie.loadAnimation({
@@ -108,7 +124,6 @@ async function renderCart() {
                 renderer: "svg",
                 loop: true,
                 autoplay: true,
-                // поправь путь, если статику раздаёшь по-другому
                 path: "/static/stickers/rabby-shop.json",
                 rendererSettings: {
                     preserveAspectRatio: "xMidYMid meet",
@@ -116,16 +131,8 @@ async function renderCart() {
             });
         }
 
-        // убираем "Итого" целиком
+        // убираем "Итого" и ставим кнопку "К товарам"
         cartTotalEl.innerHTML = "";
-
-        // прячем веб-кнопку оформления, если она есть
-        const checkoutBtn = document.getElementById("checkout-btn");
-        if (checkoutBtn) {
-            checkoutBtn.style.display = "none";
-        }
-
-        // в Telegram показываем "К товарам"
         if (isTelegramApp()) {
             showMainButton("К товарам", () => navigateTo("/"));
         }
@@ -183,13 +190,17 @@ async function renderCart() {
         cartRows[key] = {row, qtySpan, priceDiv, name};
     });
 
+    // посчитаем сумму и поставим правильную кнопку
     updateTotal();
 }
 
+// === CHECKOUT ===
 export async function handleCheckout() {
-    const checkoutBtn = document.getElementById("checkout-btn");
     updateMainButton("Обработка…", true, true);
 
+    // на всякий случай оставляю поддержку checkout-btn,
+    // но в твоём сценарии он просто не будет существовать
+    const checkoutBtn = document.getElementById("checkout-btn");
     if (checkoutBtn) {
         checkoutBtn.disabled = true;
         checkoutBtn.textContent = "Обработка…";
@@ -221,6 +232,7 @@ export async function handleCheckout() {
     }
 }
 
+// === PAGE ENTRYPOINT ===
 export async function renderCartPage() {
     toolbarEl.style.display = "none";
     listEl.style.display = "none";
@@ -238,17 +250,6 @@ export async function renderCartPage() {
 
     if (isTelegramApp()) {
         showBackButton(() => navigateTo("/"));
-        showMainButton("Оформить заказ", () => handleCheckout());
-    } else {
-        let btn = document.getElementById("checkout-btn");
-        if (!btn) {
-            btn = document.createElement("button");
-            btn.id = "checkout-btn";
-            btn.textContent = "Оформить заказ";
-            btn.className = "checkout-btn";
-            cartPageEl.appendChild(btn);
-        }
-        btn.style.display = "block";
-        btn.onclick = handleCheckout;
+        // main button уже выставлен внутри renderCart / updateTotal
     }
 }
