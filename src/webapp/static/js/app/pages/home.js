@@ -207,7 +207,6 @@ async function openHomePage() {
  * onec_id которых лежат в state.user.favourites.
  */
 async function openFavouritesPage() {
-    showLoader();
     mode = "favourites";
     hideMainButton();
     hideBackButton();
@@ -307,7 +306,6 @@ async function openFavouritesPage() {
             </div>
         `;
     }
-    hideLoader();
 }
 function openTosOverlay(user) {
     if (!tosOverlayEl) return;
@@ -323,6 +321,7 @@ function openTosOverlay(user) {
         };
         await apiPost('/cart/create', payload);
         await openHomePage();
+        // прячем оверлей и возвращаем скролл
         tosOverlayEl.style.display = "none";
         tosOverlayEl.classList.add("hidden");
         document.body.style.overflow = "";
@@ -358,7 +357,11 @@ export async function renderFavouritesPage() {
             `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
         state.user = user;
         if (!user.accepted_terms) {
-            await openTosOverlay(user);
-        } else openFavouritesPage;
+            openTosOverlay(user);
+        } else {
+            showLoader();
+            await openFavouritesPage();
+            hideLoader();
+        }
     }
 }
