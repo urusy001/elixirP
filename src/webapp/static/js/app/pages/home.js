@@ -232,13 +232,38 @@ async function openFavouritesPage() {
                 <p style="margin:0; font-size:14px; color:#6b7280;">
                     Нажимайте на сердечко на странице товара, чтобы добавить его в избранное.
                 </p>
-                <img
-                    src="/static/images/utya-fav.gif"
-                    alt="Нет избранных товаров"
-                    style="margin-top:16px; max-width:220px; width:100%; display:block; margin-left:auto; margin-right:auto; border-radius:12px;"
-                />
+                <div
+                    id="empty-fav-lottie"
+                    style="
+                        margin-top:16px;
+                        max-width:220px;
+                        width:100%;
+                        height:220px;
+                        display:block;
+                        margin-left:auto;
+                        margin-right:auto;
+                        border-radius:12px;
+                        overflow:hidden;
+                    "
+                ></div>
             </div>
         `;
+
+        // Инициализируем Lottie-анимацию вместо gif
+        const animContainer = document.getElementById("empty-fav-lottie");
+        if (animContainer) {
+            window.lottie.loadAnimation({
+                container: animContainer,
+                renderer: "svg",
+                loop: true,
+                autoplay: true,
+                path: "/static/stickers/utya-fav.json", // или "static/..." если так раздаёшь
+                rendererSettings: {
+                    preserveAspectRatio: "xMidYMid meet",
+                },
+            });
+        }
+
         return;
     }
 
@@ -246,7 +271,7 @@ async function openFavouritesPage() {
 
     const fetchFn = async () => {
         // Берём побольше товаров и фильтруем по избранным.
-        const data = await searchProducts({q: "", page: 0, limit: 500});
+        const data = await searchProducts({ q: "", page: 0, limit: 500 });
         const all = Array.isArray(data?.results) ? data.results : [];
         return all.filter((p) => {
             const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
@@ -282,7 +307,6 @@ async function openFavouritesPage() {
         `;
     }
 }
-
 function openTosOverlay(user) {
     if (!tosOverlayEl) return;
 
