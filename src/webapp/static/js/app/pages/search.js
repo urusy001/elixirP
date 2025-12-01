@@ -1,7 +1,7 @@
-// search-overlay.js
-import {renderProductDetailPage} from "./product-detail.js";
-import {searchProducts} from "../../services/productService.js";
-import {navBottomEl} from "./constants.js";
+// search.js
+import { renderProductDetailPage } from "./product-detail.js";
+import { searchProducts } from "../../services/productService.js";
+import { navBottomEl } from "./constants.js";
 
 function debounce(fn, delay) {
     let t;
@@ -11,23 +11,55 @@ function debounce(fn, delay) {
     };
 }
 
-// ---- РЕЖИМЫ КНОПКИ ПОИСКА / ИЗБРАННОЕ ----
+// ---- STATES ----
 let searchMode = "search";          // "search" | "favorite"
-let favoriteClickHandler = null;    // callback для сердечка
-let searchBtnRef = null;            // кэш ссылки на кнопку
+let favoriteClickHandler = null;    // callback for heart click
+let searchBtnRef = null;            // cache for the button element
+let isFavoriteActive = false;       // local boolean tracking state
+
+function getBtn() {
+    return searchBtnRef || document.getElementById("search-btn");
+}
 
 /**
- * Меняет кнопку поиска на "сердечко" (избранное).
- * onClick будет вызываться при нажатии на кнопку в этом режиме.
+ * Updates the visual classes/attributes based on isFavoriteActive
  */
-export function setSearchButtonToFavorite(onClick) {
-    searchMode = "favorite";
-    favoriteClickHandler = typeof onClick === "function" ? onClick : null;
-
-    const btn = searchBtnRef || document.getElementById("search-btn");
+function updateVisuals() {
+    const btn = getBtn();
     if (!btn) return;
 
-    // Сохраняем оригинальную разметку и aria-label один раз
+    if (isFavoriteActive) {
+        btn.classList.add("toolbar-btn--favorite-active");
+        btn.setAttribute("aria-pressed", "true");
+        btn.setAttribute("aria-label", "В избранном");
+    } else {
+        btn.classList.remove("toolbar-btn--favorite-active");
+        btn.setAttribute("aria-pressed", "false");
+        btn.setAttribute("aria-label", "Добавить в избранное");
+    }
+}
+
+/**
+ * Public function to set the state (e.g. from API or optimistic update)
+ */
+export function setFavoriteButtonActive(active) {
+    isFavoriteActive = !!active;
+    updateVisuals();
+}
+
+/**
+ * Switches the Search button to a Favorite (Heart) button.
+ */
+export function setSearchButtonToFavorite(onClick, initialActive = false) {
+    searchMode = "favorite";
+    favoriteClickHandler = typeof onClick === "function" ? onClick : null;
+    isFavoriteActive = !!initialActive;
+
+    const btn = getBtn();
+    if (!btn) return;
+    searchBtnRef = btn; // ensure cache
+
+    // Save original HTML/Label if not already saved
     if (!btn.dataset.originalIconHtml) {
         btn.dataset.originalIconHtml = btn.innerHTML;
     }
@@ -35,7 +67,7 @@ export function setSearchButtonToFavorite(onClick) {
         btn.dataset.originalAriaLabel = btn.getAttribute("aria-label");
     }
 
-    // Меняем иконку на сердечко
+    // Render Heart Icon
     btn.innerHTML = `
         <svg class="toolbar-icon toolbar-icon--heart" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
@@ -45,36 +77,40 @@ export function setSearchButtonToFavorite(onClick) {
                      c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
         </svg>
     `;
-    btn.setAttribute("aria-label", "Добавить в избранное");
     btn.classList.add("toolbar-btn--favorite");
+
+    // Apply initial state
+    updateVisuals();
 }
 
 /**
- * Возвращает кнопке исходную иконку поиска и поведение.
+ * Restores the button back to the Search (Magnifying glass).
  */
 export function restoreSearchButtonToSearch() {
     searchMode = "search";
     favoriteClickHandler = null;
+    isFavoriteActive = false;
 
-    const btn = searchBtnRef || document.getElementById("search-btn");
+    const btn = getBtn();
     if (!btn) return;
 
-    // Восстанавливаем оригинальный HTML
+    // Restore original HTML
     if (btn.dataset.originalIconHtml) {
         btn.innerHTML = btn.dataset.originalIconHtml;
     }
 
-    // Восстанавливаем aria-label, если был
+    // Restore label
     if (btn.dataset.originalAriaLabel) {
         btn.setAttribute("aria-label", btn.dataset.originalAriaLabel);
     } else {
         btn.removeAttribute("aria-label");
+        btn.removeAttribute("aria-pressed");
     }
 
-    btn.classList.remove("toolbar-btn--favorite");
+    btn.classList.remove("toolbar-btn--favorite", "toolbar-btn--favorite-active");
 }
 
-// ---- ОСНОВНАЯ ЛОГИКА ПОИСКОВОГО ОВЕРЛЕЯ ----
+// ---- INIT ----
 
 export function initSearchOverlay() {
     const searchBtn = document.getElementById("search-btn");
@@ -88,32 +124,41 @@ export function initSearchOverlay() {
     function openSearchOverlay() {
         if (!searchOverlay || !searchInput) return;
         searchOverlay.classList.add("active");
-        navBottomEl.style.display = "none";
+        if (navBottomEl) {
+            navBottomEl.style.display = "none";
+        }
         searchInput.focus();
     }
 
     function closeOverlay() {
         if (!searchOverlay || !searchInput || !historyList) return;
         searchOverlay.classList.remove("active");
-        navBottomEl.style.display = "flex";
+        if (navBottomEl) {
+            navBottomEl.style.display = "flex";
+        }
         searchInput.value = "";
         historyList.innerHTML = "";
     }
 
-    // Клик по кнопке теперь зависит от режима
-    searchBtn?.addEventListener("click", () => {
+    // MAIN CLICK HANDLER
+    searchBtn?.addEventListener("click", async (e) => {
+        // Stop propagation just in case
+        e.stopPropagation();
+
         if (searchMode === "favorite") {
+            // Logic for Heart
             if (favoriteClickHandler) {
-                favoriteClickHandler();
+                // Pass the CURRENT state so handler knows what to do
+                favoriteClickHandler(isFavoriteActive);
             }
         } else {
+            // Logic for Search
             openSearchOverlay();
         }
     });
 
     closeSearch?.addEventListener("click", closeOverlay);
 
-    // Закрываем при клике по пустому месту
     searchOverlay?.addEventListener("click", (e) => {
         if (e.target === searchOverlay) {
             closeOverlay();
@@ -126,22 +171,27 @@ export function initSearchOverlay() {
             return;
         }
         try {
-            const data = await searchProducts({q: query, limit: 50});
+            const data = await searchProducts({ q: query, limit: 50 });
             if (!historyList) return;
 
-            historyList.innerHTML = (data.results || [])
-                .map(
-                    (p) =>
-                        `<li data-onec-id="${p.url.split("/product/")[1]}">
+            const results = Array.isArray(data?.results) ? data.results : [];
+
+            historyList.innerHTML = results
+                .map((p) => {
+                    const id = p.url?.split("/product/")[1] || "";
+                    return `
+                        <li data-onec-id="${id}">
                             <div>${p.name}</div>
-                        </li>`
-                )
+                        </li>
+                    `;
+                })
                 .join("");
 
             historyList.querySelectorAll("li").forEach((li) => {
                 li.addEventListener("click", async () => {
                     const id = li.dataset.onecId;
-                    history.pushState({productId: id}, "", `/product/${id}`);
+                    if (!id) return;
+                    history.pushState({ productId: id }, "", `/product/${id}`);
                     await renderProductDetailPage(id);
                     closeOverlay();
                 });

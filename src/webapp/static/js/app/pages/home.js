@@ -163,11 +163,11 @@ async function getUser() {
 function setupBottomNav() {
     const items = document.querySelectorAll(".bottom-nav__item");
     items.forEach(item => {
-        item.addEventListener("click", () => {
-            const route = item.dataset.route; // "cart", "home", etc.
+        item.addEventListener("click", (e) => {
+            // Optional: prevent default if these are <a> tags
+            e.preventDefault();
 
-            items.forEach(i => i.classList.remove("bottom-nav__item--active"));
-            item.classList.add("bottom-nav__item--active");
+            const route = item.dataset.route;
             navigateTo(route);
         });
     });

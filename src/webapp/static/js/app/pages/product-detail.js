@@ -1,6 +1,6 @@
-import {getProductDetail} from "../../services/productService.js";
-import {withLoader} from "../ui/loader.js";
-import {state, saveCart} from "../state.js";
+import { getProductDetail } from "../../services/productService.js";
+import { withLoader } from "../ui/loader.js";
+import { state, saveCart } from "../state.js";
 import {
     showBackButton,
     showMainButton,
@@ -9,22 +9,46 @@ import {
     hideBackButton,
     isTelegramApp,
 } from "../ui/telegram.js";
-import {navigateTo} from "../router.js";
+import { navigateTo } from "../router.js";
 import {
     cartPageEl,
     checkoutPageEl,
-    contactPageEl, detailEl,
-    headerTitle, listEl, navBottomEl,
+    contactPageEl,
+    detailEl,
+    headerTitle,
+    listEl,
+    navBottomEl,
     paymentPageEl,
     processPaymentEl,
     searchBtnEl,
     toolbarEl
 } from "./constants.js";
-import {setSearchButtonToFavorite} from "./search.js";
-import {apiDelete, apiGet, apiPost} from "../../services/api.js";
+import {
+    setSearchButtonToFavorite,
+    setFavoriteButtonActive,
+    restoreSearchButtonToSearch // <--- IMPORTED THIS
+} from "./search.js";
+import { apiDelete, apiGet, apiPost } from "../../services/api.js";
 
+function isProductFavorite(onec_id) {
+    const favs = state?.user?.favourites || [];
+    return favs.some((id) => String(id) === String(onec_id));
+}
+
+// Helper to update local state array
+function updateLocalFavourites(onec_id, shouldBeFav) {
+    const favs = state.user.favourites || [];
+    if (shouldBeFav) {
+        if (!favs.some((id) => String(id) === String(onec_id))) {
+            state.user.favourites = [...favs, onec_id];
+        }
+    } else {
+        state.user.favourites = favs.filter((id) => String(id) !== String(onec_id));
+    }
+}
 
 export async function renderProductDetailPage(onec_id) {
+    // Hide other views
     navBottomEl.style.display = "none";
     toolbarEl.style.display = "none";
     listEl.style.display = "none";
@@ -32,35 +56,79 @@ export async function renderProductDetailPage(onec_id) {
     cartPageEl.style.display = "none";
     checkoutPageEl.style.display = "none";
     paymentPageEl.style.display = "none";
+
+    // Show Detail view
     headerTitle.textContent = "Информация о продукте";
     searchBtnEl.style.display = "flex";
     detailEl.style.display = "block";
     processPaymentEl.style.display = "none";
-    const isFav = !(onec_id in state.user.favourites);
-    const payload = {
-        user_id: state.user.tg_id,
-        onec_id,
-    }
-    let onClick = null
-    if (isFav) {
-        onClick = () => apiPost('/favourites', payload);
-    } else {
-        onClick = () => apiDelete('/favourites', payload);
-    }
-    setSearchButtonToFavorite(onClick);
+
+    // ---- ИЗБРАННОЕ: CORRECTED LOGIC ----
+    const initiallyFav = isProductFavorite(onec_id);
+
+    // This callback runs when user clicks the heart
+    const onFavoriteClick = async (currentlyActive) => {
+        // 1. Determine next state (toggle)
+        const nextState = !currentlyActive;
+
+        // 2. OPTIMISTIC UPDATE: Update UI immediately
+        setFavoriteButtonActive(nextState);
+
+        // 3. OPTIMISTIC UPDATE: Update Local Data immediately
+        updateLocalFavourites(onec_id, nextState);
+
+        // 4. Send Request in Background
+        const payload = { user_id: state.user.tg_id, onec_id };
+
+        try {
+            if (nextState) {
+                await apiPost("/favourites", payload);
+            } else {
+                await apiDelete("/favourites", payload);
+            }
+            // Success: do nothing, UI is already correct
+        } catch (err) {
+            console.error("Failed to toggle favourite:", err);
+
+            // 5. ERROR: Revert UI and State
+            setFavoriteButtonActive(!nextState); // switch back
+            updateLocalFavourites(onec_id, !nextState); // switch data back
+
+            // Optional: Show toast error here
+        }
+    };
+
+    // Initialize the button
+    setSearchButtonToFavorite(onFavoriteClick, initiallyFav);
+
+    // ---- Cleanup Function (Crucial for Single Page Apps) ----
+    const cleanupProductPage = () => {
+        // Restore search button icon
+        restoreSearchButtonToSearch();
+
+        if (isTelegramApp()) {
+            hideMainButton();
+        }
+    };
+
     const data = await withLoader(() => getProductDetail(onec_id));
+
     if (data?.error) {
         detailEl.innerHTML = `
       <div class="error-message" style="padding:20px;text-align:center">
         <h2>Ошибка загрузки</h2>
-        <p>Не удалось загрузить информацию о товаре. Пожалуйста, попробуйте позже.</p>
+        <p>Не удалось загрузить информацию о товаре.</p>
       </div>`;
         if (isTelegramApp()) {
             hideMainButton();
             const offBack = showBackButton(() => {
+                cleanupProductPage(); // Clean up on back
                 navigateTo('/');
             });
-            window.addEventListener("popstate", () => offBack?.(), {once: true});
+            window.addEventListener("popstate", () => {
+                offBack?.();
+                cleanupProductPage(); // Clean up on popstate
+            }, { once: true });
         }
         return;
     }
@@ -171,7 +239,6 @@ export async function renderProductDetailPage(onec_id) {
 
             const tdQty = document.createElement("td");
             if (isOOS) {
-                // No controls for out-of-stock items
                 tdQty.innerHTML = ``;
             } else {
                 tdQty.innerHTML = `
@@ -209,7 +276,7 @@ export async function renderProductDetailPage(onec_id) {
         });
     });
 
-    // Quantity logic (ignore clicks for OOS rows)
+    // Quantity logic
     tbody.addEventListener("click", (e) => {
         const dec = e.target.closest(".qty-dec");
         const inc = e.target.closest(".qty-inc");
@@ -217,7 +284,7 @@ export async function renderProductDetailPage(onec_id) {
 
         const tr = e.target.closest("tr");
         const balance = Number(tr.dataset.balance || 0);
-        if (balance <= 0) return; // out of stock: ignore
+        if (balance <= 0) return;
 
         const key = tr.dataset.key;
         const span = tr.querySelector(".qty-val");
@@ -239,17 +306,19 @@ export async function renderProductDetailPage(onec_id) {
         const setBackForProduct = () => {
             if (offBack) offBack();
             offBack = showBackButton(() => {
-                if (sheet.isOpen()) sheet.close(true);
-                navigateTo('/');
+                if (sheet.isOpen()) {
+                    sheet.close(true);
+                } else {
+                    cleanupProductPage(); // Clean up heart icon
+                    navigateTo('/');
+                }
             });
         };
 
-        // initially show Back for product page
         setBackForProduct();
 
         const toggleSheet = () => {
             if (sheet.isOpen()) {
-                // Close; onClose will restore Back + label
                 sheet.close(false);
             } else {
                 sheet.open();
@@ -260,7 +329,6 @@ export async function renderProductDetailPage(onec_id) {
 
         showMainButton("Выбрать дозировку", toggleSheet);
 
-        // Unify close behavior from ALL paths (MainButton, backdrop, drag)
         sheet.onClose(() => {
             updateMainButton("Выбрать дозировку");
             setBackForProduct();
@@ -270,10 +338,10 @@ export async function renderProductDetailPage(onec_id) {
             "popstate",
             () => {
                 offBack?.();
-                hideMainButton();
                 sheet.close(true);
+                cleanupProductPage(); // Clean up heart icon
             },
-            {once: true}
+            { once: true }
         );
     } else {
         const openSheetBtn = document.createElement("button");
@@ -310,10 +378,7 @@ function createBottomSheet(innerHTML) {
     const markClosed = () => {
         opened = false;
         closeCallbacks.forEach((fn) => {
-            try {
-                fn();
-            } catch {
-            }
+            try { fn(); } catch {}
         });
     };
 
@@ -358,7 +423,6 @@ function createBottomSheet(innerHTML) {
         if (dy > Math.min(CLOSE_THRESHOLD_PX, window.innerHeight * 0.2)) close();
     };
 
-    // Backdrop click just closes; higher-level onClose handler restores UI
     backdrop.addEventListener("click", () => {
         close();
     });
@@ -376,10 +440,10 @@ function createBottomSheet(innerHTML) {
         "touchstart",
         (e) => {
             startDrag(e.touches[0].clientY);
-            window.addEventListener("touchmove", dragMove, {passive: true});
-            window.addEventListener("touchend", dragEnd, {passive: true});
+            window.addEventListener("touchmove", dragMove, { passive: true });
+            window.addEventListener("touchend", dragEnd, { passive: true });
         },
-        {passive: true}
+        { passive: true }
     );
 
     panel.addEventListener("mousedown", (e) => {
@@ -394,23 +458,18 @@ function createBottomSheet(innerHTML) {
     };
     const isOpen = () => opened;
 
-    return {root, open, close, onClose, isOpen};
+    return { root, open, close, onClose, isOpen };
 }
 
-/**
- * Clamp long product description to first N lines and show TikTok-style "ещё..." toggle.
- */
 function setupDescriptionClamp(descEl) {
     if (!descEl) return;
 
-    const MAX_LINES = 4; // how many lines to show when collapsed
+    const MAX_LINES = 4;
 
     descEl.classList.add("product-description--clamp");
     descEl.style.setProperty("--desc-max-lines", MAX_LINES);
 
-    // Wait for layout so scrollHeight/clientHeight are correct
     requestAnimationFrame(() => {
-        // If text fits inside, no "ещё..." needed
         if (descEl.scrollHeight <= descEl.clientHeight + 1) {
             descEl.classList.remove("product-description--clamp");
             return;
@@ -421,7 +480,6 @@ function setupDescriptionClamp(descEl) {
         toggle.className = "product-description-toggle";
         toggle.textContent = "ещё...";
 
-        // Visually like TikTok comments: below the text
         descEl.insertAdjacentElement("afterend", toggle);
 
         let expanded = false;

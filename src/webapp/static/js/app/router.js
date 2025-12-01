@@ -35,7 +35,16 @@ export async function renderCurrentPath() {
 
 export function navigateTo(path) {
     const normalized = path.startsWith("/") ? path : `/${path}`;
+    const navItems = document.querySelectorAll(".bottom-nav__item");
+    navItems.forEach(item => {
+        // Remove active class from everyone first
+        item.classList.remove("bottom-nav__item--active");
 
+        // Check if this button's route matches the path we are going to
+        if (`/${item.dataset.route}` === normalized) {
+            item.classList.add("bottom-nav__item--active");
+        }
+    });
     const targetHash = `#${normalized}`;
     if (window.location.hash === targetHash) return;
 
