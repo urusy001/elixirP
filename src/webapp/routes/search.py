@@ -48,7 +48,7 @@ async def search_products(
                     "url": f"/product/{product.onec_id}",
                     "image": "/static/images/product.png",
                     "features": [
-                        {"id": f.onec_id, "name": f.name, "price": float(f.price)}
+                        {"id": f.onec_id, "name": f.name, "price": float(f.price), "balance": f.balance}
                         for f in product.features
                     ],
                 }

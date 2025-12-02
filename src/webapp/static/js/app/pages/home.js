@@ -26,13 +26,25 @@ let mode = "home";
 
 function productCardHTML(p) {
     const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
-    const sortedFeatures = Array.isArray(p.features)
-        ? [...p.features].sort((a, b) => b.price - a.price)
-        : [];
+
+    // Берём только те фичи, у которых balance > 0
+    const rawFeatures = Array.isArray(p.features) ? p.features : [];
+
+    const availableFeatures = rawFeatures.filter(f => {
+        const bal = Number(f.balance ?? 0);
+        return bal > 0;
+    });
+
+    const sortedFeatures = availableFeatures.sort((a, b) => b.price - a.price);
 
     const featureSelector = sortedFeatures.length
         ? `<select class="feature-select" data-onec-id="${onecId}">
-         ${sortedFeatures.map(f => `<option value="${f.id}" data-price="${f.price}">${f.name} - ${f.price} ₽</option>`).join("")}
+         ${sortedFeatures
+            .map(
+                f =>
+                    `<option value="${f.id}" data-price="${f.price}">${f.name} - ${f.price} ₽</option>`
+            )
+            .join("")}
        </select>`
         : "";
 
@@ -123,7 +135,6 @@ async function loadMore(container, append = false, useLoader = true) {
     try {
         const fetchFn = async () => {
             const data = await searchProducts({q: "", page});
-            alert(JSON.stringify(data, null, 2));
             if (!data.results || !Array.isArray(data.results)) data.results = [];
             return data.results;
         };
