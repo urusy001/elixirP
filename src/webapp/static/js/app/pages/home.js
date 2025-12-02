@@ -27,19 +27,16 @@ let mode = "home";
 function productCardHTML(p) {
     const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
 
-    // 1) Берём все фичи, у которых balance > 0
+    // Берём только те фичи, у которых balance > 0
     const rawFeatures = Array.isArray(p.features) ? p.features : [];
 
     const availableFeatures = rawFeatures.filter(f => {
-        // на всякий случай приводим к числу, чтобы "0" тоже работало
         const bal = Number(f.balance ?? 0);
         return bal > 0;
     });
 
-    // 2) Сортируем только доступные фичи по цене (как и раньше)
     const sortedFeatures = availableFeatures.sort((a, b) => b.price - a.price);
 
-    // 3) Если ничего доступного нет — селект просто не рисуем
     const featureSelector = sortedFeatures.length
         ? `<select class="feature-select" data-onec-id="${onecId}">
          ${sortedFeatures
