@@ -143,9 +143,7 @@ async function handlePaymentSubmit() {
             source: "telegram",
         };
         alert(JSON.stringify(payload));
-        const res = await apiPost("/payments/create", {
-            body: payload,
-        });
+        const res = await apiPost("/payments/create", payload);
 
         if (!res.ok) {
             const text = await res.text().catch(() => "");
