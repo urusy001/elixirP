@@ -100,7 +100,7 @@ export function hideMainButton() {
 
 
 ///////////
-export function hideBackButton() {
+export function hideBackButton1() {
     const tg = state.telegram;
     if (!isTelegramApp() || !tg?.BackButton) return;
 
@@ -118,7 +118,7 @@ export function hideBackButton() {
  * For now: ignore `onClick` completely and just behave
  * like a real back button using history + hash routing.
  */
-export function showBackButton(onClick) { // keep param, don't use it
+export function showBackButton1(onClick) { // keep param, don't use it
     const tg = state.telegram;
     if (!isTelegramApp() || !tg?.BackButton) return () => {};
 
@@ -152,7 +152,7 @@ export function showBackButton(onClick) { // keep param, don't use it
  * Shows the Back Button and sets its handler.
  * @returns {Function} A cleanup function to hide the button.
  */
-export function showBackButton1(onClick) {
+export function showBackButton(onClick) {
     const tg = state.telegram;
     if (!isTelegramApp() || !tg?.BackButton) return () => {};
 
@@ -180,7 +180,7 @@ export function showBackButton1(onClick) {
 /**
  * Hides the Back Button and removes its handler.
  */
-export function hideBackButton1(showClose = true, onClose = null) {
+export function hideBackButton(showClose = true, onClose = null) {
     const tg = state.telegram;
     if (!isTelegramApp() || !tg?.BackButton) return;
 
