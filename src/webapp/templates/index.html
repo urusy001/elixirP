@@ -25,23 +25,17 @@
 <div id="app">
     <div id="tos-overlay" class="hidden">
         <div class="tos-modal">
-            <h2 class="tos-title">Условия покупки</h2>
-            <p class="tos-text">
-                Перед тем как продолжить, пожалуйста, ознакомьтесь с условиями публичной оферты
-                и подтвердите своё согласие.
-            </p>
+            <div class="tos-header">
+                <h2 class="tos-title">Публичная оферта</h2>
+                <button type="button" class="tos-close-btn" id="tos-close-btn">✕</button>
+            </div>
 
-            <a
-                    href="https://elixirpeptide.com/privacy/offer/"
-                    target="_blank"
-                    rel="noreferrer"
-                    class="tos-link"
-            >
-                Ознакомиться с офертой
-            </a>
+            <!-- СЮДА будем подгружать /static/offer.html -->
+            <div id="tos-body" class="tos-body">
+                Загрузка оферты…
+            </div>
         </div>
     </div>
-
     <!-- Product list view -->
     <div id="product-list" class="product-grid"></div>
 

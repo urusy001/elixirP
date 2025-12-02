@@ -20,6 +20,10 @@ let loading = false;
 // "home" | "favourites" (влияет на бесконечный скролл)
 let mode = "home";
 
+// элементы TOS-модалки
+const tosBodyEl = document.getElementById("tos-body");
+const tosCloseBtn = document.getElementById("tos-close-btn");
+
 function productCardHTML(p) {
     const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
     const sortedFeatures = Array.isArray(p.features)
@@ -235,7 +239,7 @@ async function openFavouritesPage() {
 
         // Инициализируем Lottie-анимацию вместо gif
         const animContainer = document.getElementById("empty-fav-lottie");
-        if (animContainer) {
+        if (animContainer && window.lottie) {
             window.lottie.loadAnimation({
                 container: animContainer,
                 renderer: "svg",
@@ -292,13 +296,50 @@ async function openFavouritesPage() {
     }
 }
 
-function openTosOverlay(user) {
+function closeTosOverlay() {
     if (!tosOverlayEl) return;
 
+    tosOverlayEl.classList.add("hidden");
+    tosOverlayEl.style.display = "none";
+    document.body.style.overflow = "";
+    // если нужно, можно прятать MainButton при ручном закрытии
+    // hideMainButton();
+}
+
+async function openTosOverlay(user) {
+    if (!tosOverlayEl) return;
+
+    // 1) Подгружаем текст оферты из /static/offer.html один раз
+    if (tosBodyEl && !tosBodyEl.dataset.loaded) {
+        try {
+            const res = await fetch("/static/offer.html", {cache: "no-cache"});
+            if (!res.ok) {
+                throw new Error("Failed to load offer.html");
+            }
+            const html = await res.text();
+            tosBodyEl.innerHTML = html;
+            tosBodyEl.dataset.loaded = "1";
+        } catch (err) {
+            console.error("Не удалось загрузить offer.html:", err);
+            tosBodyEl.innerHTML =
+                "<p>Не удалось загрузить текст публичной оферты. Попробуйте позже.</p>";
+        }
+    }
+
+    // 2) Показываем оверлей
     tosOverlayEl.classList.remove("hidden");
     tosOverlayEl.style.display = "flex";
     document.body.style.overflow = "hidden";
 
+    // 3) Вешаем обработчик на крестик (если он есть)
+    if (tosCloseBtn && !tosCloseBtn.dataset.bound) {
+        tosCloseBtn.addEventListener("click", () => {
+            closeTosOverlay();
+        });
+        tosCloseBtn.dataset.bound = "1";
+    }
+
+    // 4) Telegram MainButton — подтверждение
     showMainButton("Прочитал(а) и соглашаюсь", async () => {
         const payload = {
             is_active: true,
@@ -307,9 +348,7 @@ function openTosOverlay(user) {
         await apiPost('/cart/create', payload);
         await withLoader(openHomePage);
         // прячем оверлей и возвращаем скролл
-        tosOverlayEl.style.display = "none";
-        tosOverlayEl.classList.add("hidden");
-        document.body.style.overflow = "";
+        closeTosOverlay();
     });
 }
 

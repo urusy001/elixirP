@@ -30,27 +30,63 @@
     pointer-events: none;
 }
 
-/* сама карточка с текстом */
+/* сама карточка с текстом (СДЕЛАЛИ ПОБОЛЬШЕ) */
 .tos-modal {
     width: 100%;
-    max-width: 360px;
+    max-width: 420px;           /* было 360px — теперь чуть шире */
+    max-height: 90vh;           /* чтобы почти на весь экран, но с зазором */
     background: #ffffff;
     border-radius: 16px;
-    padding: 18px 16px 16px 16px;
+    padding: 14px 14px 16px 14px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.28);
     display: flex;
     flex-direction: column;
-    gap: 10px;
     font-size: 0.95rem;
+}
+
+/* шапка с заголовком и крестиком */
+.tos-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
 }
 
 /* заголовок */
 .tos-title {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 600;
     color: #1E669E;
-    margin-bottom: 4px;
+    margin: 0;
 }
+
+/* кнопка-крестик */
+.tos-close-btn {
+    border: none;
+    background: transparent;
+    padding: 4px 6px;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+/* СКРОЛЛИМЫЙ ТЕКСТ ОФЕРТЫ */
+.tos-body {
+    flex: 1;
+    overflow-y: auto;          /* вот тут скролл внутри модалки */
+    padding-right: 4px;        /* чтобы скроллбар не ел текст */
+    color: #222;
+    line-height: 1.4;
+    font-size: 0.9rem;
+}
+
+/* немного улучшим абзацы оферты */
+.tos-body p {
+    margin: 0 0 8px;
+}
+
+/* старая верстка — оставляем на всякий случай, если где-то ещё используешь */
 
 /* текст */
 .tos-text {
@@ -87,7 +123,7 @@
     flex: 1;
 }
 
-/* кнопка "Продолжить" */
+/* кнопка "Продолжить" — если вдруг пригодится отдельно от Telegram MainButton */
 #tos-accept-btn {
     margin-top: 10px;
     width: 100%;
