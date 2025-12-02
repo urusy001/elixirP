@@ -347,6 +347,15 @@ async function openTosOverlay(user) {
             };
 
             await apiPost("/cart/create", payload);
+
+            // ✅ Помечаем в фронте, что пользователь уже принял условия
+            // чтобы при следующем переходе через bottom-nav оферта не открывалась снова
+            const currentUser = state.user || user;
+            if (currentUser) {
+                currentUser.accepted_terms = true;
+                state.user = currentUser;
+            }
+
             await withLoader(openHomePage);
 
             // прячем оверлей и возвращаем скролл
