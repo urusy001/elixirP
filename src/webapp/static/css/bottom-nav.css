@@ -120,3 +120,11 @@
 .bottom-nav__badge--hidden {
     display: none;
 }
+
+/* Ручка сумки (перевёрнутая улыбка над сумкой) */
+.bottom-nav__icon-bag-handle {
+    fill: none;               /* только контур */
+    stroke: currentColor;     /* тот же цвет, что и иконка/текст */
+    stroke-width: 1.5;        /* чуть тоньше, чем белая улыбка */
+    stroke-linecap: round;    /* скруглённые края */
+}

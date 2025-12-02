@@ -30,9 +30,7 @@ export async function renderPaymentPage() {
     processPaymentEl.style.display = "none";
 
     if (isTelegramApp()) {
-        showBackButton(() => {
-            navigateTo("/contact");
-        });
+        showBackButton();
 
         // MainButton now sends payment with selected method
         showMainButton("Оформить", handlePaymentSubmit);
@@ -142,10 +140,8 @@ async function handlePaymentSubmit() {
             payment_method,   // 👈 HERE we include chosen method
             source: "telegram",
         };
-
-        const res = await apiPost("/payments/create", {
-            body: JSON.stringify(payload),
-        });
+        alert(JSON.stringify(payload));
+        const res = await apiPost("/payments/create", payload);
 
         if (!res.ok) {
             const text = await res.text().catch(() => "");

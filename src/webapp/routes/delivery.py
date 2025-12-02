@@ -27,7 +27,7 @@ async def cdek_proxy(request: Request):
     elif action == "calculate":
         if isinstance(body, dict):
             to_location = body.get("to_location", None)
-            if to_location and isinstance(to_location, dict): ndpoint = f"{CDEK_API_URL}/calculator/tarifflist"
+            if to_location and isinstance(to_location, dict): endpoint = f"{CDEK_API_URL}/calculator/tarifflist"
             else: return Response(status_code=400, content='{"error": "Invalid to_location"}')
         else: return Response(status_code=400, content='{"error": "Invalid body"}')
     else: return Response(status_code=400, content='{"error": "Unknown action"}')
@@ -288,9 +288,7 @@ async def get_all_pvz():
     This endpoint should respond with:
         { "points": [ ... ] }
     """
-    if not YANDEX_DELIVERY_TOKEN:
-        print('no token bich')
-        raise HTTPException(500, "Token missing")
+    if not YANDEX_DELIVERY_TOKEN: raise HTTPException(500, "Token missing")
 
     payload = {
         "type": "pickup_point",
@@ -307,11 +305,6 @@ async def get_all_pvz():
     }
     url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/pickup-points/list"
 
-    async with httpx.AsyncClient(timeout=60) as client:
-        resp = await client.post(url, json=payload, headers=headers)
-
-    print(resp.text)
-    if resp.status_code != 200:
-        raise HTTPException(resp.status_code, resp.text)
-
+    async with httpx.AsyncClient(timeout=60) as client: resp = await client.post(url, json=payload, headers=headers)
+    if resp.status_code != 200: raise HTTPException(resp.status_code, resp.text)
     return resp.json()

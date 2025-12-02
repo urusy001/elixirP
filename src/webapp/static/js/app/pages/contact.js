@@ -109,9 +109,7 @@ export async function renderContactPage() {
             showLoader();
             const url = `/users?column_name=tg_id&value=${encodeURIComponent(String(uid))}`;
             const res = await apiGet(url);
-            if (!res.ok) return null;
-            const arr = await res.json(); // List[UserRead]
-            return Array.isArray(arr) && arr.length ? arr[0] : null;
+            return res;
         } catch {
             return null;
         } finally {
@@ -134,7 +132,7 @@ export async function renderContactPage() {
     }
 
     hideMainButton();
-    showBackButton(() => navigateTo("/checkout"));
+    showBackButton();
 
     // ---------- Validation ----------
     function validateEmail(v) {

@@ -248,8 +248,5 @@ export async function renderCartPage() {
 
     await withLoader(renderCart);
 
-    if (isTelegramApp()) {
-        showBackButton(() => navigateTo("/"));
-        // main button уже выставлен внутри renderCart / updateTotal
-    }
+    if (isTelegramApp()) showBackButton();
 }

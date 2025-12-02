@@ -85,13 +85,16 @@
                 <!-- сумка -->
                 <path class="bottom-nav__icon-bag"
                       d="M5 8h14a2 2 0 0 1 2 2v10a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V10a2 2 0 0 1 2-2z"/>
+
+                <!-- РУЧКА (перевёрнутая улыбка) -->
+                <path class="bottom-nav__icon-bag-handle"
+                      d="M8 8 Q 12 4 16 8"/>
+
                 <!-- улыбка -->
                 <path class="bottom-nav__icon-bag-smile"
                       d="M8 12a4 4 0 0 0 8 0"
                       fill="none"/>
             </svg>
-
-            <!-- БЕЙДЖ КОРЗИНЫ -->
             <span class="bottom-nav__badge" id="cart-badge">0</span>
         </span>
         <span class="bottom-nav__label">Корзина</span>
@@ -113,7 +116,6 @@
 
 <!-- SPA entry -->
 <script type="module" src="{{ request.url_for('static', path='js/app/main.js') }}"></script>
-<script type="module" src="{{ request.url_for('static', path='js/app/ui.cart-badge.js') }}"></script>
 
 {% block extra_js %}{% endblock %}
 

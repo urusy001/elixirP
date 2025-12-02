@@ -11,8 +11,8 @@ build/
 *.egg-info/
 .ipynb_checkpoints/
 /*.log
-product_photos/
 logs/
 data/
 migrations/versions
+product_photos/
 *.DS_Store
