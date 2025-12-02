@@ -142,9 +142,9 @@ async function handlePaymentSubmit() {
             payment_method,   // 👈 HERE we include chosen method
             source: "telegram",
         };
-
+        alert(JSON.stringify(payload));
         const res = await apiPost("/payments/create", {
-            body: JSON.stringify(payload),
+            body: payload,
         });
 
         if (!res.ok) {
