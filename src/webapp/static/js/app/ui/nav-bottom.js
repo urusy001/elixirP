@@ -12,7 +12,6 @@ export function setupBottomNav() {
 }
 
 export function updateBottomNavActive(normalizedPath) {
-    alert(normalizedPath);
     const navItems = document.querySelectorAll(".bottom-nav__item");
     navItems.forEach(item => {
         item.classList.remove("bottom-nav__item--active");
