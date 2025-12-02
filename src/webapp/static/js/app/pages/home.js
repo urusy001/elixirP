@@ -37,16 +37,22 @@ function productCardHTML(p) {
 
     const sortedFeatures = availableFeatures.sort((a, b) => b.price - a.price);
 
-    const featureSelector = sortedFeatures.length
-        ? `<select class="feature-select" data-onec-id="${onecId}">
-         ${sortedFeatures
-            .map(
-                f =>
-                    `<option value="${f.id}" data-price="${f.price}">${f.name} - ${f.price} ₽</option>`
-            )
-            .join("")}
-       </select>`
-        : "";
+    // ❗ Если нет ни одной фичи с положительным остатком —
+    // НЕ рисуем карточку вообще
+    if (!sortedFeatures.length) {
+        return "";
+    }
+
+    const featureSelector = `
+        <select class="feature-select" data-onec-id="${onecId}">
+            ${sortedFeatures
+        .map(
+            f =>
+                `<option value="${f.id}" data-price="${f.price}">${f.name} - ${f.price} ₽</option>`
+        )
+        .join("")}
+        </select>
+    `;
 
     return `
     <div class="product-card">
@@ -65,7 +71,6 @@ function productCardHTML(p) {
     </div>
   `;
 }
-
 function renderBuyCounter(btn, onecId) {
     const selector = btn.closest(".product-card")?.querySelector(".feature-select");
     const selectedFeatureId = selector?.value || null;
