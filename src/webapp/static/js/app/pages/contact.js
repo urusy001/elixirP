@@ -92,7 +92,6 @@ export async function renderContactPage() {
 
     // ---------- Helpers ----------
     function hasCompleteProfile(u) {
-        alert(`${u.email} ${u.name} ${u.phone} ${u.surname}`);
         return Boolean(u?.name && u?.surname && u?.email && u?.phone);
     }
 
@@ -110,7 +109,6 @@ export async function renderContactPage() {
             showLoader();
             const url = `/users?column_name=tg_id&value=${encodeURIComponent(String(uid))}`;
             const res = await apiGet(url);
-            alert(JSON.stringify(res, null, 2));
             return res;
         } catch {
             return null;
@@ -218,7 +216,6 @@ export async function renderContactPage() {
     if (user_id) {
         userModel = await fetchUserModel(user_id);
     }
-    alert(JSON.stringify(userModel));
 
     if (userModel && hasCompleteProfile(userModel)) {
         const contact_info = {
