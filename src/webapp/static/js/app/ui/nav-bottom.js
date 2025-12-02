@@ -4,9 +4,7 @@ export function setupBottomNav() {
     const items = document.querySelectorAll(".bottom-nav__item");
     items.forEach(item => {
         item.addEventListener("click", (e) => {
-            // Optional: prevent default if these are <a> tags
             e.preventDefault();
-
             const route = item.dataset.route;
             navigateTo(route);
         });
@@ -14,6 +12,7 @@ export function setupBottomNav() {
 }
 
 export function updateBottomNavActive(normalizedPath) {
+    alert(normalizedPath);
     const navItems = document.querySelectorAll(".bottom-nav__item");
     navItems.forEach(item => {
         item.classList.remove("bottom-nav__item--active");
@@ -24,7 +23,6 @@ export function updateBottomNavActive(normalizedPath) {
     });
 }
 
-// Helper to read current path from hash
 export function getCurrentPathFromHash() {
     const hash = window.location.hash || "#/";
     let path = hash.startsWith("#") ? hash.slice(1) : hash;
