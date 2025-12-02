@@ -16,5 +16,6 @@ async def get_users(
         db: AsyncSession = Depends(get_db),
 ):
     user = await get_user(db, column_name, value)
+    print(user or 'no user')
     if not user: return []
     else: return [user]
