@@ -134,7 +134,7 @@ export function showBackButton(onClick) { // keep param, do not use it
         } else navigateTo("/")
     };
 
-    _backButtonHandler = handler;
+    _backButtonHandler = onClick || handler;
     tg.BackButton.show();
     tg.onEvent?.("backButtonClicked", _backButtonHandler);
 
