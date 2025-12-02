@@ -55,7 +55,7 @@
     font-weight: 600;
     color: #222;
 
-    /* Больше не флекс, просто блок */
+    /* не флекс, а блочный с обрезкой по 2 строкам */
     display: -webkit-box;
     -webkit-line-clamp: 2;         /* максимум 2 строки */
     -webkit-box-orient: vertical;
@@ -63,8 +63,9 @@
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.2rem;
-    max-height: calc(1.2rem * 2);  /* на всякий случай фикс по высоте */
+    max-height: calc(1.2rem * 2);  /* фикс по высоте на 2 строки */
 }
+
 /* ---------------- FEATURE SELECT ---------------- */
 .feature-select {
     width: 100%;
@@ -76,6 +77,10 @@
     cursor: pointer;
     box-sizing: border-box;
     transition: border-color 0.2s, box-shadow 0.2s;
+
+    /* толкает селект к низу блока product-info,
+       чтобы он всегда был прямо над кнопкой */
+    margin-top: auto;
 }
 
 .feature-select:hover {
