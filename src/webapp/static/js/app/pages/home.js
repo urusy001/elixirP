@@ -20,10 +20,6 @@ let loading = false;
 // "home" | "favourites" (влияет на бесконечный скролл)
 let mode = "home";
 
-// элементы TOS-модалки
-const tosBodyEl = document.getElementById("tos-body");
-const tosCloseBtn = document.getElementById("tos-close-btn");
-
 function productCardHTML(p) {
     const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
     const sortedFeatures = Array.isArray(p.features)
@@ -296,18 +292,19 @@ async function openFavouritesPage() {
     }
 }
 
+// закрытие только после согласия
 function closeTosOverlay() {
     if (!tosOverlayEl) return;
-
     tosOverlayEl.classList.add("hidden");
     tosOverlayEl.style.display = "none";
     document.body.style.overflow = "";
-    // если нужно, можно прятать MainButton при ручном закрытии
-    // hideMainButton();
+    hideMainButton();
 }
 
 async function openTosOverlay(user) {
     if (!tosOverlayEl) return;
+
+    const tosBodyEl = document.getElementById("tos-body");
 
     // 1) Подгружаем текст оферты из /static/offer.html один раз
     if (tosBodyEl && !tosBodyEl.dataset.loaded) {
@@ -331,24 +328,29 @@ async function openTosOverlay(user) {
     tosOverlayEl.style.display = "flex";
     document.body.style.overflow = "hidden";
 
-    // 3) Вешаем обработчик на крестик (если он есть)
-    if (tosCloseBtn && !tosCloseBtn.dataset.bound) {
-        tosCloseBtn.addEventListener("click", () => {
+    // 3) Шаг 1: MainButton скроллит оферту до низа и меняет текст/хендлер
+    showMainButton("Прокрутить оферту вниз", () => {
+        const body = document.getElementById("tos-body");
+        if (body) {
+            body.scrollTo({
+                top: body.scrollHeight,
+                behavior: "smooth",
+            });
+        }
+
+        // После скролла меняем кнопку на финальное согласие
+        showMainButton("Прочитал(а) и соглашаюсь", async () => {
+            const payload = {
+                is_active: true,
+                user_id: user.tg_id,
+            };
+
+            await apiPost("/cart/create", payload);
+            await withLoader(openHomePage);
+
+            // прячем оверлей и возвращаем скролл
             closeTosOverlay();
         });
-        tosCloseBtn.dataset.bound = "1";
-    }
-
-    // 4) Telegram MainButton — подтверждение
-    showMainButton("Прочитал(а) и соглашаюсь", async () => {
-        const payload = {
-            is_active: true,
-            user_id: user.tg_id,
-        };
-        await apiPost('/cart/create', payload);
-        await withLoader(openHomePage);
-        // прячем оверлей и возвращаем скролл
-        closeTosOverlay();
     });
 }
 
