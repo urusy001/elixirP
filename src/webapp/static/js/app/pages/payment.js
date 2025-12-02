@@ -30,9 +30,7 @@ export async function renderPaymentPage() {
     processPaymentEl.style.display = "none";
 
     if (isTelegramApp()) {
-        showBackButton(() => {
-            navigateTo("/contact");
-        });
+        showBackButton();
 
         // MainButton now sends payment with selected method
         showMainButton("Оформить", handlePaymentSubmit);

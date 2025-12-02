@@ -360,7 +360,7 @@ export function createProceedButton(
 // ---------------------------------------------------------------------------
 export async function renderCheckoutPage() {
     showLoader();
-    showBackButton(() => navigateTo("/cart"));
+    showBackButton();
     cartPageEl.style.display = "none";
     detailEl.style.display = "none";
     listEl.style.display = "none";

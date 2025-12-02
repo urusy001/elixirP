@@ -132,7 +132,7 @@ export async function renderContactPage() {
     }
 
     hideMainButton();
-    showBackButton(() => navigateTo("/checkout"));
+    showBackButton();
 
     // ---------- Validation ----------
     function validateEmail(v) {

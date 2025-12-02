@@ -194,7 +194,7 @@ async function openHomePage() {
 async function openFavouritesPage() {
     mode = "favourites";
     hideMainButton();
-    showBackButton(() => navigateTo("/"));
+    showBackButton();
     navBottomEl.style.display = "flex";
     headerTitle.textContent = "Избранное";
     tosOverlayEl.style.display = "none";
@@ -255,7 +255,7 @@ async function openFavouritesPage() {
 
     const fetchFn = async () => {
         // Берём побольше товаров и фильтруем по избранным.
-        const data = await searchProducts({ q: "", page: 0, limit: 500 });
+        const data = await searchProducts({q: "", page: 0, limit: 500});
         const all = Array.isArray(data?.results) ? data.results : [];
         return all.filter((p) => {
             const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
@@ -291,6 +291,7 @@ async function openFavouritesPage() {
         `;
     }
 }
+
 function openTosOverlay(user) {
     if (!tosOverlayEl) return;
 

@@ -1,4 +1,4 @@
-import { state } from "../state.js";
+import {state} from "../state.js";
 import {navigateTo} from "../router.js";
 import {getCurrentPathFromHash, updateBottomNavActive} from "./nav-bottom.js";
 
@@ -24,7 +24,8 @@ let _backButtonHandler = null;
  */
 export function showMainButton(text, onClick) {
     const tg = state.telegram;
-    if (!isTelegramApp() || !tg?.MainButton) return () => {};
+    if (!isTelegramApp() || !tg?.MainButton) return () => {
+    };
 
     // 1. Remove the *previous* handler, if one exists
     try {
@@ -106,7 +107,8 @@ export function hideBackButton() {
         if (_backButtonHandler) {
             tg.offEvent?.("backButtonClicked", _backButtonHandler);
         }
-    } catch (_) {}
+    } catch (_) {
+    }
 
     _backButtonHandler = null;
     tg.BackButton.hide();
@@ -114,11 +116,13 @@ export function hideBackButton() {
 
 export function showBackButton(onClick) { // keep param, do not use it
     const tg = state.telegram;
-    if (!isTelegramApp() || !tg?.BackButton) return () => {};
+    if (!isTelegramApp() || !tg?.BackButton) return () => {
+    };
 
     try {
         if (_backButtonHandler) tg.offEvent?.("backButtonClicked", _backButtonHandler);
-    } catch (_) {}
+    } catch (_) {
+    }
 
     const handler = () => {
         if (window.history.length > 1) {
