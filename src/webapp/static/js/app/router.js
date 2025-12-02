@@ -5,7 +5,7 @@ import {renderCheckoutPage} from "./pages/checkout.js";
 import {renderContactPage} from "./pages/contact.js";
 import {renderPaymentPage} from "./pages/payment.js";
 import {renderProcessPaymentPage} from "./pages/process-payment.js";
-import {setupBottomNav} from "./ui/nav-bottom.js";
+import {setupBottomNav, updateBottomNavActive} from "./ui/nav-bottom.js";
 
 const routes = [
     {match: p => p === "/" || p === "", action: renderHomePage},
@@ -38,19 +38,9 @@ export async function renderCurrentPath() {
 export function navigateTo(path) {
     setupBottomNav();
     const normalized = path.startsWith("/") ? path : `/${path}`;
-    const navItems = document.querySelectorAll(".bottom-nav__item");
-    navItems.forEach(item => {
-        // Remove active class from everyone first
-        item.classList.remove("bottom-nav__item--active");
-
-        // Check if this button's route matches the path we are going to
-        if (`/${item.dataset.route}` === normalized) {
-            item.classList.add("bottom-nav__item--active");
-        }
-    });
+    updateBottomNavActive(normalized);
     const targetHash = `#${normalized}`;
     if (window.location.hash === targetHash) return;
-
     window.location.hash = normalized;
 }
 
