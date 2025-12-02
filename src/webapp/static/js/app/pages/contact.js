@@ -110,7 +110,7 @@ export async function renderContactPage() {
             showLoader();
             const url = `/users?column_name=tg_id&value=${encodeURIComponent(String(uid))}`;
             const res = await apiGet(url);
-            alert(res.ok);
+            alert(JSON.stringify(res, null, 2));
             if (!res.ok) return null;
             const arr = await res.json(); // List[UserRead]
             return Array.isArray(arr) && arr.length ? arr[0] : null;
