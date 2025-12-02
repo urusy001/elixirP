@@ -123,6 +123,7 @@ async function loadMore(container, append = false, useLoader = true) {
     try {
         const fetchFn = async () => {
             const data = await searchProducts({q: "", page});
+            alert(JSON.stringify(data, null, 2));
             if (!data.results || !Array.isArray(data.results)) data.results = [];
             return data.results;
         };
