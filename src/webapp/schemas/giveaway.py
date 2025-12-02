@@ -57,3 +57,6 @@ class GiveawayRead(GiveawayBase):
 
     class Config:
         orm_mode = True
+
+
+#TODO: Adjust schemas to new models

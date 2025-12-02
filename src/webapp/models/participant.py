@@ -39,3 +39,5 @@ class Participant(Base):
             self.completed_deal,
             self.completed_review
         ])
+
+    #TODO: Add functions to handle separate completion checks for each requirement

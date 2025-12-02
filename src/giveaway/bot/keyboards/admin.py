@@ -35,7 +35,10 @@ class GiveawayMenu(InlineKeyboardMarkup):
             [InlineKeyboardButton(text='👥 Посмотреть участников', callback_data=f'admin:view_participants:{giveaway_id}'),
              InlineKeyboardButton(text='🔒 Закрыть розыгрыш', callback_data=f'admin:close_giveaway:{giveaway_id}') if not closed else
              InlineKeyboardButton(text='🍾 Открыть розыгрыш', callback_data=f'admin:open_giveaway:{giveaway_id}')],
-            [InlineKeyboardButton(text='🗑️ Удалить розыгрыш', callback_data=f'admin:delete_giveaway:{giveaway_id}')],
+            [InlineKeyboardButton(text='🗑️ Удалить розыгрыш', callback_data=f'admin:delete_giveaway:{giveaway_id}')], #TODO: Add a button Изменить розыгрыш which leads to a menu of chosing what to change
             [InlineKeyboardButton(text='🔙 Главное меню', callback_data='admin:main_menu')],
         ]
         super().__init__(inline_keyboard=keyboard)
+
+
+#TODO: Add child buttons for each attribute of a Изменить розыгрыш

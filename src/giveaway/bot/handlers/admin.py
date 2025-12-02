@@ -230,6 +230,7 @@ async def handle_closed_text(message: Message, state: FSMContext):
 
 @router.callback_query(lambda call: call.data.startswith("admin") and call.from_user and call.from_user.id in OWNER_TG_IDS and call.message.chat.type == "private")
 async def handle_admin_call(call: CallbackQuery, state: FSMContext):
+    #TODO: Add handlers for changing giveaway attributes ()
     data = call.data.split(':')[1:]
     current_state = await state.get_state()
     state_data = await state.get_data()

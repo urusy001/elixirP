@@ -247,8 +247,7 @@ class AsyncAmoCRM:
             }
 
         endpoint = f"/api/v4/leads?query=№{code_str}"
-        try:
-            data = await self.get(endpoint)
+        try: data = await self.get(endpoint)
         except Exception as e:
             msg = f"<b>Ошибка запроса к AmoCRM:</b> {e}"
             return {

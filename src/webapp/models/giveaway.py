@@ -45,3 +45,6 @@ class Giveaway(Base):
         back_populates="giveaway",
         cascade="all, delete-orphan",
     )
+
+#TODO: Add unique column to define whether the giveaway codes need to be given 1 for all or 1 for 1
+#TODO: Add availability to change giveaway attributes from bot's admin panel
