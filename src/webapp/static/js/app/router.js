@@ -5,6 +5,7 @@ import {renderCheckoutPage} from "./pages/checkout.js";
 import {renderContactPage} from "./pages/contact.js";
 import {renderPaymentPage} from "./pages/payment.js";
 import {renderProcessPaymentPage} from "./pages/process-payment.js";
+import {setupBottomNav} from "./ui/nav-bottom.js";
 
 const routes = [
     {match: p => p === "/" || p === "", action: renderHomePage},
@@ -35,6 +36,7 @@ export async function renderCurrentPath() {
 }
 
 export function navigateTo(path) {
+    setupBottomNav();
     const normalized = path.startsWith("/") ? path : `/${path}`;
     const navItems = document.querySelectorAll(".bottom-nav__item");
     navItems.forEach(item => {
