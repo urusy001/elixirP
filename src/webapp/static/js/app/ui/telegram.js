@@ -1,4 +1,5 @@
 import { state } from "../state.js";
+import {navigateTo} from "../router.js";
 
 /* ---------------- TELEGRAM DETECTION ---------------- */
 export function isTelegramApp() {
@@ -95,13 +96,66 @@ export function hideMainButton() {
     _mainButtonHandler = null;
 }
 
-/* ---------------- BACK BUTTON ---------------- */
+
+
+///////////
+export function hideBackButton() {
+    const tg = state.telegram;
+    if (!isTelegramApp() || !tg?.BackButton) return;
+
+    try {
+        if (_backButtonHandler) {
+            tg.offEvent?.("backButtonClicked", _backButtonHandler);
+        }
+    } catch (_) {}
+
+    _backButtonHandler = null;
+    tg.BackButton.hide();
+}
+
+/**
+ * For now: ignore `onClick` completely and just behave
+ * like a real back button using history + hash routing.
+ */
+export function showBackButton(onClick) { // keep param, don't use it
+    const tg = state.telegram;
+    if (!isTelegramApp() || !tg?.BackButton) return () => {};
+
+    // 1. Remove previous handler if any
+    try {
+        if (_backButtonHandler) {
+            tg.offEvent?.("backButtonClicked", _backButtonHandler);
+        }
+    } catch (_) {}
+
+    // 2. Real back behavior
+    const handler = () => {
+        if (window.history.length > 1) {
+            // will step back to previous hash, your router reacts
+            window.history.back();
+        } else {
+            // no history inside webview → go “home”
+            navigateTo("/");
+        }
+    };
+
+    _backButtonHandler = handler;
+    tg.BackButton.show();
+    tg.onEvent?.("backButtonClicked", _backButtonHandler);
+
+    // 3. Cleanup: only hide if this handler is still active
+    return () => {
+        if (_backButtonHandler === handler) {
+            hideBackButton();
+        }
+    };
+}/* ---------------- BACK BUTTON ---------------- */
 
 /**
  * Shows the Back Button and sets its handler.
  * @returns {Function} A cleanup function to hide the button.
  */
-export function showBackButton(onClick) {
+export function showBackButton1(onClick) {
     const tg = state.telegram;
     if (!isTelegramApp() || !tg?.BackButton) return () => {};
 
@@ -129,7 +183,7 @@ export function showBackButton(onClick) {
 /**
  * Hides the Back Button and removes its handler.
  */
-export function hideBackButton(showClose = true, onClose = null) {
+export function hideBackButton1(showClose = true, onClose = null) {
     const tg = state.telegram;
     if (!isTelegramApp() || !tg?.BackButton) return;
 
