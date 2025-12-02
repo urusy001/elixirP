@@ -37,8 +37,7 @@ function productCardHTML(p) {
 
     const sortedFeatures = availableFeatures.sort((a, b) => b.price - a.price);
 
-    // ❗ Если нет ни одной фичи с положительным остатком —
-    // НЕ рисуем карточку вообще
+    // Если нет ни одной фичи с положительным остатком — вообще НЕ рисуем карточку
     if (!sortedFeatures.length) {
         return "";
     }
@@ -48,7 +47,11 @@ function productCardHTML(p) {
             ${sortedFeatures
         .map(
             f =>
-                `<option value="${f.id}" data-price="${f.price}">${f.name} - ${f.price} ₽</option>`
+                `<option value="${f.id}"
+                                 data-price="${f.price}"
+                                 data-balance="${Number(f.balance ?? 0)}">
+                             ${f.name} - ${f.price} ₽
+                         </option>`
         )
         .join("")}
         </select>
@@ -71,10 +74,34 @@ function productCardHTML(p) {
     </div>
   `;
 }
+
 function renderBuyCounter(btn, onecId) {
-    const selector = btn.closest(".product-card")?.querySelector(".feature-select");
+    const card = btn.closest(".product-card");
+    const selector = card?.querySelector(".feature-select");
     const selectedFeatureId = selector?.value || null;
     const key = selectedFeatureId ? `${onecId}_${selectedFeatureId}` : onecId;
+
+    const getMaxBalance = () => {
+        if (!selector) return Infinity;
+        const opt = selector.selectedOptions?.[0];
+        if (!opt) return Infinity;
+        const bal = Number(opt.dataset.balance ?? Infinity);
+        if (!Number.isFinite(bal) || bal <= 0) return Infinity; // на всякий случай
+        return bal;
+    };
+
+    const maxBalance = getMaxBalance();
+
+    // Приводим текущее количество к допустимому (не больше баланса)
+    const current = state.cart[key] || 0;
+    const safeCount = Math.min(current, maxBalance);
+    if (safeCount !== current) {
+        if (safeCount > 0) {
+            state.cart[key] = safeCount;
+        } else {
+            delete state.cart[key];
+        }
+    }
     const count = state.cart[key] || 0;
 
     btn.innerHTML = "";
@@ -84,6 +111,8 @@ function renderBuyCounter(btn, onecId) {
         add.textContent = "+ В корзину";
         add.className = "buy-btn-initial";
         add.onclick = () => {
+            const max = getMaxBalance();
+            if (max <= 0) return;
             state.cart[key] = 1;
             saveCart();
             renderBuyCounter(btn, onecId);
@@ -93,21 +122,35 @@ function renderBuyCounter(btn, onecId) {
         const minus = document.createElement("button");
         minus.textContent = "−";
         minus.onclick = () => {
-            state.cart[key] = (state.cart[key] || 0) - 1;
-            if (state.cart[key] <= 0) delete state.cart[key];
+            const current = state.cart[key] || 0;
+            const next = current - 1;
+            if (next <= 0) {
+                delete state.cart[key];
+            } else {
+                state.cart[key] = next;
+            }
             saveCart();
             renderBuyCounter(btn, onecId);
         };
+
         const qty = document.createElement("span");
         qty.textContent = state.cart[key];
         qty.style.margin = "0 4px";
+
         const plus = document.createElement("button");
         plus.textContent = "+";
         plus.onclick = () => {
-            state.cart[key] = (state.cart[key] || 0) + 1;
+            const max = getMaxBalance();
+            const current = state.cart[key] || 0;
+            if (current >= max) {
+                // Можно добавить какое-то уведомление/вибрацию, если захочешь
+                return;
+            }
+            state.cart[key] = current + 1;
             saveCart();
             renderBuyCounter(btn, onecId);
         };
+
         btn.append(minus, qty, plus);
     }
 
@@ -139,9 +182,38 @@ async function loadMore(container, append = false, useLoader = true) {
 
     try {
         const fetchFn = async () => {
-            const data = await searchProducts({q: "", page});
-            if (!data.results || !Array.isArray(data.results)) data.results = [];
-            return data.results;
+            const collected = [];
+            let localPage = page;
+
+            while (true) {
+                const data = await searchProducts({q: "", page: localPage});
+                const rawResults = Array.isArray(data.results) ? data.results : [];
+
+                if (!rawResults.length) {
+                    // Ничего больше нет — выходим
+                    break;
+                }
+
+                // Отфильтруем тут те продукты, у которых вообще нет фич с balance > 0
+                for (const p of rawResults) {
+                    const features = Array.isArray(p.features) ? p.features : [];
+                    const hasStock = features.some(f => Number(f.balance ?? 0) > 0);
+                    if (!hasStock) continue;
+                    collected.push(p);
+                }
+
+                localPage += 1;
+
+                // Если набрали хотя бы 4 товара — достаточно
+                if (collected.length >= 4) {
+                    break;
+                }
+            }
+
+            // Обновляем глобальный page на следующую страницу после последней взятой
+            page = localPage;
+
+            return collected;
         };
 
         const results = useLoader ? await withLoader(fetchFn) : await fetchFn();
@@ -151,7 +223,6 @@ async function loadMore(container, append = false, useLoader = true) {
         else container.innerHTML = html;
 
         attachProductInteractions(container);
-        page++;
     } catch (err) {
         console.error("[Products] load failed:", err);
     } finally {
@@ -202,7 +273,8 @@ async function openHomePage() {
     paymentPageEl.style.display = "none";
     processPaymentEl.style.display = "none";
 
-    page = 1;
+    // начинаем с 0-й страницы, а loadMore сам будет дотягивать, если < 4
+    page = 0;
     await loadMore(listEl, false);
     setupInfiniteScroll(listEl);
 }
@@ -280,6 +352,12 @@ async function openFavouritesPage() {
         const all = Array.isArray(data?.results) ? data.results : [];
         return all.filter((p) => {
             const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
+
+            // тут тоже можем отсечь товары без остатка
+            const features = Array.isArray(p.features) ? p.features : [];
+            const hasStock = features.some(f => Number(f.balance ?? 0) > 0);
+            if (!hasStock) return false;
+
             return favSet.has(String(onecId));
         });
     };
@@ -313,7 +391,6 @@ async function openFavouritesPage() {
     }
 }
 
-// закрытие только после согласия
 // закрытие только после согласия
 function closeTosOverlay() {
     if (!tosOverlayEl) return;
@@ -365,8 +442,7 @@ async function openTosOverlay(user) {
 
             await apiPost("/cart/create", payload);
 
-            // ✅ Помечаем в фронте, что пользователь уже принял условия
-            // чтобы при следующем переходе через bottom-nav оферта не открывалась снова
+            // помечаем в фронте, что пользователь уже принял условия
             const currentUser = state.user || user;
             if (currentUser) {
                 currentUser.accepted_terms = true;
