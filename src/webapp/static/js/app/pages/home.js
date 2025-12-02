@@ -369,7 +369,7 @@ async function openTosOverlay(user) {
     }
 
     // 4) Первый шаг: MainButton скроллит оферту до низа и потом включает acceptMode
-    showMainButton("Прокрутить оферту вниз", () => {
+    showMainButton("Прокрутить вниз", () => {
         const body = document.getElementById("tos-body");
         if (body) {
             body.scrollTo({

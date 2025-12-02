@@ -65,3 +65,101 @@
     transform: scale(1.2);
     transform-origin: center;
 }
+
+/* ---------------- TOS OVERLAY (desktop / default) ---------------- */
+
+#tos-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    width: 100vw;
+    height: 100vh;
+
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    z-index: 2147483646;
+    opacity: 1;
+    transition: opacity 0.25s ease;
+    pointer-events: all;
+    padding: 0 16px;
+}
+
+#tos-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tos-modal {
+    width: 100%;
+    max-width: 420px;
+    max-height: 90vh;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 14px 14px 16px 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+    display: flex;
+    flex-direction: column;
+    font-size: 0.95rem;
+}
+
+.tos-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.tos-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #1E669E;
+    margin: 0;
+}
+
+.tos-body {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+    color: #222;
+    line-height: 1.4;
+    font-size: 0.9rem;
+}
+
+.tos-body p {
+    margin: 0 0 8px;
+}
+
+/* ---------------- MOBILE FIX ---------------- */
+/* На телефонах делаем модалку реально full-screen,
+   чтобы Telegram/вьюпорт её не "сжимал" */
+
+@media (max-width: 600px) {
+    #tos-overlay {
+        padding: 0;                 /* без боковых отступов */
+        align-items: stretch;       /* растягиваем по высоте экрана */
+        justify-content: stretch;
+    }
+
+    .tos-modal {
+        max-width: 100%;
+        width: 100%;
+        max-height: 100vh;
+        height: 100vh;              /* занимает весь экран */
+        border-radius: 0;           /* можно как «нативный» экран */
+        padding: 12px 12px 16px 12px;
+    }
+
+    .tos-body {
+        flex: 1;
+        overflow-y: auto;
+    }
+}
