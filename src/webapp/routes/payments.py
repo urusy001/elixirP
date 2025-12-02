@@ -40,6 +40,8 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
 
     user_upsert = UserCreate(**contact_info.model_dump(), tg_id=user_id)
     user = await upsert_user(db, user_upsert)
+    print(json.dumps(user, indent=4, ensure_ascii=False))
+    print(user)
 
     log.info("Create payment payload: %s", ())
     order_number = str(datetime.now().timestamp())
