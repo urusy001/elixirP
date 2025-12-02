@@ -1,17 +1,21 @@
 import {searchProducts} from "../../services/productService.js";
 import {hideLoader, showLoader, withLoader} from "../ui/loader.js";
 import {navigateTo} from "../router.js";
-import {state, saveCart} from "../state.js";
+import {saveCart, state} from "../state.js";
 import {hideBackButton, hideMainButton, showBackButton, showMainButton} from "../ui/telegram.js";
 import {
     cartPageEl,
     checkoutPageEl,
-    contactPageEl, detailEl,
-    headerTitle, listEl, navBottomEl,
+    contactPageEl,
+    detailEl,
+    headerTitle,
+    listEl,
+    navBottomEl,
     paymentPageEl,
     processPaymentEl,
     searchBtnEl,
-    toolbarEl, tosOverlayEl
+    toolbarEl,
+    tosOverlayEl
 } from "./constants.js";
 import {apiPost} from "../../services/api.js";
 
@@ -293,6 +297,7 @@ async function openFavouritesPage() {
 }
 
 // закрытие только после согласия
+// закрытие только после согласия
 function closeTosOverlay() {
     if (!tosOverlayEl) return;
     tosOverlayEl.classList.add("hidden");
@@ -309,12 +314,11 @@ async function openTosOverlay(user) {
     // 1) Подгружаем текст оферты из /static/offer.html один раз
     if (tosBodyEl && !tosBodyEl.dataset.loaded) {
         try {
-            const res = await fetch("/static/offer.html", {cache: "no-cache"});
+            const res = await fetch("/static/offer.html", { cache: "no-cache" });
             if (!res.ok) {
                 throw new Error("Failed to load offer.html");
             }
-            const html = await res.text();
-            tosBodyEl.innerHTML = html;
+            tosBodyEl.innerHTML = await res.text();
             tosBodyEl.dataset.loaded = "1";
         } catch (err) {
             console.error("Не удалось загрузить offer.html:", err);
@@ -328,17 +332,14 @@ async function openTosOverlay(user) {
     tosOverlayEl.style.display = "flex";
     document.body.style.overflow = "hidden";
 
-    // 3) Шаг 1: MainButton скроллит оферту до низа и меняет текст/хендлер
-    showMainButton("Прокрутить оферту вниз", () => {
-        const body = document.getElementById("tos-body");
-        if (body) {
-            body.scrollTo({
-                top: body.scrollHeight,
-                behavior: "smooth",
-            });
-        }
+    // локальный флаг: уже ли мы переключили кнопку на "соглашаюсь"
+    let acceptMode = false;
 
-        // После скролла меняем кнопку на финальное согласие
+    const setAcceptButton = () => {
+        if (acceptMode) return;
+        acceptMode = true;
+
+        // второй шаг — реальное согласие
         showMainButton("Прочитал(а) и соглашаюсь", async () => {
             const payload = {
                 is_active: true,
@@ -351,6 +352,32 @@ async function openTosOverlay(user) {
             // прячем оверлей и возвращаем скролл
             closeTosOverlay();
         });
+    };
+
+    // 3) Листенер: если юзер сам докрутил до низа — сразу включаем acceptMode
+    if (tosBodyEl && !tosBodyEl.dataset.scrollBound) {
+        tosBodyEl.addEventListener("scroll", () => {
+            const el = tosBodyEl;
+            const atBottom =
+                el.scrollTop + el.clientHeight >= el.scrollHeight - 10; // небольшой зазор
+
+            if (!acceptMode && atBottom) {
+                setAcceptButton();
+            }
+        });
+        tosBodyEl.dataset.scrollBound = "1";
+    }
+
+    // 4) Первый шаг: MainButton скроллит оферту до низа и потом включает acceptMode
+    showMainButton("Прокрутить оферту вниз", () => {
+        const body = document.getElementById("tos-body");
+        if (body) {
+            body.scrollTo({
+                top: body.scrollHeight,
+                behavior: "smooth",
+            });
+        }
+        setAcceptButton();
     });
 }
 
