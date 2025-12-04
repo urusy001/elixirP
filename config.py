@@ -64,6 +64,7 @@ TELETHON_PHONE    = env("TELETHON_PHONE", "")
 TELETHON_PASSWORD = env("TELETHON_PASSWORD", None)
 
 ANTISPAM_BOT_TOKEN       = env("ANTISPAM_BOT_TOKEN", "")
+ADMIN_PANEL_TOKEN        = env("ADMIN_PANEL_TOKEN", "")
 REPORTS_CHANNEL_ID       = env_int("REPORTS_CHANNEL_ID", 0)
 ELIXIR_CHAT_ID           = env_int("ELIXIR_CHAT_ID", 0)
 
@@ -94,7 +95,7 @@ WORKING_DIR = BASE_DIR  # alias if other modules expect it
 
 SPA_DIR = BASE_DIR / "src" / "webapp" / "static"
 SRC_DIR       = BASE_DIR / "src"
-PHOTOS_DIR    = BASE_DIR / "product_photos"
+IMAGES_DIR    = SRC_DIR / "webapp" / "static" / "images"
 ANTISPAM_DIR  = SRC_DIR  / "antispam"
 DATA_DIR      = BASE_DIR / "data"
 LOGS_DIR      = BASE_DIR / "logs"

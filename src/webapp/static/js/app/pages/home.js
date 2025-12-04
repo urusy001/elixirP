@@ -21,13 +21,10 @@ import {apiPost} from "../../services/api.js";
 
 let page = 0;
 let loading = false;
-// "home" | "favourites" (влияет на бесконечный скролл)
 let mode = "home";
 
 function productCardHTML(p) {
     const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
-
-    // Берём только те фичи, у которых balance > 0
     const rawFeatures = Array.isArray(p.features) ? p.features : [];
 
     const availableFeatures = rawFeatures.filter(f => {
@@ -42,6 +39,10 @@ function productCardHTML(p) {
         return "";
     }
 
+    // Базовый путь к картинке товара по onec_id
+    const productImg = `/static/images/${onecId}.png`;
+    const defaultImg = "/static/images/product.png";
+
     const featureSelector = `
         <select class="feature-select" data-onec-id="${onecId}">
             ${sortedFeatures
@@ -49,7 +50,8 @@ function productCardHTML(p) {
             f =>
                 `<option value="${f.id}"
                                  data-price="${f.price}"
-                                 data-balance="${Number(f.balance ?? 0)}">
+                                 data-balance="${Number(f.balance ?? 0)}"
+                                 data-feature-onec-id="${f.onec_id || ""}">
                              ${f.name} - ${f.price} ₽
                          </option>`
         )
@@ -61,9 +63,12 @@ function productCardHTML(p) {
     <div class="product-card">
       <a href="/product/${onecId}" class="product-link" data-onec-id="${onecId}">
         <div class="product-image">
-          <img src="/static/images/product.png"
-               data-highres="${p.image || '/static/images/product.png'}"
-               alt="${p.name}" class="product-img">
+          <img
+               src="${productImg}"
+               data-product-img="${productImg}"
+               data-default-img="${defaultImg}"
+               alt="${p.name}"
+               class="product-img">
         </div>
       </a>
       <div class="product-info">
@@ -75,9 +80,65 @@ function productCardHTML(p) {
   `;
 }
 
+/**
+ * Обновляет картинку в карточке товара в зависимости от выбранной дозировки.
+ * Приоритет:
+ *   1) /static/images/feature_<feature_onec_id>.png
+ *   2) /static/images/<onec_id>.png
+ *   3) /static/images/product.png
+ */
+function updateProductImageForSelection(card) {
+    if (!card) return;
+
+    const img = card.querySelector(".product-img");
+    const selector = card.querySelector(".feature-select");
+    if (!img) return;
+
+    const productImg = img.dataset.productImg || "";
+    const defaultImg = img.dataset.defaultImg || "/static/images/product.png";
+
+    const opt = selector?.selectedOptions?.[0] || null;
+    const featureOnecId = opt?.dataset.featureOnecId;
+
+    const setWithFallbacks = (sources) => {
+        const chain = sources.filter(Boolean);
+        if (!chain.length) return;
+
+        let idx = 0;
+        img.onerror = null;
+
+        const tryNext = () => {
+            if (idx >= chain.length) {
+                img.onerror = null;
+                return;
+            }
+            const nextSrc = chain[idx++];
+            img.src = nextSrc;
+        };
+
+        img.onerror = () => {
+            tryNext();
+        };
+
+        tryNext();
+    };
+
+    if (featureOnecId) {
+        // сначала пробуем картинку дозы, потом картинку товара, потом дефолтную
+        const featureImg = `/static/images/feature_${featureOnecId}.png`;
+        setWithFallbacks([featureImg, productImg, defaultImg]);
+    } else {
+        setWithFallbacks([productImg, defaultImg]);
+    }
+}
+
 function renderBuyCounter(btn, onecId) {
     const card = btn.closest(".product-card");
     const selector = card?.querySelector(".feature-select");
+
+    // Обновляем картинку под выбранную дозу
+    updateProductImageForSelection(card);
+
     const selectedFeatureId = selector?.value || null;
     const key = selectedFeatureId ? `${onecId}_${selectedFeatureId}` : onecId;
 
@@ -85,7 +146,7 @@ function renderBuyCounter(btn, onecId) {
         if (!selector) return Infinity;
         const opt = selector.selectedOptions?.[0];
         if (!opt) return Infinity;
-        const bal = Number(opt.dataset.balance ?? Infinity);
+        const bal = Number(opt.dataset.balance ?? 0);
         if (!Number.isFinite(bal) || bal <= 0) return Infinity; // на всякий случай
         return bal;
     };
@@ -143,7 +204,7 @@ function renderBuyCounter(btn, onecId) {
             const max = getMaxBalance();
             const current = state.cart[key] || 0;
             if (current >= max) {
-                // Можно добавить какое-то уведомление/вибрацию, если захочешь
+                // Можно добавить уведомление, вибрацию и т.п.
                 return;
             }
             state.cart[key] = current + 1;
@@ -155,7 +216,10 @@ function renderBuyCounter(btn, onecId) {
     }
 
     if (selector && !selector.dataset.counterBound) {
-        selector.addEventListener("change", () => renderBuyCounter(btn, onecId));
+        selector.addEventListener("change", () => {
+            updateProductImageForSelection(card);
+            renderBuyCounter(btn, onecId);
+        });
         selector.dataset.counterBound = "1";
     }
 }
@@ -334,7 +398,7 @@ async function openFavouritesPage() {
                 renderer: "svg",
                 loop: true,
                 autoplay: true,
-                path: "/static/stickers/utya-fav.json", // или "static/..." если так раздаёшь
+                path: "/static/stickers/utya-fav.json",
                 rendererSettings: {
                     preserveAspectRatio: "xMidYMid meet",
                 },
@@ -353,7 +417,6 @@ async function openFavouritesPage() {
         return all.filter((p) => {
             const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
 
-            // тут тоже можем отсечь товары без остатка
             const features = Array.isArray(p.features) ? p.features : [];
             const hasStock = features.some(f => Number(f.balance ?? 0) > 0);
             if (!hasStock) return false;

@@ -14,5 +14,5 @@ build/
 logs/
 data/
 migrations/versions
-product_photos/
+photos/
 *.DS_Store
