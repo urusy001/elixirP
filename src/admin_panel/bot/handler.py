@@ -86,8 +86,16 @@ async def handle_callback(call: CallbackQuery, state: FSMContext):
         feature_onec_id = data[1]
         dose_name = doses.get(feature_onec_id, None)
         photo_path = IMAGES_DIR / f'{feature_onec_id}.png'
-        if photo_path.exists(): await call.message.answer_photo(FSInputFile(photo_path), caption=texts.feature_caption)
+        if photo_path.exists():
+            await call.message.answer_photo(FSInputFile(photo_path), caption=texts.feature_caption)
+            await call.message.answer('Нажмите кнопку ниже, чтоб удалить фото для дозировки', reply_markup=keyboards.DeletePhoto(feature_onec_id))
         else: await call.message.answer(f"Дозировака успешно изменена{(' на ' + dose_name) if dose_name else ''}")
         await state.set_state(states.ProductActions.set_feature_photo)
         await state.update_data(feature_onec_id=feature_onec_id)
 
+    elif data[0] == "delete_photo":
+        onec_id = data[1]
+        photo_path = IMAGES_DIR / f'{onec_id}.png'
+        if photo_path.exists():
+            photo_path.unlink()
+            await call.message.edit_text('Фото успешно удалено', reply_markup=None)
