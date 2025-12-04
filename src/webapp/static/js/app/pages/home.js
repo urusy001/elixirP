@@ -125,7 +125,7 @@ function updateProductImageForSelection(card) {
 
     if (featureOnecId) {
         // сначала пробуем картинку дозы, потом картинку товара, потом дефолтную
-        const featureImg = `/static/images/feature_${featureOnecId}.png`;
+        const featureImg = `/static/images/${featureOnecId}.png`;
         setWithFallbacks([featureImg, productImg, defaultImg]);
     } else {
         setWithFallbacks([productImg, defaultImg]);
