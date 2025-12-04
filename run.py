@@ -2,6 +2,7 @@ import logging
 import asyncio
 import signal
 
+from src.admin_panel.bot.main import run_admin_bot
 from src.delivery.sdek import client as cdek_client
 from src.onec import OneCEnterprise
 from src.webapp.main import run_app
@@ -18,6 +19,7 @@ logger = logging.getLogger("main")
 
 async def main():
     tasks = [
+        asyncio.create_task(run_admin_bot()),
         asyncio.create_task(OneCEnterprise().postgres_worker(), name="OneCEnterprise"),
         asyncio.create_task(run_app(), name="WebApp"),
         asyncio.create_task(cdek_client.token_worker(), name="TokenWorker"),
