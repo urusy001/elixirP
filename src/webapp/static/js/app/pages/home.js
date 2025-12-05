@@ -213,10 +213,10 @@ function attachProductInteractions(container) {
     container.querySelectorAll(".feature-select").forEach(select => {
         if (select.dataset.imageBound) return;
 
-        // 1. Set initial correct image based on first option (optional, if you want features to override product img immediately)
-        // updateCardImage(select);
+        // 1. Immediately set the image to the "active" feature (selected option)
+        updateCardImage(select);
 
-        // 2. Listen for changes
+        // 2. Listen for future changes
         select.addEventListener("change", () => {
             updateCardImage(select);
         });
