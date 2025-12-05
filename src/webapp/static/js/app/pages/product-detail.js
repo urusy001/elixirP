@@ -48,6 +48,8 @@ function updateLocalFavourites(onec_id, shouldBeFav) {
 }
 
 export async function renderProductDetailPage(onec_id) {
+    const productImgPath = `/static/images/${onec_id}.png`;
+    const defaultImgPath = "/static/images/product.png";
     // Hide other views
     navBottomEl.style.display = "none";
     toolbarEl.style.display = "none";
@@ -155,7 +157,11 @@ export async function renderProductDetailPage(onec_id) {
     <div class="product-detail-container">
       <div class="product-main">
         <div class="product-image">
-          <img src="${data.product.image || "/static/images/product.png"}" alt="">
+          <img
+            src="${productImgPath}"
+            alt="${data.product.name || ""}"
+            onerror="this.onerror=null;this.src='${defaultImgPath}';"
+          >
         </div>
         <div class="product-info">
           <h1></h1>
@@ -167,7 +173,6 @@ export async function renderProductDetailPage(onec_id) {
         </div>
       </div>
     </div>`;
-
     // Populate trusted HTML content
     const infoEl = detailEl.querySelector(".product-info");
     infoEl.querySelector("h1").textContent = data.product.name;
