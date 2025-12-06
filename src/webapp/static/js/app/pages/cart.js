@@ -244,8 +244,8 @@ export async function renderCartPage() {
     navBottomEl.style.display = "flex";
     profilePageEl.style.display = "none";
     cartPageEl.style.display = "block";
-    headerTitle.textContent = "Корзина";
-    searchBtnEl.style.display = "flex";
+    headerTitle.textContent = "";
+    searchBtnEl.style.display = "none";
 
     await withLoader(renderCart);
 

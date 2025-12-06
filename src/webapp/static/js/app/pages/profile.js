@@ -13,8 +13,10 @@ import {
     toolbarEl
 } from "./constants.js";
 import {state} from "../state.js";
+import {showLoader} from "../ui/loader";
 
 export function renderProfilePage() {
+    showLoader()
     profilePageEl.style.display = "block";
     navBottomEl.style.display = "flex";
     toolbarEl.style.display = "none";

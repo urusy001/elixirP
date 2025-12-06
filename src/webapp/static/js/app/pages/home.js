@@ -341,11 +341,11 @@ async function openFavouritesPage() {
     hideMainButton();
     showBackButton();
     navBottomEl.style.display = "flex";
-    headerTitle.textContent = "Избранное";
+    headerTitle.textContent = "";
     tosOverlayEl.style.display = "none";
     listEl.style.display = "grid";
     toolbarEl.style.display = "none";
-    searchBtnEl.style.display = "flex";
+    searchBtnEl.style.display = "none";
     detailEl.style.display = "none";
     cartPageEl.style.display = "none";
     checkoutPageEl.style.display = "none";
