@@ -323,6 +323,7 @@ async function openHomePage() {
     contactPageEl.style.display = "none";
     paymentPageEl.style.display = "none";
     processPaymentEl.style.display = "none";
+    profilePageEl.style.display = "none";
 
     // начинаем с 0-й страницы, а loadMore сам будет дотягивать, если < 4
     page = 0;
