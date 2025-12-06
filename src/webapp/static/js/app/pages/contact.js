@@ -11,7 +11,7 @@ import {
     cartPageEl,
     checkoutPageEl,
     contactPageEl, detailEl,
-    headerTitle, listEl,
+    headerTitle, listEl, navBottomEl,
     paymentPageEl,
     processPaymentEl,
     searchBtnEl,
@@ -41,6 +41,7 @@ export async function renderContactPage() {
     paymentPageEl.style.display = "none";
     contactPageEl.style.display = "block";
     processPaymentEl.style.display = "none";
+    navBottomEl.style.display = "none";
 
     // Prevent default submit/enter
     form.addEventListener("submit", (e) => e.preventDefault());

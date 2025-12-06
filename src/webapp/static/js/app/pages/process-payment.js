@@ -3,7 +3,7 @@ import {
     cartPageEl,
     checkoutPageEl,
     contactPageEl, detailEl,
-    headerTitle, listEl,
+    headerTitle, listEl, navBottomEl,
     paymentPageEl,
     processPaymentEl,
     searchBtnEl,
@@ -22,5 +22,5 @@ export async function renderProcessPaymentPage() {
     paymentPageEl.style.display = "none";
     searchBtnEl.style.display = "none";
     processPaymentEl.style.display = "block";
-
+    navBottomEl.style.display = "none";
 }

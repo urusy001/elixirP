@@ -10,7 +10,7 @@ import {
     cartPageEl,
     checkoutPageEl,
     contactPageEl, detailEl,
-    headerTitle, listEl,
+    headerTitle, listEl, navBottomEl,
     paymentPageEl,
     processPaymentEl,
     searchBtnEl,
@@ -370,6 +370,7 @@ export async function renderCheckoutPage() {
     headerTitle.textContent = "Доставка";
     paymentPageEl.style.display = "none";
     processPaymentEl.style.display = "none";
+    navBottomEl.style.display = "none";
 
     checkoutPageEl.style.display = "block";
     await new Promise((r) => requestAnimationFrame(r));

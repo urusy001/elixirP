@@ -58,6 +58,7 @@ export async function renderProductDetailPage(onec_id) {
     cartPageEl.style.display = "none";
     checkoutPageEl.style.display = "none";
     paymentPageEl.style.display = "none";
+    navBottomEl.style.display = "flex";
 
     // Show Detail view
     headerTitle.textContent = "Информация о продукте";

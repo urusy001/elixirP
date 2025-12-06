@@ -6,7 +6,7 @@ import {
     cartPageEl,
     checkoutPageEl,
     contactPageEl, detailEl,
-    headerTitle, listEl,
+    headerTitle, listEl, navBottomEl,
     paymentPageEl,
     processPaymentEl,
     searchBtnEl,
@@ -28,6 +28,8 @@ export async function renderPaymentPage() {
     paymentPageEl.style.display = "block";
     searchBtnEl.style.display = "none";
     processPaymentEl.style.display = "none";
+    navBottomEl.style.display = "none";
+
 
     if (isTelegramApp()) {
         showBackButton();
