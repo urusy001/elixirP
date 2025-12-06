@@ -6,6 +6,7 @@ import {renderContactPage} from "./pages/contact.js";
 import {renderPaymentPage} from "./pages/payment.js";
 import {renderProcessPaymentPage} from "./pages/process-payment.js";
 import {setupBottomNav, updateBottomNavActive} from "./ui/nav-bottom.js";
+import {renderProfilePage} from "./pages/profile.js";
 
 const routes = [
     {match: p => p === "/" || p === "", action: renderHomePage},
@@ -16,6 +17,7 @@ const routes = [
     {match: p => p === "/payment", action: renderPaymentPage},
     {match: p => p === "/process-payment", action: renderProcessPaymentPage},
     {match: p => p === "/favourites", action: renderFavouritesPage},
+    {match: p => p === "/profile", action: renderProfilePage},
 ];
 
 function getCurrentPath() {
