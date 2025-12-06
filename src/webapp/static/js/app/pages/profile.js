@@ -29,7 +29,7 @@ export function renderProfilePage() {
     processPaymentEl.style.display = "none";
 
     const profileAvatarEl = document.getElementById("profile-avatar");
-    alert(state.telegram.initDataUnsafe)
+    alert(JSON.stringify(state.telegram.initDataUnsafe))
     profileAvatarEl.src = state.telegram.initDataUnsafe
 
 }
