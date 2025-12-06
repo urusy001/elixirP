@@ -15,7 +15,7 @@ import {
     contactPageEl,
     detailEl,
     headerTitle,
-    listEl,
+    listEl, navBottomEl,
     paymentPageEl,
     processPaymentEl,
     searchBtnEl,
@@ -241,6 +241,7 @@ export async function renderCartPage() {
     contactPageEl.style.display = "none";
     paymentPageEl.style.display = "none";
     processPaymentEl.style.display = "none";
+    navBottomEl.style.display = "flex";
 
     cartPageEl.style.display = "block";
     headerTitle.textContent = "Корзина";
