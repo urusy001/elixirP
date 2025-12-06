@@ -37,10 +37,7 @@
 
 .profile-menu {
     margin-top: 16px;
-    border-radius: 16px;
-    background: #ffffff;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
 /* Common item styles */
@@ -49,7 +46,6 @@
     width: 100%;
     border: none;
     outline: none;
-    background: #ffffff;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -57,10 +53,6 @@
     cursor: pointer;
     font-size: 16px;
     color: #111827;
-}
-
-.profile-item + .profile-item {
-    border-top: 1px solid #ececee;
 }
 
 /* Left block (icon + title) */
@@ -114,7 +106,5 @@
     flex: 0 0 auto;
     width: 7px;
     height: 7px;
-    border-right: 2px solid #c4c4c8;
-    border-bottom: 2px solid #c4c4c8;
     transform: rotate(-45deg);
 }
