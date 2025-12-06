@@ -1,11 +1,15 @@
 import {
     cartPageEl,
     checkoutPageEl,
-    contactPageEl, detailEl, headerTitle,
+    contactPageEl,
+    detailEl,
+    headerTitle,
     listEl,
     navBottomEl,
-    paymentPageEl, processPaymentEl,
-    profilePageEl, searchBtnEl,
+    paymentPageEl,
+    processPaymentEl,
+    profilePageEl,
+    searchBtnEl,
     toolbarEl
 } from "./constants.js";
 import {state} from "../state.js";
@@ -25,5 +29,5 @@ export function renderProfilePage() {
     processPaymentEl.style.display = "none";
 
     const profileAvatarEl = document.getElementById("profile-avatar");
-    alert(JSON.stringify(state.telegram.initDataUnsafe));
+    profileAvatarEl.src = state.telegram.initDataUnsafe.photo_url;
 }
