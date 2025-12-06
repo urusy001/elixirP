@@ -8,6 +8,7 @@ import {
     profilePageEl, searchBtnEl,
     toolbarEl
 } from "./constants.js";
+import {state} from "../state.js";
 
 export function renderProfilePage() {
     profilePageEl.style.display = "block";
@@ -22,4 +23,7 @@ export function renderProfilePage() {
     searchBtnEl.style.display = "none";
     detailEl.style.display = "none";
     processPaymentEl.style.display = "none";
+
+    const profileAvatarEl = document.getElementById("profile-avatar");
+    alert(JSON.stringify(state.telegram.initDataUnsafe));
 }

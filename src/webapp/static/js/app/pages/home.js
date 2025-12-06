@@ -300,10 +300,7 @@ function setupInfiniteScroll(container) {
 }
 
 async function getUser() {
-    const tg = window.Telegram?.WebApp;
-    if (!tg) return null;
-
-    const initData = tg.initData || "";
+    const initData = state.telegram.initData || "";
     const payload = {initData};
     const result = await apiPost('/auth', payload);
     state.user = result.user;

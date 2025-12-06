@@ -3,8 +3,8 @@ import {navigateTo} from "../router.js";
 import {getCurrentPathFromHash, updateBottomNavActive} from "./nav-bottom.js";
 
 /* ---------------- TELEGRAM DETECTION ---------------- */
+const tg = state.telegram
 export function isTelegramApp() {
-    const tg = window.Telegram?.WebApp;
     if (!tg) return false;
     const user = tg.initDataUnsafe?.user;
     const hasValidUser = user && typeof user.id === "number";
@@ -23,7 +23,6 @@ let _backButtonHandler = null;
  * @returns {Function} A cleanup function to hide the button.
  */
 export function showMainButton(text, onClick) {
-    const tg = state.telegram;
     if (!isTelegramApp() || !tg?.MainButton) return () => {
     };
 
@@ -54,7 +53,6 @@ export function showMainButton(text, onClick) {
 }
 
 export function updateMainButton(text, disable, progress) {
-    const tg = state.telegram;
     if (!isTelegramApp() || !tg?.MainButton) return;
 
     // Update text
@@ -81,7 +79,6 @@ export function updateMainButton(text, disable, progress) {
  * Hides the Main Button and removes its handler.
  */
 export function hideMainButton() {
-    const tg = state.telegram;
     if (!isTelegramApp() || !tg?.MainButton) return;
 
     try {
@@ -100,7 +97,6 @@ export function hideMainButton() {
 
 
 export function hideBackButton() {
-    const tg = state.telegram;
     if (!isTelegramApp() || !tg?.BackButton) return;
 
     try {
@@ -115,7 +111,6 @@ export function hideBackButton() {
 }
 
 export function showBackButton(onClick) { // keep param, do not use it
-    const tg = state.telegram;
     if (!isTelegramApp() || !tg?.BackButton) return () => {
     };
 
