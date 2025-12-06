@@ -35,7 +35,6 @@ export function renderProfilePage() {
     const profileAvatarEl = document.getElementById("profile-avatar");
     const profileNameEl = document.getElementById("profile-name");
     const user = state.telegram.initDataUnsafe.user
-    alert(JSON.stringify(user));
     profileNameEl.textContent = `${user.first_name} ${user.last_name}`;
     profileAvatarEl.src = user.photo_url
     hideLoader()
