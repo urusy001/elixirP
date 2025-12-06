@@ -37,6 +37,8 @@
 
 .profile-menu {
     margin-top: 16px;
+    border-radius: 16px;
+    background: #ffffff;
     overflow: hidden;
 }
 
@@ -53,6 +55,7 @@
     cursor: pointer;
     font-size: 16px;
     color: #111827;
+    background: #ffffff;
 }
 
 /* Left block (icon + title) */
@@ -106,5 +109,7 @@
     flex: 0 0 auto;
     width: 7px;
     height: 7px;
+    border-right: 2px solid #c4c4c8;
+    border-bottom: 2px solid #c4c4c8;
     transform: rotate(-45deg);
 }
