@@ -14,11 +14,12 @@ import {
 } from "./constants.js";
 import {state} from "../state.js";
 import {hideLoader, showLoader} from "../ui/loader.js";
-import {showBackButton} from "../ui/telegram.js";
+import {hideMainButton, showBackButton} from "../ui/telegram.js";
 
 export function renderProfilePage() {
-    showLoader()
+    showLoader();
     showBackButton();
+    hideMainButton();
     profilePageEl.style.display = "block";
     navBottomEl.style.display = "flex";
     toolbarEl.style.display = "none";
@@ -34,8 +35,8 @@ export function renderProfilePage() {
 
     const profileAvatarEl = document.getElementById("profile-avatar");
     const profileNameEl = document.getElementById("profile-name");
-    const user = state.telegram.initDataUnsafe.user
+    const user = state.telegram.initDataUnsafe.user;
     profileNameEl.textContent = `${user.first_name} ${user.last_name}`;
-    profileAvatarEl.src = user.photo_url
-    hideLoader()
+    profileAvatarEl.src = user.photo_url;
+    hideLoader();
 }
