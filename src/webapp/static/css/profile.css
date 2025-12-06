@@ -106,3 +106,13 @@
     border-bottom: 2px solid #c4c4c8;
     transform: rotate(-45deg);
 }
+
+#profile-icon-support {
+    width: 24px !important;
+    height: 24px !important;
+}
+
+#profile-icon-delivery-box {
+    width: 24px !important;
+    height: 24px !important;
+}
