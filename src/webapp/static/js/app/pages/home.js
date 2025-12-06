@@ -12,7 +12,7 @@ import {
     listEl,
     navBottomEl,
     paymentPageEl,
-    processPaymentEl,
+    processPaymentEl, profilePageEl,
     searchBtnEl,
     toolbarEl,
     tosOverlayEl
@@ -354,6 +354,7 @@ async function openFavouritesPage() {
     contactPageEl.style.display = "none";
     paymentPageEl.style.display = "none";
     processPaymentEl.style.display = "none";
+    profilePageEl.style.display = "none";
 
     const favIds = state?.user?.favourites || [];
     if (!favIds.length) {

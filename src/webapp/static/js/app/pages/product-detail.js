@@ -19,7 +19,7 @@ import {
     listEl,
     navBottomEl,
     paymentPageEl,
-    processPaymentEl,
+    processPaymentEl, profilePageEl,
     searchBtnEl,
     toolbarEl
 } from "./constants.js";
@@ -58,9 +58,7 @@ export async function renderProductDetailPage(onec_id) {
     cartPageEl.style.display = "none";
     checkoutPageEl.style.display = "none";
     paymentPageEl.style.display = "none";
-    navBottomEl.style.display = "flex";
-
-    // Show Detail view
+    profilePageEl.style.display = "none";
     headerTitle.textContent = "Информация о продукте";
     searchBtnEl.style.display = "flex";
     detailEl.style.display = "block";

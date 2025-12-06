@@ -13,7 +13,7 @@ import {
     contactPageEl, detailEl,
     headerTitle, listEl, navBottomEl,
     paymentPageEl,
-    processPaymentEl,
+    processPaymentEl, profilePageEl,
     searchBtnEl,
     toolbarEl
 } from "./constants.js";
@@ -42,6 +42,8 @@ export async function renderContactPage() {
     contactPageEl.style.display = "block";
     processPaymentEl.style.display = "none";
     navBottomEl.style.display = "none";
+    profilePageEl.style.display = "none";
+
 
     // Prevent default submit/enter
     form.addEventListener("submit", (e) => e.preventDefault());

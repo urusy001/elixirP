@@ -1,0 +1,135 @@
+.profile-page {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 32px 16px 24px;
+    background: #f4f4f7;
+    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    color: #111827;
+}
+
+/* Header */
+
+.profile-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 20%, #f0b4ff, #b56dff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.profile-avatar-text {
+    font-size: 40px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.profile-name {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+/* Menu */
+
+.profile-menu {
+    margin-top: 16px;
+    background: #f4f4f7;
+}
+
+/* Common item styles */
+
+.profile-item {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    cursor: pointer;
+    font-size: 16px;
+    color: #111827;
+}
+
+.profile-item + .profile-item {
+    border-top: 1px solid #ececee;
+}
+
+/* Left block (icon + title) */
+
+.profile-item-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.profile-item-title {
+    font-size: 17px;
+}
+
+/* Right text (e.g. "Русский") */
+
+.profile-item-right-text {
+    margin-right: 8px;
+    font-size: 16px;
+    color: #6b7280;
+}
+
+/* Icons */
+
+.profile-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-icon-orange {
+    background: #f59e0b;
+}
+
+.profile-icon-purple {
+    background: #a855f7;
+}
+
+.profile-icon-yellow {
+    background: #facc15;
+}
+
+.profile-icon-inner {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    background: #ffffff;
+}
+
+/* простые различия для "глобуса" и "чата" */
+.profile-icon-inner.globe {
+    border-radius: 50%;
+}
+
+.profile-icon-inner.bubble {
+    border-radius: 8px;
+}
+
+/* Chevron */
+
+.profile-item-chevron {
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid #c4c4c8;
+    border-bottom: 2px solid #c4c4c8;
+    transform: rotate(-45deg);
+}

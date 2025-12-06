@@ -5,7 +5,7 @@ import {
     contactPageEl, detailEl,
     headerTitle, listEl, navBottomEl,
     paymentPageEl,
-    processPaymentEl,
+    processPaymentEl, profilePageEl,
     searchBtnEl,
     toolbarEl
 } from "./constants.js";
@@ -23,4 +23,5 @@ export async function renderProcessPaymentPage() {
     searchBtnEl.style.display = "none";
     processPaymentEl.style.display = "block";
     navBottomEl.style.display = "none";
+    profilePageEl.style.display = "none";
 }

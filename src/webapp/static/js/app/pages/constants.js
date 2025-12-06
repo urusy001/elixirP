@@ -10,3 +10,4 @@ export const paymentPageEl = document.getElementById("payment-page");
 export const processPaymentEl = document.getElementById("process-payment-page");
 export const tosOverlayEl = document.getElementById("tos-overlay");
 export const navBottomEl = document.getElementById("nav-bottom");
+export const profilePageEl = document.getElementById("profile-page");

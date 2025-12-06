@@ -12,7 +12,7 @@ import {
     contactPageEl, detailEl,
     headerTitle, listEl, navBottomEl,
     paymentPageEl,
-    processPaymentEl,
+    processPaymentEl, profilePageEl,
     searchBtnEl,
     toolbarEl
 } from "./constants.js";
@@ -371,7 +371,7 @@ export async function renderCheckoutPage() {
     paymentPageEl.style.display = "none";
     processPaymentEl.style.display = "none";
     navBottomEl.style.display = "none";
-
+    profilePageEl.style.display = "none";
     checkoutPageEl.style.display = "block";
     await new Promise((r) => requestAnimationFrame(r));
 

@@ -17,7 +17,7 @@ import {
     headerTitle,
     listEl, navBottomEl,
     paymentPageEl,
-    processPaymentEl,
+    processPaymentEl, profilePageEl,
     searchBtnEl,
     toolbarEl,
 } from "./constants.js";
@@ -242,7 +242,7 @@ export async function renderCartPage() {
     paymentPageEl.style.display = "none";
     processPaymentEl.style.display = "none";
     navBottomEl.style.display = "flex";
-
+    profilePageEl.style.display = "none";
     cartPageEl.style.display = "block";
     headerTitle.textContent = "Корзина";
     searchBtnEl.style.display = "flex";

@@ -8,7 +8,7 @@ import {
     contactPageEl, detailEl,
     headerTitle, listEl, navBottomEl,
     paymentPageEl,
-    processPaymentEl,
+    processPaymentEl, profilePageEl,
     searchBtnEl,
     toolbarEl
 } from "./constants.js";
@@ -29,6 +29,7 @@ export async function renderPaymentPage() {
     searchBtnEl.style.display = "none";
     processPaymentEl.style.display = "none";
     navBottomEl.style.display = "none";
+    profilePageEl.style.display = "none";
 
 
     if (isTelegramApp()) {
