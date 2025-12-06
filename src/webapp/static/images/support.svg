@@ -4,19 +4,19 @@
     <defs>
         <style>
             .st0 {
-                fill: url(#linear-gradient2);
+            fill: url(#linear-gradient2);
             }
 
             .st1 {
-                fill: url(#linear-gradient1);
+            fill: url(#linear-gradient1);
             }
 
             .st2 {
-                fill: url(#linear-gradient);
+            fill: url(#linear-gradient);
             }
 
             .st3 {
-                fill: #fff;
+            fill: #fff;
             }
         </style>
         <linearGradient id="linear-gradient" x1="2.51" y1="18.46" x2="45.49" y2="18.46" gradientUnits="userSpaceOnUse">
