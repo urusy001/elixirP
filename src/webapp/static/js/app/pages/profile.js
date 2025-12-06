@@ -14,9 +14,11 @@ import {
 } from "./constants.js";
 import {state} from "../state.js";
 import {hideLoader, showLoader} from "../ui/loader.js";
+import {showBackButton} from "../ui/telegram.js";
 
 export function renderProfilePage() {
     showLoader()
+    showBackButton();
     profilePageEl.style.display = "block";
     navBottomEl.style.display = "flex";
     toolbarEl.style.display = "none";
