@@ -90,32 +90,11 @@
     justify-content: center;
 }
 
-.profile-icon-orange {
-    background: #f59e0b;
-}
-
-.profile-icon-purple {
-    background: #a855f7;
-}
-
-.profile-icon-yellow {
-    background: #facc15;
-}
-
 .profile-icon-inner {
     width: 18px;
     height: 18px;
     border-radius: 5px;
     background: #ffffff;
-}
-
-/* простые различия для "глобуса" и "чата" */
-.profile-icon-inner.globe {
-    border-radius: 50%;
-}
-
-.profile-icon-inner.bubble {
-    border-radius: 8px;
 }
 
 /* Chevron */
