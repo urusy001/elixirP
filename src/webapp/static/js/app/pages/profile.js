@@ -29,5 +29,8 @@ export function renderProfilePage() {
     processPaymentEl.style.display = "none";
 
     const profileAvatarEl = document.getElementById("profile-avatar");
-    profileAvatarEl.src = state.telegram.initDataUnsafe.user.photo_url
+    const profileNameEl = document.getElementById("profile-name");
+    const user = state.telegram.initDataUnsafe.user
+    profileNameEl.textContent = `${user.name} ${user.surname}`;
+    profileAvatarEl.src = user.photo_url
 }
