@@ -13,7 +13,7 @@ import {
     toolbarEl
 } from "./constants.js";
 import {state} from "../state.js";
-import {showLoader} from "../ui/loader";
+import {hideLoader, showLoader} from "../ui/loader.js";
 
 export function renderProfilePage() {
     showLoader()
@@ -36,4 +36,5 @@ export function renderProfilePage() {
     alert(JSON.stringify(user));
     profileNameEl.textContent = `${user.first_name} ${user.last_name}`;
     profileAvatarEl.src = user.photo_url
+    hideLoader()
 }
