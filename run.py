@@ -21,7 +21,7 @@ async def main():
     tasks = [
         asyncio.create_task(run_app()),
         asyncio.create_task(run_admin_bot()),
-        asyncio.create_task(cdek_client()),
+        asyncio.create_task(cdek_client.token_worker()),
         asyncio.create_task(OneCEnterprise().postgres_worker())
     ]
 
