@@ -266,7 +266,6 @@ async function loadMore(container, append = false, useLoader = true) {
 
             // Обновляем глобальный page на следующую страницу после последней взятой
             page = localPage;
-            alert(collected.length);
             return collected;
         };
 
