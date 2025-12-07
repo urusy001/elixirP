@@ -38,7 +38,7 @@ export function renderProfilePage() {
     const user = state.telegram.initDataUnsafe.user;
     const supportButton = document.getElementById("support-button");
     supportButton.addEventListener("click", () => {
-        openTgLink("ShostakovIV")
+        openTgLink("/ShostakovIV")
     })
     profileNameEl.textContent = `${user.first_name} ${user.last_name}`;
     profileAvatarEl.src = user.photo_url;
