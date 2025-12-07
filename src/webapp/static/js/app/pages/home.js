@@ -259,7 +259,7 @@ async function loadMore(container, append = false, useLoader = true) {
                 localPage += 1;
 
                 // Если набрали хотя бы 4 товара — достаточно
-                if (collected.length >= 4) {
+                if (collected.length >= 6) {
                     break;
                 }
             }
