@@ -14,7 +14,7 @@ import {
 } from "./constants.js";
 import {state} from "../state.js";
 import {hideLoader, showLoader} from "../ui/loader.js";
-import {hideMainButton, showBackButton} from "../ui/telegram.js";
+import {hideMainButton, openTgLink, showBackButton} from "../ui/telegram.js";
 
 export function renderProfilePage() {
     showLoader();
@@ -36,6 +36,10 @@ export function renderProfilePage() {
     const profileAvatarEl = document.getElementById("profile-avatar");
     const profileNameEl = document.getElementById("profile-name");
     const user = state.telegram.initDataUnsafe.user;
+    const supportButton = document.getElementById("support-button");
+    supportButton.addEventListener("click", () => {
+        openTgLink("ShostakovIV")
+    })
     profileNameEl.textContent = `${user.first_name} ${user.last_name}`;
     profileAvatarEl.src = user.photo_url;
     hideLoader();

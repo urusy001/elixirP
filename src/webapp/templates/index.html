@@ -89,11 +89,10 @@
                     </div>
                     <span class="profile-item-title">История заказов</span>
                 </div>
-                <span class="profile-item-chevron"></span>
             </button>
 
             <!-- Связаться с поддержкой -->
-            <button class="profile-item" type="button">
+            <button class="profile-item" id="support-button" type="button">
                 <div class="profile-item-left">
                     <div class="profile-icon">
                     <span class="profile-icon-inner">
@@ -133,11 +132,9 @@
                     </div>
                     <span class="profile-item-title">Связаться с поддержкой</span>
                 </div>
-                <span class="profile-item-chevron"></span>
             </button>
         </div>
     </div>
-    <!-- 🛒 Cart page view -->
     <div id="cart-page" style="display:none;">
         <div id="cart-summary">
             <p class="total-label" id="summary-label">
@@ -151,8 +148,6 @@
         </div>
         <div id="cart-items"></div>
     </div>
-
-    <!-- ✅ Checkout page view -->
     <div id="checkout-page" style="display:none;">
 
         <div id="delivery-header-container"></div>
@@ -165,8 +160,6 @@
         <div id="checkout-actions"></div>
 
     </div>
-
-    <!-- ✉️ Contact form page -->
     <div id="contact-page" style="display:none;">
         <form id="contact-form" novalidate>
             <input type="text" name="name" placeholder="Имя" required/>

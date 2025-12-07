@@ -139,3 +139,20 @@ export function showBackButton(onClick) { // keep param, do not use it
         }
     };
 }
+
+export function openTgLink(pathFull) {
+    const mobileData = JSON.stringify({ path_full: pathFull });
+    const webData = JSON.stringify({
+        eventType: 'web_app_open_tg_link',
+        eventData: { path_full: pathFull },
+    });
+
+    // Desktop / mobile Telegram apps
+    if (window.TelegramWebviewProxy && typeof window.TelegramWebviewProxy.postEvent === 'function') {
+        window.TelegramWebviewProxy.postEvent('web_app_open_tg_link', mobileData);
+
+        // Web Telegram (Mini App in iframe)
+    } else if (window.parent) {
+        window.parent.postMessage(webData, 'https://web.telegram.org');
+    }
+}
