@@ -36,8 +36,6 @@ async def cdek_proxy(request: Request):
         if method == "GET": resp = await client.get(endpoint, params=params, headers=headers)
         else: resp = await client.post(endpoint, content=raw_body, headers={**headers, "Content-Type": "application/json"})
 
-    with open(f'{action}.json', 'w', encoding="utf-8") as f: json.dump(json.loads(resp.text), f, ensure_ascii=False, indent=4)
-
     if action == "calculate" and resp.status_code == 200:
         try:
             data = resp.json()
@@ -65,8 +63,7 @@ async def cdek_proxy(request: Request):
     )
 
 
-def _http_err(detail: str, status: int = 502) -> HTTPException:
-    return HTTPException(status_code=status, detail=detail)
+def _http_err(detail: str, status: int = 502) -> HTTPException: return HTTPException(status_code=status, detail=detail)
 
 
 @cdek_router.api_route(path="", methods=["GET", "POST"])
@@ -75,36 +72,22 @@ async def cdek_proxy(request: Request):
 
     params = request.query_params
     raw_body = await request.body()
-    try:
-        body = json.loads(raw_body.decode("utf-8")) if raw_body else {}
-    except json.JSONDecodeError:
-        body = {}
+    try: body = json.loads(raw_body.decode("utf-8")) if raw_body else {}
+    except json.JSONDecodeError: body = {}
     method = request.method
 
     action = params.get("action") or body.get("action")
-    if action == "offices":
-        endpoint = f"{CDEK_API_URL}/deliverypoints"
+    if action == "offices": endpoint = f"{CDEK_API_URL}/deliverypoints"
     elif action == "calculate":
-        if isinstance(body, dict) and isinstance(body.get("to_location"), dict):
-            endpoint = f"{CDEK_API_URL}/calculator/tarifflist"
-        else:
-            return Response(status_code=400, content='{"error":"Invalid to_location"}')
-    else:
-        return Response(status_code=400, content='{"error":"Unknown action"}')
+        if isinstance(body, dict) and isinstance(body.get("to_location"), dict): endpoint = f"{CDEK_API_URL}/calculator/tarifflist"
+        else: return Response(status_code=400, content='{"error":"Invalid to_location"}')
+    else: return Response(status_code=400, content='{"error":"Unknown action"}')
 
     timeout = httpx.Timeout(connect=5, read=15, write=10, pool=5)
     async with httpx.AsyncClient(timeout=timeout) as client:
-        if method == "GET":
-            resp = await client.get(endpoint, params=params, headers=headers)
-        else:
-            resp = await client.post(endpoint, content=raw_body, headers={**headers, "Content-Type": "application/json"})
+        if method == "GET": resp = await client.get(endpoint, params=params, headers=headers)
+        else: resp = await client.post(endpoint, content=raw_body, headers={**headers, "Content-Type": "application/json"})
 
-    # Debug dump (optional)
-    try:
-        with open(f'{action}.json', 'w', encoding="utf-8") as f:
-            json.dump(json.loads(resp.text), f, ensure_ascii=False, indent=4)
-    except Exception:
-        pass
 
     if action == "calculate" and resp.status_code == 200:
         try:
@@ -144,8 +127,7 @@ async def reverse_geocode(
       "variants": [{"geo_id": 213, "address": "Москва"}, ...]  # max 2
     }
     """
-    if not YANDEX_GEOCODER_TOKEN:
-        raise _http_err("YANDEX_GEOCODER_TOKEN not configured", 500)
+    if not YANDEX_GEOCODER_TOKEN: raise HTTPException(status_code=512, detail='YANDEX TOKEN NOT CONFIGURED')
 
     # --- 1) Reverse geocode coords -> city name ---
     geo_url = "https://geocode-maps.yandex.ru/1.x/"
@@ -175,8 +157,7 @@ async def reverse_geocode(
         country_code = 'RU'
         formatted = "Улица Пушкина, дом Колотушина"
 
-    if not YANDEX_DELIVERY_TOKEN:
-        return {"city": city_name, "variants": []}
+    if not YANDEX_DELIVERY_TOKEN: return {"city": city_name, "variants": []}
 
     # --- 2) /location/detect -> variants [{'geo_id': int, 'address': str}] ---
     detect_url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/location/detect"
@@ -193,15 +174,11 @@ async def reverse_geocode(
             resp = await client.post(detect_url, json=payload, headers=headers)
             resp.raise_for_status()
             ddata = resp.json()
-            # Per your note, backend already returns the exact structure:
-            # [{'geo_id': 213, 'address': 'Москва'}, ...]
             raw = ddata.get("variants") or []
-            # Limit to 2 varian
             for v in raw:
                 geo_id = v.get("geo_id")
                 address = v.get("address") or ""
-                if geo_id is None:
-                    continue
+                if geo_id is None: continue
                 variants_out.append({"geo_id": int(geo_id), "address": address})
         except Exception as e:
             logger.warning("location/detect failed for %s: %s", city_name, e)
@@ -220,10 +197,7 @@ async def get_pvz(req: dict):
     • latitude + longitude + radius (meters) — fallback.
     """
 
-    if not YANDEX_DELIVERY_TOKEN:
-        raise HTTPException(500, "Yandex Delivery token not configured")
-
-    # ---------------- Build payload ---------------- #
+    if not YANDEX_DELIVERY_TOKEN: raise HTTPException(500, "Yandex Delivery token not configured")
     payload = {
         "type": "pickup_point",
         "is_yandex_branded": True,
@@ -231,10 +205,7 @@ async def get_pvz(req: dict):
         "is_not_branded_partner_station": True,
         "payment_methods": ["already_paid", "card_on_receipt"],
     }
-
-    # Priority 1: geo_id
-    if "geo_id" in req and req["geo_id"] is not None:
-        payload["geo_id"] = int(req["geo_id"])
+    if "geo_id" in req and req["geo_id"] is not None: payload["geo_id"] = int(req["geo_id"])
 
     # Priority 2: intervals
     elif (
@@ -261,8 +232,7 @@ async def get_pvz(req: dict):
         payload["latitude"] = {"from": lat - dlat, "to": lat + dlat}
         payload["longitude"] = {"from": lon - dlon, "to": lon + dlon}
 
-    else:
-        raise HTTPException(400, "Provide geo_id or latitude/longitude (+optional radius)")
+    else: raise HTTPException(400, "Provide geo_id or latitude/longitude (+optional radius)")
 
     # ---------------- Send to Yandex ---------------- #
     headers = {
@@ -272,12 +242,8 @@ async def get_pvz(req: dict):
     url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/pickup-points/list"
 
     timeout = httpx.Timeout(connect=5, read=20, write=10, pool=5)
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        resp = await client.post(url, json=payload, headers=headers)
-
-    if resp.status_code != 200:
-        raise HTTPException(status_code=resp.status_code, detail=resp.text)
-
+    async with httpx.AsyncClient(timeout=timeout) as client: resp = await client.post(url, json=payload, headers=headers)
+    if resp.status_code != 200: raise HTTPException(status_code=resp.status_code, detail=resp.text)
     logger.info("pickup payload: %s", json.dumps(payload, ensure_ascii=False))
     return resp.json()
 
