@@ -19,63 +19,63 @@ from aiogram.types import Message
 from bs4 import BeautifulSoup, Tag
 from pydantic import BaseModel
 from transliterate import translit
+from datetime import datetime, timezone
+from decimal import Decimal
+from typing import Any
+from sqlalchemy import BigInteger, Integer, String, DateTime, Numeric, Boolean
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from config import YOOKASSA_SECRET_KEY, ELIXIR_CHAT_ID, AI_BOT_TOKEN3
+from config import YOOKASSA_SECRET_KEY, ELIXIR_CHAT_ID, NEW_BOT_TOKEN
+from src.webapp.models.user import User
 
-MAX_TG_MSG_LEN = 4096  # Telegram limit
-
+MAX_TG_MSG_LEN = 4096
+_NULLY = {None, "", "null", "None", "NULL"}
+ALLOWED_TAGS = {
+    "b", "strong",
+    "i", "em",
+    "u", "ins",
+    "s", "strike", "del",
+    "span", "tg-spoiler",
+    "a",
+    "tg-emoji",
+    "code", "pre",
+    "blockquote",
+}
+_csv_lock = asyncio.Lock()  # чтобы несколько хендлеров не писали одновременно
 
 def with_typing(func):
     """
     Decorator that sends 'typing...' action while the wrapped handler is running.
     Automatically detects Bot from handler args.
-    """
-
+    """  
     @wraps(func)
     async def wrapper(*args, **kwargs):
         bot: Bot | None = None
         chat_id: int | None = None
-
-        # Try to detect bot and chat_id automatically
         for arg in args:
-            if isinstance(arg, Bot):
-                bot = arg
-            elif isinstance(arg, Message):
-                chat_id = arg.chat.id
+            if isinstance(arg, Bot): bot = arg
+            elif isinstance(arg, Message): chat_id = arg.chat.id
 
-        if not bot:
-            bot = kwargs.get("ai/bot") or kwargs.get("professor_bot")
+        if not bot: bot = kwargs.get("ai/bot") or kwargs.get("professor_bot")
         if not chat_id:
-            if "message" in kwargs:
-                chat_id = kwargs["message"].chat.id
+            if "message" in kwargs: chat_id = kwargs["message"].chat.id
 
-        if not bot or not chat_id:
-            raise ValueError("Could not detect Bot or chat_id for typing decorator")
-
+        if not bot or not chat_id: raise ValueError("Could not detect Bot or chat_id for typing decorator")
         async def loop():
             try:
                 while True:
-                    try:
-                        await bot.send_chat_action(chat_id, "typing")
-                    except Exception:
-                        pass
+                    try: await bot.send_chat_action(chat_id, "typing")
+                    except Exception: pass
                     await asyncio.sleep(random.uniform(3, 5))
-            except asyncio.CancelledError:
-                return  # exit immediately when cancelled
+            except asyncio.CancelledError: return  # exit immediately when cancelled
 
         task = asyncio.create_task(loop())
-        try:
-            return await func(*args, **kwargs)
+        try: return await func(*args, **kwargs)
         finally:
             task.cancel()  # cancel immediately
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
-
+            try: await task
+            except asyncio.CancelledError: pass
     return wrapper
-
-
 async def split_text(text: str, limit: int = MAX_TG_MSG_LEN) -> list[str]:
     """
     Splits long text into chunks safe for Telegram.
@@ -84,55 +84,25 @@ async def split_text(text: str, limit: int = MAX_TG_MSG_LEN) -> list[str]:
     chunks = []
     while len(text) > limit:
         split_idx = text.rfind("\n", 0, limit)
-        if split_idx == -1:
-            split_idx = text.rfind(". ", 0, limit)
-        if split_idx == -1:
-            split_idx = limit
+        if split_idx == -1: split_idx = text.rfind(". ", 0, limit)
+        if split_idx == -1: split_idx = limit
 
         chunks.append(text[:split_idx].strip())
         text = text[split_idx:].strip()
-    if text:
-        chunks.append(text)
+    if text: chunks.append(text)
     return chunks
-
-
 async def verify_signature(raw_body: bytes, signature_header: Optional[str]) -> bool:
-    if not YOOKASSA_SECRET_KEY:
-        return True
-    if not signature_header:
-        return False
+    if not YOOKASSA_SECRET_KEY: return True
+    if not signature_header: return False
     expected = hmac.new(YOOKASSA_SECRET_KEY.encode(), raw_body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, signature_header)
-
-
 async def normalize(text: str) -> str:
-    try:
-        return translit(text, "ru", reversed=True).lower()
-    except Exception:
-        return text.lower()
-
-
-# src/webapp/utils/normalize.py
-from datetime import datetime, timezone
-from decimal import Decimal
-from typing import Any
-
-from sqlalchemy import BigInteger, Integer, String, DateTime, Numeric, Boolean
-from sqlalchemy.orm.attributes import InstrumentedAttribute
-
-from src.webapp.models.user import User  # adjust import to where your model lives
-
-
-_NULLY = {None, "", "null", "None", "NULL"}
-
-
+    try: return translit(text, "ru", reversed=True).lower()
+    except Exception: return text.lower()
 def _get_user_column(name: str) -> InstrumentedAttribute:
     col = getattr(User, name, None)
-    if col is None or not hasattr(col, "type"):
-        raise ValueError(f"Unknown column name for User: {name!r}")
+    if col is None or not hasattr(col, "type"): raise ValueError(f"Unknown column name for User: {name!r}")
     return col
-
-
 def _coerce_datetime(value: str) -> datetime:
     """
     Accepts:
@@ -142,23 +112,12 @@ def _coerce_datetime(value: str) -> datetime:
     Returns timezone-aware datetime when possible (UTC if epoch or 'Z').
     """
     s = str(value)
-
-    # UNIX epoch (seconds)
-    if s.isdigit():
-        return datetime.fromtimestamp(int(s), tz=timezone.utc)
-
-    # ISO with trailing 'Z'
+    if s.isdigit(): return datetime.fromtimestamp(int(s), tz=timezone.utc)
     if s.endswith("Z"):
-        # Python <3.11: fromisoformat doesn't accept 'Z'
-        try:
-            return datetime.fromisoformat(s[:-1]).replace(tzinfo=timezone.utc)
-        except Exception:
-            pass
+        try: return datetime.fromisoformat(s[:-1]).replace(tzinfo=timezone.utc)
+        except Exception: pass
 
-    # Plain ISO-8601 (may be naive or aware)
     return datetime.fromisoformat(s)
-
-
 def normalize_user_value(column_name: str, raw_value: Any) -> Any:
     """
     Normalize a raw (string-ish) value to the Python type expected by User.<column_name>.
@@ -174,42 +133,38 @@ def normalize_user_value(column_name: str, raw_value: Any) -> Any:
     """
     col = _get_user_column(column_name)
     col_type = col.type
-
-    # Normalize "null-like" inputs for nullable columns
     is_nullable = getattr(col.expression, "nullable", True)  # fallback True
-    if raw_value in _NULLY and is_nullable:
-        return None
-
-    # Cast by SQLAlchemy type family
-    if isinstance(col_type, (Integer, BigInteger)):
-        return int(raw_value)
-
-    if isinstance(col_type, String):
-        return str(raw_value) if raw_value is not None else None
-
-    if isinstance(col_type, DateTime):
-        return _coerce_datetime(raw_value)
-
-    if isinstance(col_type, Numeric):
-        return Decimal(str(raw_value))
-
+    if raw_value in _NULLY and is_nullable: return None
+    if isinstance(col_type, (Integer, BigInteger)): return int(raw_value)
+    if isinstance(col_type, String): return str(raw_value) if raw_value is not None else None
+    if isinstance(col_type, DateTime): return _coerce_datetime(raw_value)
+    if isinstance(col_type, Numeric): return Decimal(str(raw_value))
     if isinstance(col_type, Boolean):
         s = str(raw_value).strip().lower()
         return s in {"1", "true", "t", "yes", "y", "on"}
 
-    # Fallback: return as-is (string)
     return raw_value
 
-from datetime import datetime
-from typing import Any, Dict
+
+def _fmt(x, nd=2):
+    try:
+        if x is None: return "-"
+        x = float(x)
+        if abs(x) >= 10000: return f"{x:,.0f}".replace(",", " ")
+        if abs(x) >= 1000: return f"{x:,.1f}".replace(",", " ")
+        if abs(x) >= 100: return f"{x:.1f}"
+        if abs(x) >= 10: return f"{x:.2f}"
+        if abs(x) >= 1: return f"{x:.2f}"
+        return f"{x:.4f}"
+    except: return str(x)
 
 
-def format_order_for_amocrm(
-        order_number: int | str,
-        payload: Dict[str, Any],
-        delivery_service: str,
-        tariff: str | None,
-) -> str:
+def _fmt_int(x):
+    try: return str(int(x))
+    except: return str(x)
+
+
+def format_order_for_amocrm(order_number: int | str, payload: dict[str, Any], delivery_service: str, tariff: str | None) -> str:
     """
     Format Telegram checkout payload into AmoCRM-friendly Russian text.
 
@@ -310,6 +265,7 @@ def format_order_for_amocrm(
 
     return text
 
+
 def normalize_address_for_cf(address: object, service: Literal["cdek", "yandex"] | None = "cdek", ) -> str | None:
         """
         Takes either:
@@ -323,7 +279,7 @@ def normalize_address_for_cf(address: object, service: Literal["cdek", "yandex"]
         # Already a string
         if isinstance(address, str):
             s = address
-        # Dict from CDEK/Yandex
+        # dict from CDEK/Yandex
         elif isinstance(address, dict):
             postal_code = address.get("postal_code")
             city = address.get("city")
@@ -349,19 +305,6 @@ def normalize_address_for_cf(address: object, service: Literal["cdek", "yandex"]
         if len(s) > 255:
             s = s[:255]
         return s or None
-
-# Базовый список допустимых тегов по Telegram
-ALLOWED_TAGS = {
-    "b", "strong",
-    "i", "em",
-    "u", "ins",
-    "s", "strike", "del",
-    "span", "tg-spoiler",
-    "a",
-    "tg-emoji",
-    "code", "pre",
-    "blockquote",
-}
 
 
 def normalize_html_for_telegram(raw_html: str) -> str:
@@ -489,7 +432,6 @@ def normalize_html_for_telegram(raw_html: str) -> str:
 
     return text.strip()
 
-_csv_lock = asyncio.Lock()  # чтобы несколько хендлеров не писали одновременно
 
 async def _notify_user(message: Message, text: str, timer: float | None = None, logger: Logger = None) -> None:
     if logger: logger.info("Notify user %s | text_preview=%r | timer=%s", message.from_user.id, text[:100], timer)
@@ -509,34 +451,27 @@ async def CHAT_NOT_BANNED_FILTER(user_id: int) -> bool:
     except: return True
 
 
-class TelegramAuthPayload(BaseModel):
-    initData: str
-
-
+class TelegramAuthPayload(BaseModel): initData: str
 class TelegramInitDataError(Exception):
     """Base error for init data validation issues."""
-
-
 class TelegramInitDataSignatureError(TelegramInitDataError):
     """Signature does not match, init data is not trusted."""
-
-
 class TelegramInitDataExpiredError(TelegramInitDataError):
     """auth_date is too old."""
 
 
 def validate_init_data(
         init_data: str,
-        bot_token: str = AI_BOT_TOKEN3,
+        bot_token: str = NEW_BOT_TOKEN,
         max_age_seconds: int = 600  # e.g. 10 minutes; adjust as you like
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Validate Telegram Mini App init data according to the official algorithm.
 
     :param init_data: Raw query string from Telegram (window.Telegram.WebApp.initData).
     :param bot_token: Your bot token (from BotFather).
     :param max_age_seconds: Max allowed age for auth_date (0 to skip this check).
-    :return: Dict with parsed parameters (user, query_id, auth_date, etc.).
+    :return: dict with parsed parameters (user, query_id, auth_date, etc.).
     :raises TelegramInitDataError: On invalid or expired data.
     """
 
@@ -544,7 +479,7 @@ def validate_init_data(
     # parse_qsl returns a list of (key, value) with URL-decoding applied.
     params_list = parse_qsl(init_data, keep_blank_values=True)
 
-    params: Dict[str, str] = {}
+    params: dict[str, str] = {}
     received_hash: Optional[str] = None
 
     for key, value in params_list:
@@ -590,7 +525,7 @@ def validate_init_data(
             raise TelegramInitDataExpiredError("Init data is too old.")
 
     # 7. Parse complex fields (e.g., user) from JSON if needed
-    result: Dict[str, Any] = dict(params)
+    result: dict[str, Any] = dict(params)
 
     if "user" in result:
         try:

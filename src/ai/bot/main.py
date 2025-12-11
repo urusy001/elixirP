@@ -4,20 +4,22 @@ import re
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message, FSInputFile, InputMediaPhoto, ReplyKeyboardRemove
 
 from config import (
-    AI_BOT_TOKEN,
-    AI_BOT_TOKEN2,
-    ASSISTANT_ID2,
-    OPENAI_API_KEY2,
-    AI_BOT_TOKEN3,
-    ASSISTANT_ID3,
+    PROFESSOR_BOT_TOKEN,
+    DOSE_BOT_TOKEN,
+    DOSE_ASSISTANT_ID,
+    DOSE_OPENAI_API,
+    NEW_BOT_TOKEN,
+    NEW_ASSISTANT_ID,
     LOGS_DIR,
-    BOT_NAMES,
+    BOT_NAMES, NEW_OPENAI_API, PROFESSOR_OPENAI_API, PROFESSOR_ASSISTANT_ID,
 )
 from src.ai.bot.handlers import *
+from src.ai.bot.keyboards import user_keyboards
 from src.ai.bot.middleware import ContextMiddleware
 from src.ai.client import ProfessorClient
 from src.helpers import split_text, MAX_TG_MSG_LEN
@@ -66,7 +68,7 @@ class ProfessorBot(Bot):
         return thread_id
 
     # ---------------- PARSE RESPONSE ----------------
-    async def parse_response(self, response: dict, message: Message):
+    async def parse_response(self, response: dict, message: Message, back_menu: bool = False):
         user_id = message.from_user.id
         logger = self.__logger  # one logger per bot
 
@@ -149,7 +151,7 @@ class ProfessorBot(Bot):
 
         if not files and not text:
             logger.warning("EMPTY response (no files, no text)")
-            return await message.answer("oshibochka vishla da")
+            return await message.answer("oshibochka vishla da", reply_markup=user_keyboards.backk if back_menu == True else ReplyKeyboardRemove())
 
         if files:
             logger.info("OUTGOING response has %d file(s)", len(files))
@@ -162,15 +164,15 @@ class ProfessorBot(Bot):
                 return await message.answer_photo(
                     FSInputFile(files[0]),
                     caption=caption,
-                    parse_mode=None,
+                    parse_mode=ParseMode.MARKDOWN,
+                    reply_markup=user_keyboards.backk if back_menu == True else ReplyKeyboardRemove(),
                 )
             else:
                 media = [
-                    InputMediaPhoto(media=FSInputFile(f), parse_mode=None)
+                    InputMediaPhoto(media=FSInputFile(f), parse_mode=ParseMode.MARKDOWN)
                     for f in files
                 ]
-                if text:
-                    media[0].caption = re.sub(r"【[^】]*】", "", text[:1024])
+                if text: media[0].caption = re.sub(r"【[^】]*】", "", text[:1024])
                 logger.info(
                     "OUTGOING media group | first_caption_len=%d",
                     len(media[0].caption or ""),
@@ -180,7 +182,7 @@ class ProfessorBot(Bot):
         if len(text) > MAX_TG_MSG_LEN:
             logger.info("OUTGOING long text | len=%d | splitting", len(text))
             chunks = await split_text(text)
-            for idx, chunk in enumerate(chunks, start=1):
+            for idx, chunk in enumerate(chunks[:-1], start=1):
                 clean_chunk = re.sub(r"【[^】]*】", "", chunk)
                 logger.info(
                     "OUTGOING chunk %d/%d | len=%d",
@@ -190,10 +192,10 @@ class ProfessorBot(Bot):
                 )
                 await message.answer(
                     clean_chunk,
-                    parse_mode=None,
+                    parse_mode=ParseMode.MARKDOWN,
                     reply_markup=ReplyKeyboardRemove(),
                 )
-            return None
+            return await message.answer(re.sub(r"【[^】]*】", "", chunks[-1]), parse_mode=ParseMode.MARKDOWN, reply_markup=user_keyboards.backk if back_menu == True else ReplyKeyboardRemove())
 
         clean_text = re.sub(r"【[^】]*】", "", text)
         logger.info(
@@ -203,33 +205,27 @@ class ProfessorBot(Bot):
         )
         return await message.answer(
             clean_text,
-            parse_mode=None,
-            reply_markup=ReplyKeyboardRemove(),
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=user_keyboards.backk if back_menu == True else ReplyKeyboardRemove() if back_menu == True else ReplyKeyboardRemove(),
         )
 
 
-# ───────── Bots & dispatchers ─────────
-
-# assuming BOT_NAMES maps from token -> human name
-professor_bot = ProfessorBot(AI_BOT_TOKEN, BOT_NAMES[AI_BOT_TOKEN])
-dose_bot = ProfessorBot(AI_BOT_TOKEN2, BOT_NAMES[AI_BOT_TOKEN2])
-new_bot = ProfessorBot(AI_BOT_TOKEN3, BOT_NAMES[AI_BOT_TOKEN3])
-
-professor_client = ProfessorClient()
-dose_client = ProfessorClient(OPENAI_API_KEY2, ASSISTANT_ID2)
-new_client = ProfessorClient(OPENAI_API_KEY2, ASSISTANT_ID3)
-
+professor_bot = ProfessorBot(PROFESSOR_BOT_TOKEN, BOT_NAMES[PROFESSOR_BOT_TOKEN])
+professor_client = ProfessorClient(PROFESSOR_OPENAI_API, PROFESSOR_ASSISTANT_ID)
 professor_dp = Dispatcher(storage=MemoryStorage())
 professor_dp.include_routers(professor_admin_router, professor_user_router)
 professor_dp.message.middleware(ContextMiddleware(professor_bot, professor_client))
 professor_dp.callback_query.middleware(ContextMiddleware(professor_bot, professor_client))
 
+dose_bot = ProfessorBot(DOSE_BOT_TOKEN, BOT_NAMES[DOSE_BOT_TOKEN])
+dose_client = ProfessorClient(DOSE_OPENAI_API, DOSE_ASSISTANT_ID)
 dose_dp = Dispatcher(storage=MemoryStorage())
 dose_dp.include_routers(dose_admin_router, dose_user_router)
 dose_dp.message.middleware(ContextMiddleware(dose_bot, dose_client))
 dose_dp.callback_query.middleware(ContextMiddleware(dose_bot, dose_client))
 
-
+new_bot = ProfessorBot(NEW_BOT_TOKEN, BOT_NAMES[NEW_BOT_TOKEN])
+new_client = ProfessorClient(NEW_OPENAI_API, NEW_ASSISTANT_ID)
 new_dp = Dispatcher(storage=MemoryStorage())
 new_dp.include_routers(new_admin_router, new_user_router)
 new_dp.message.middleware(ContextMiddleware(new_bot, new_client))

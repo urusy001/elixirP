@@ -6,7 +6,7 @@ from .feature import Feature
 from .product import Product
 from .unit import Unit
 from .user import User
-from .usertokenusage import UserTokenUsage, BotEnum
+from .user_token_usage import UserTokenUsage, BotEnum
 from .cart_item import CartItem
 from .cart import Cart
 from .favourite import Favourite

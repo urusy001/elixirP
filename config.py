@@ -59,16 +59,17 @@ TELETHON_PASSWORD = env("TELETHON_PASSWORD", None)
 ADMIN_PANEL_TOKEN = env("ADMIN_PANEL_TOKEN", "")
 ELIXIR_CHAT_ID = env_int("ELIXIR_CHAT_ID", 0)
 
-AI_BOT_TOKEN  = env("AI_BOT_TOKEN", "")
-AI_BOT_TOKEN2 = env("AI_BOT_TOKEN2", "")
-AI_BOT_TOKEN3 = env("AI_BOT_TOKEN3", "")
+PROFESSOR_BOT_TOKEN  = env("PROFESSOR_BOT_TOKEN", "")
+DOSE_BOT_TOKEN = env("DOSE_BOT_TOKEN", "")
+NEW_BOT_TOKEN = env("NEW_BOT_TOKEN", "")
 
-ASSISTANT_ID  = env("ASSISTANT_ID", "")
-ASSISTANT_ID2 = env("ASSISTANT_ID2", "")
-ASSISTANT_ID3 = env("ASSISTANT_ID3", "")
+PROFESSOR_ASSISTANT_ID  = env("PROFESSOR_ASSISTANT_ID", "")
+DOSE_ASSISTANT_ID = env("DOSE_ASSISTANT_ID", "")
+NEW_ASSISTANT_ID = env("NEW_ASSISTANT_ID", "")
 
-OPENAI_API_KEY  = env("OPENAI_API_KEY", "")
-OPENAI_API_KEY2 = env("OPENAI_API_KEY2", "")
+PROFESSOR_OPENAI_API  = env("PROFESSOR_OPENAI_API", "")
+DOSE_OPENAI_API = env("DOSE_OPENAI_API", "")
+NEW_OPENAI_API = env("NEW_OPENAI_API", "")
 
 POSTGRES_USER     = env("POSTGRES_USER", "postgres") or "postgres"
 POSTGRES_PASSWORD = env("POSTGRES_PASSWORD", "") or ""
@@ -137,12 +138,18 @@ AMOCRM_LOGIN_PASSWORD = env("AMOCRM_LOGIN_PASSWORD", "")
 
 _log = logging.getLogger("config")
 if not OWNER_TG_IDS: _log.warning("ADMIN_TG_IDS is empty or invalid; admin-only filters may not work.")
-if not AI_BOT_TOKEN: _log.warning("AI_BOT_TOKEN is empty.")
+if not PROFESSOR_BOT_TOKEN: _log.warning("AI_BOT_TOKEN is empty.")
 
 BOT_NAMES = {
-    AI_BOT_TOKEN: "Обширная база",
-    AI_BOT_TOKEN2: "Дозировки",
-    AI_BOT_TOKEN3: "Новый 4.1",
+    PROFESSOR_BOT_TOKEN: "@ProfessorOfPeptidesbot",
+    DOSE_BOT_TOKEN: "@Peptideexpertbot",
+    NEW_BOT_TOKEN: "@peptidestestbot",
+}
+
+BOT_KEYWORDS = {
+    PROFESSOR_ASSISTANT_ID: "professor",
+    DOSE_ASSISTANT_ID: "dose",
+    NEW_ASSISTANT_ID: "new",
 }
 
 API_PREFIX = "/api/v1"

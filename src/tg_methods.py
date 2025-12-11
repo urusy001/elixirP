@@ -33,6 +33,7 @@ async def get_user_id_by_phone(phone: str, default_region: str = "RU"):
             last_name=""
         )
     ]))
+    print(result)
 
     if result.users: return result.users[0].id
     return None

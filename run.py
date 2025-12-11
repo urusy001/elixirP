@@ -2,7 +2,7 @@ import logging
 import asyncio
 import signal
 
-from src.ai.bot.main import run_professor_bot, run_dose_bot
+from src.ai.bot.main import run_new_bot
 from src.tg_methods import client as tg_client
 
 logging.basicConfig(
@@ -18,8 +18,7 @@ logger = logging.getLogger("main")
 async def main():
     await tg_client.start()
     tasks = [
-        asyncio.create_task(run_dose_bot()),
-        asyncio.create_task(run_professor_bot()),
+        asyncio.create_task(run_new_bot())
     ]
 
     async def shutdown():

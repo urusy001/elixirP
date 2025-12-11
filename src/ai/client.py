@@ -4,24 +4,23 @@ import logging
 from datetime import datetime
 from openai import AsyncClient
 
-from config import OPENAI_API_KEY, ASSISTANT_ID
 from src.ai.eventhandler import ProfessorEventHandler
 
 
 class ProfessorClient(AsyncClient):
-    def __init__(self, api_key: str | None = OPENAI_API_KEY, assistant_id: str | None = ASSISTANT_ID):
+    def __init__(self, api_key: str, *args, **kwargs):
         super().__init__(api_key=api_key)
-        self.__assistant_id = assistant_id
         self.__logger = logging.getLogger(self.__class__.__name__)
 
     async def create_thread(self):
         thread = await self.beta.threads.create()
         return thread.id
 
-    async def send_message(self, message: str, thread_id: str):
+    async def send_message(self, message: str, thread_id: str, assistant_id: str):
         """
         Send a message to the assistant with rich context and improved reasoning.
         """
+        print(assistant_id)
         self.__logger.info('Запрос: %s', message)
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         system_context = (
@@ -48,7 +47,7 @@ class ProfessorClient(AsyncClient):
 
         # Step 2 — run the assistant with tuned parameters
         async with self.beta.threads.runs.stream(
-                assistant_id=self.__assistant_id,
+                assistant_id=assistant_id,
                 event_handler=event_handler,
                 thread_id=thread_id,
                 additional_instructions=system_context,

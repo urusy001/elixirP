@@ -3,7 +3,7 @@ from .feature import *
 from .product import *
 from .unit import *
 from .user import *
-from .usertokenusage import *
+from .user_token_usage import *
 from .cart import *
 from .cart_item import *
 from .favourite import *
