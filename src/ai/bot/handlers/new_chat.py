@@ -5,8 +5,8 @@ from aiogram.types import Message
 from config import NEW_ASSISTANT_ID, BOT_KEYWORDS
 from src.helpers import CHAT_ADMIN_REPLY_FILTER
 from src.webapp import get_session
-from src.webapp.crud import upsert_user, get_user, update_user, write_usage, increment_tokens
-from src.webapp.schemas import UserCreate, UserUpdate
+from src.webapp.crud import upsert_user, get_user, write_usage, increment_tokens
+from src.webapp.schemas import UserCreate
 
 router = Router(name="new_chat")
 router.message.filter(CHAT_ADMIN_REPLY_FILTER)
