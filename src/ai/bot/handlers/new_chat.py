@@ -22,7 +22,7 @@ async def answer_ai(message: Message, professor_bot, professor_client):
                 thread_id = await professor_client.create_thread()
                 user = await upsert_user(session, UserCreate(tg_id=reply_message.from_user.id, name=reply_message.from_user.first_name, surname=reply_message.from_user.last_name, thread_id=thread_id))
             thread_id = user.thread_id
-        response = await professor_client.send_message(text, thread_id, NEW_ASSISTANT_ID)
+        response = await professor_client.send_message('ОТВЕЧАЙ КРАТКО ОТВЕЧАЙ КРАТКО ОТВЕЧАЙ КРАТКО ОТВЕЧАЙ КРАТКО. ПОСЛЕ ОТВЕТА СКАЖИ МНЕ ПЕРЕЙТИ С ТОБОЙ В ЛИЧНЫЙ ДИАЛОГ ЕСЛИ ЗАХОЧУ ОТВЕТЫ ДЛИННЕЕ'+text, thread_id, NEW_ASSISTANT_ID)
         async with get_session() as session:
             await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens']),
             await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[NEW_ASSISTANT_ID])
