@@ -2,7 +2,10 @@ import logging
 import asyncio
 import signal
 
-from src.ai.bot.main import run_new_bot, run_dose_bot, run_professor_bot
+from src.admin_panel.bot.main import run_admin_bot
+from src.delivery.sdek import client as cdek_client
+from src.onec import OneCEnterprise
+from src.webapp.main import run_app
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,8 +19,10 @@ logger = logging.getLogger("main")
 
 async def main():
     tasks = [
-        asyncio.create_task(run_dose_bot()),
-        asyncio.create_task(run_professor_bot()),
+        asyncio.create_task(run_app()),
+        asyncio.create_task(cdek_client.token_worker()),
+        asyncio.create_task(OneCEnterprise().postgres_worker()),
+        asyncio.create_task(run_admin_bot()),
     ]
 
     async def shutdown():
@@ -29,8 +34,7 @@ async def main():
 
     loop = asyncio.get_running_loop()
 
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(shutdown()))
+    for sig in (signal.SIGINT, signal.SIGTERM): loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(shutdown()))
 
     try: await asyncio.gather(*tasks)
     except asyncio.CancelledError: logger.info("Tasks cancelled — exiting gracefully.")

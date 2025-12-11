@@ -29,9 +29,7 @@ async def handle_user_start(message: Message, state: FSMContext):
     user_id = message.from_user.id
     result = await CHAT_NOT_BANNED_FILTER(user_id)
     if not result: return await message.answer(user_texts.banned_in_channel)
-
     async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
-
     if not user:
         await state.set_state(user_states.Registration.phone)
         return await message.answer(user_texts.verify_phone.replace('*', message.from_user.full_name), reply_markup=user_keyboards.phone)

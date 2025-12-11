@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-import csv
 import hashlib
 import hmac
 import json
 import random
 import re
-import string
 import time
 import html
 
@@ -17,13 +15,12 @@ from typing import Optional, Literal
 from urllib.parse import parse_qsl
 from aiogram import Bot
 from aiogram.enums import ChatMemberStatus
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 from bs4 import BeautifulSoup, Tag
-from fastapi import HTTPException
 from pydantic import BaseModel
 from transliterate import translit
 
-from config import YOOKASSA_SECRET_KEY, CSV_PATH, ELIXIR_CHAT_ID, AI_BOT_TOKEN3
+from config import YOOKASSA_SECRET_KEY, ELIXIR_CHAT_ID, AI_BOT_TOKEN3
 
 MAX_TG_MSG_LEN = 4096  # Telegram limit
 
@@ -114,42 +111,6 @@ async def normalize(text: str) -> str:
     except Exception:
         return text.lower()
 
-
-def cypher_user_id(user_id: int) -> str:
-    """
-    Insert random 4–6 capital letters randomly inside user_id.
-    Example: 12345 -> '12ABCD345' or 'A1234XYZ5'
-    """
-    letters = ''.join(random.choices(string.ascii_uppercase, k=random.randint(4, 6)))
-    user_id_str = str(user_id)
-    insert_pos = random.randint(0, len(user_id_str))
-    return user_id_str[:insert_pos] + letters + user_id_str[insert_pos:]
-
-
-def decypher_user_id(cyphered: str) -> int:
-    """
-    Remove all capital letters and return numeric user_id.
-    Example: '12ABCD345' -> 12345
-    """
-    numeric = re.sub(r'[A-Z]', '', cyphered)
-    return int(numeric)
-
-
-EMAIL_REGEX = re.compile(
-    r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
-)
-
-
-def extract_email(text: str) -> Optional[str]:
-    """
-    Extracts the first email address from the given string.
-    Returns None if no email is found.
-    """
-    if not text:
-        return None
-
-    match = EMAIL_REGEX.search(text)
-    return match.group(0) if match else None
 
 # src/webapp/utils/normalize.py
 from datetime import datetime, timezone
@@ -530,28 +491,6 @@ def normalize_html_for_telegram(raw_html: str) -> str:
 
 _csv_lock = asyncio.Lock()  # чтобы несколько хендлеров не писали одновременно
 
-async def append_message_to_csv(text: str, label: int | str = 0) -> None:
-    """
-    Добавляет строку в messages.csv.
-    csv.writer сам экранирует запятые, кавычки и переносы строк.
-    """
-    text = text.replace("\r\n", "\n").replace("\r", "\n")  # чуть-чуть нормализуем
-
-    async with _csv_lock:
-        file_exists = CSV_PATH.exists()
-
-        with CSV_PATH.open("a", encoding="utf-8", newline="") as f:
-            writer = csv.writer(
-                f,
-                delimiter=",",
-                quotechar='"',
-                quoting=csv.QUOTE_MINIMAL,  # можно csv.QUOTE_ALL если хочешь всегда в кавычках
-            )
-            if not file_exists:
-                writer.writerow(["Message", "Label"])
-
-            writer.writerow([text, label])
-
 async def _notify_user(message: Message, text: str, timer: float | None = None, logger: Logger = None) -> None:
     if logger: logger.info("Notify user %s | text_preview=%r | timer=%s", message.from_user.id, text[:100], timer)
     x = await message.answer(text, parse_mode="HTML")
@@ -561,20 +500,10 @@ async def _notify_user(message: Message, text: str, timer: float | None = None, 
         if logger: logger.debug("Deleted notification message for user %s", message.from_user.id)
 
 
-async def CHAT_ADMIN_FILTER(message: Message, bot: Bot) -> bool:
-    if getattr(message.chat, "id") not in [-1003182914098, ELIXIR_CHAT_ID]: return False
-    if message.sender_chat and message.sender_chat.id == message.chat.id: return True
-
-    if message.from_user:
-        member = await bot.get_chat_member(message.chat.id, message.from_user.id)
-        return member.status in ("administrator", "creator")
-
-    return False
-
 async def CHAT_NOT_BANNED_FILTER(user_id: int) -> bool:
-    from src.antispam.bot.main import bot
+    from src.ai.bot.main import new_bot
     try:
-        member = await bot.get_chat_member(ELIXIR_CHAT_ID, user_id)
+        member = await new_bot.get_chat_member(ELIXIR_CHAT_ID, user_id)
         if member.status in [ChatMemberStatus.KICKED]: return False
         else: return True
     except: return True
