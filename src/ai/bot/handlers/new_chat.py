@@ -13,7 +13,7 @@ router.message.filter(CHAT_ADMIN_REPLY_FILTER)
 
 @router.message(Command('answer_ai'))
 async def answer_ai(message: Message, professor_bot, professor_client):
-    reply_message = await message.reply_to_message
+    reply_message = message.reply_to_message
     if isinstance(reply_message, Message):
         text = reply_message.text.strip()
         async with get_session() as session:
