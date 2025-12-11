@@ -71,6 +71,8 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
         }
 
         async with httpx.AsyncClient(timeout=15.0) as client:
+            print(url, json.dumps(params, ensure_ascii=False, indent=4))
+            print(json.dumps(body, ensure_ascii=False, indent=4))
             resp = await client.post(url, params=params, json=body, headers=headers)
             try: resp.raise_for_status()
             except httpx.HTTPError as e:
