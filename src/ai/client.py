@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime
-
 from openai import AsyncClient
 
 from config import OPENAI_API_KEY, ASSISTANT_ID
-from .eventhandler import ProfessorEventHandler
+from src.ai.eventhandler import ProfessorEventHandler
 
 
 class ProfessorClient(AsyncClient):
@@ -22,7 +23,6 @@ class ProfessorClient(AsyncClient):
         Send a message to the assistant with rich context and improved reasoning.
         """
         self.__logger.info('Запрос: %s', message)
-        # Add structured metadata (date/time and system instruction)
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         system_context = (
             "Ты — умный, внимательный и детальный ассистент—профессор. "

@@ -2,10 +2,7 @@ import logging
 import asyncio
 import signal
 
-from src.onec import OneCEnterprise
-from src.admin_panel.bot.main import run_admin_bot
-from src.delivery.sdek import client as cdek_client
-from src.webapp.main import run_app
+from src.ai.bot.main import run_new_bot
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,10 +16,7 @@ logger = logging.getLogger("main")
 
 async def main():
     tasks = [
-        asyncio.create_task(run_app()),
-        asyncio.create_task(run_admin_bot()),
-        asyncio.create_task(cdek_client.token_worker()),
-        asyncio.create_task(OneCEnterprise().postgres_worker())
+        asyncio.create_task(run_new_bot())
     ]
 
     async def shutdown():

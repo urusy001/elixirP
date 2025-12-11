@@ -1,12 +1,9 @@
 from .category import *
 from .feature import *
-from .giveaway import *
-from .participant import *
 from .product import *
 from .unit import *
 from .user import *
 from .usertokenusage import *
-from .chatuser import *
 from .cart import *
 from .cart_item import *
 from .favourite import *
@@ -18,9 +15,6 @@ __all__ = [
     'FeatureUpdate', 'FeatureBase', 'FeatureRead', 'FeatureCreate',
     'UserUpdate', 'UserBase', 'UserRead', 'UserCreate',
     'UserTokenUsageUpdate', 'UserTokenUsageRead', 'UserTokenUsageBase', 'UserTokenUsageCreate',
-    'GiveawayBase', 'GiveawayCreate', 'GiveawayRead', 'GiveawayUpdate',
-    'ParticipantBase', 'ParticipantRead', 'ParticipantCreate', 'ParticipantUpdate',
-    'ChatUserCreate', 'ChatUserBase', 'ChatUserOut', 'ChatUserUpdate',
     'CartCreate', 'CartUpdate', 'CartItemCreate', 'CartItemUpdate',
     'FavouriteOut', 'FavouriteCreate', 'FavouriteDelete', 'FavouriteBase'
 ]

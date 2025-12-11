@@ -2,34 +2,23 @@ from datetime import datetime
 from aiogram import Router
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 
-from config import OWNER_TG_IDS, AI_BOT_TOKEN, AI_BOT_TOKEN2, MOSCOW_TZ
+from config import AI_BOT_TOKEN, AI_BOT_TOKEN2, MOSCOW_TZ
 from src.ai.bot.keyboards import user_keyboards
 from src.ai.bot.states import user_states
-from src.ai.bot.texts import user_texts, greeting
+from src.ai.bot.texts import user_texts
 from src.helpers import with_typing, CHAT_NOT_BANNED_FILTER
 from src.webapp import get_session
 from src.webapp.crud import update_user, increment_tokens, write_usage, get_user
 from src.webapp.schemas import UserUpdate
 
 router = Router(name="user")
-router2 = Router(name="user2")
 router3 = Router(name="user3")
 
-@router2.message(Command('app'))
-@router2.message(CommandStart())
-async def app(message: Message): await message.answer(greeting, reply_markup=user_keyboards.open_app)
-
-@router2.message(Command('about'))
-async def about(message: Message): await message.answer(user_texts.about)
-
-@router2.message(Command('offer'))
-async def offer(message: Message): await message.answer(user_texts.offer_link)
 
 @router.message(CommandStart())
 @router3.message(CommandStart())
-@with_typing
 async def handle_user_start(message: Message, state: FSMContext, professor_bot, professor_client):
     user_id = message.from_user.id
     result = await CHAT_NOT_BANNED_FILTER(user_id)
@@ -58,7 +47,6 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
 
 
 @router.message(user_states.Registration.phone)
-@router2.message(user_states.Registration.phone)
 @router3.message(user_states.Registration.phone)
 async def handle_user_registration(message: Message, state: FSMContext, professor_bot, professor_client):
     user_id = message.from_user.id
@@ -86,7 +74,6 @@ async def handle_user_registration(message: Message, state: FSMContext, professo
 
 
 @router.message(Command('new_chat'))
-@router2.message(Command('new_chat'))
 @router3.message(Command('new_chat'))
 async def handle_new_chat(message: Message, state: FSMContext, professor_client):
     user_id = message.from_user.id
@@ -98,7 +85,6 @@ async def handle_new_chat(message: Message, state: FSMContext, professor_client)
     return await message.answer(user_texts.new_chat)
 
 @router.message(lambda message: message.text)
-@router2.message(lambda message: message.text)
 @router3.message(lambda message: message.text)
 @with_typing
 async def handle_text_message(message: Message, state: FSMContext, professor_bot, professor_client):
@@ -121,11 +107,3 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
         await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], bot=bot)
 
     return await professor_bot.parse_response(response, message)
-
-@router.callback_query(lambda call: call.from_user.id not in OWNER_TG_IDS and call.data.startswith("user"))
-@router2.callback_query(lambda call: call.from_user.id not in OWNER_TG_IDS and call.data.startswith("user"))
-@router3.callback_query(lambda call: call.from_user.id not in OWNER_TG_IDS and call.data.startswith("user"))
-async def handle_user_call(call: CallbackQuery, state: FSMContext):
-    data = call.data.removeprefix("user:").split(":")
-    if data[0] == "about": await about(call.message)
-    elif data[0] == "offer": await offer(call.message)

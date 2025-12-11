@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 import httpx
 from datetime import datetime, timedelta, UTC
 from urllib.parse import urlparse, parse_qs
 from playwright.async_api import async_playwright
-from sqlalchemy import select
 
 from src.helpers import normalize_address_for_cf
-from src.webapp.models import Participant
 from config import (
     AMOCRM_CLIENT_ID,
     AMOCRM_CLIENT_SECRET,
@@ -222,123 +219,6 @@ class AsyncAmoCRM:
 
     async def delete(self, endpoint: str, **kwargs):
         return await self._request("DELETE", endpoint, **kwargs)
-
-    # ---------- DEAL VALIDATION (your original logic preserved) ----------
-
-    async def get_valid_deal(self, code: str | int, start_date: datetime, session) -> dict:
-        code_str = str(code).strip()
-        self.logger.info("Checking deal code=%s since=%s", code_str, start_date)
-
-        res = await session.execute(
-            select(Participant.deal_code).where(Participant.deal_code == int(code_str))
-        )
-        existing = res.scalar_one_or_none()
-        if existing:
-            msg = (
-                f"<b>Заказ уже зарегистрирован.</b>\n"
-                f"<i>Код №{code_str} уже есть в базе участников.</i>"
-            )
-            return {
-                "ok": False,
-                "reason": "already_registered",
-                "details": {"deal_code": code_str},
-                "deal": None,
-                "html_message": msg,
-            }
-
-        endpoint = f"/api/v4/leads?query=№{code_str}"
-        try: data = await self.get(endpoint)
-        except Exception as e:
-            msg = f"<b>Ошибка запроса к AmoCRM:</b> {e}"
-            return {
-                "ok": False,
-                "reason": "api_error",
-                "details": {"deal_code": code_str, "error": str(e)},
-                "deal": None,
-                "html_message": msg,
-            }
-
-        leads = data.get("_embedded", {}).get("leads", [])
-        if not leads:
-            msg = (
-                f"<b>Заказ не найден.</b>\n"
-                f"<i>Код №{code_str} отсутствует в AmoCRM.</i>"
-            )
-            return {
-                "ok": False,
-                "reason": "not_found",
-                "details": {"deal_code": code_str},
-                "deal": None,
-                "html_message": msg,
-            }
-
-        for lead in leads:
-            name = lead.get("name", "").strip().lower().replace("\u00a0", " ")
-            pipeline_id = lead.get("pipeline_id", 0)
-            status_id = lead.get("status_id", 0)
-            if not name.startswith(f"заказ №{code_str}"): continue
-            if pipeline_id != self.PIPELINE_ID:
-                msg = (
-                    f"<b>Неверная воронка.</b>\n"
-                    f"<i>Ожидался pipeline {self.PIPELINE_ID}, найден {pipeline_id}.</i>"
-                )
-                return {
-                    "ok": False,
-                    "reason": "pipeline_mismatch",
-                    "deal": lead,
-                    "html_message": msg,
-                }
-            if status_id not in self.COMPLETE_STATUS_IDS:
-                msg = (
-                    f"<b>Заказ не завершён.</b>\n"
-                    f"<i>Статус {status_id} не завершён.</i>"
-                )
-                return {
-                    "ok": False,
-                    "reason": "status_not_complete",
-                    "deal": lead,
-                    "html_message": msg,
-                }
-
-            timestamp = (
-                    lead.get("closed_at")
-                    or lead.get("updated_at")
-                    or lead.get("created_at")
-            )
-            if not timestamp:
-                return {
-                    "ok": False,
-                    "reason": "no_date",
-                    "deal": lead,
-                    "html_message": "<b>Нет даты заказа.</b>",
-                }
-
-            deal_date = datetime.fromtimestamp(timestamp, UTC)
-            if deal_date < start_date:
-                msg = (
-                    f"<b>Слишком старый заказ.</b>\n"
-                    f"<i>{deal_date:%d.%m.%Y}, требуется позже {start_date:%d.%m.%Y}</i>"
-                )
-                return {
-                    "ok": False,
-                    "reason": "too_old",
-                    "deal": lead,
-                    "html_message": msg,
-                }
-
-            msg = (
-                f"<b>Заказ подтверждён!</b>\n"
-                f"<i>Код №{code_str}, завершён {deal_date:%d.%m.%Y}.</i>"
-            )
-            return {"ok": True, "reason": "ok", "deal": lead, "html_message": msg}
-
-        return {
-            "ok": False,
-            "reason": "no_deals",
-            "html_message": "<b>Не найден подходящий заказ.</b>",
-        }
-
-    # ---------- LEAD + NOTE + CONTACT HELPERS ----------
 
     async def create_lead(
             self,

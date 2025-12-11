@@ -10,7 +10,6 @@ from aiogram.types import Message, CallbackQuery, FSInputFile
 from config import OWNER_TG_IDS, SPENDS_DIR, AI_BOT_TOKEN, AI_BOT_TOKEN2
 from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
-from src.ai.bot.texts import greeting
 from src.webapp import get_session
 from src.webapp.crud import get_usages, get_user, update_user
 from src.webapp.schemas import UserUpdate
@@ -20,9 +19,6 @@ router = Router(name="admin")
 router2 = Router(name="admin")
 router3 = Router(name="admin")
 
-
-@router2.message(Command('test'), lambda message: message.from_user.id in OWNER_TG_IDS)
-async def test(message: Message): await message.answer(greeting, reply_markup=admin_keyboards.open_test)
 
 @router.message(CommandStart(), lambda message: message.from_user.id in OWNER_TG_IDS)
 @router2.message(CommandStart(), lambda message: message.from_user.id in OWNER_TG_IDS)

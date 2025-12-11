@@ -17,6 +17,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=True, default=None)
     phone = Column(String, unique=True, nullable=True, default=None)
 
+    premium_requests = Column(BigInteger, nullable=False, default=0)
     thread_id = Column(String, nullable=True, default=None)
     input_tokens = Column(BigInteger, nullable=False, default=0)
     output_tokens = Column(BigInteger, nullable=False, default=0)
