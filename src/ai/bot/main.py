@@ -227,7 +227,7 @@ dose_dp.callback_query.middleware(ContextMiddleware(dose_bot, dose_client))
 new_bot = ProfessorBot(NEW_BOT_TOKEN, BOT_NAMES[NEW_BOT_TOKEN])
 new_client = ProfessorClient(NEW_OPENAI_API, NEW_ASSISTANT_ID)
 new_dp = Dispatcher(storage=MemoryStorage())
-new_dp.include_routers(new_admin_router, new_user_router)
+new_dp.include_routers(new_chat_router, new_admin_router, new_user_router)
 new_dp.message.middleware(ContextMiddleware(new_bot, new_client))
 new_dp.callback_query.middleware(ContextMiddleware(new_bot, new_client))
 
