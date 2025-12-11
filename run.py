@@ -2,7 +2,7 @@ import logging
 import asyncio
 import signal
 
-from src.ai.bot.main import run_new_bot
+from src.ai.bot.main import run_new_bot, run_dose_bot, run_professor_bot
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,7 +16,8 @@ logger = logging.getLogger("main")
 
 async def main():
     tasks = [
-        asyncio.create_task(run_new_bot())
+        asyncio.create_task(run_dose_bot()),
+        asyncio.create_task(run_professor_bot()),
     ]
 
     async def shutdown():
