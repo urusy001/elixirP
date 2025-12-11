@@ -98,6 +98,7 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
     bot_id = str(message.bot.id)
     if bot_id == PROFESSOR_BOT_TOKEN.split(':')[0]: assistant_id = PROFESSOR_ASSISTANT_ID
     else: assistant_id = DOSE_ASSISTANT_ID
+    print(assistant_id, assistant_id, assistant_id, assistant_id, assistant_id, assistant_id)
     response = await professor_client.send_message(message.text, user.thread_id, assistant_id)
 
     async with get_session() as session:
