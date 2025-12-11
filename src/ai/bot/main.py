@@ -220,12 +220,12 @@ dose_client = ProfessorClient(OPENAI_API_KEY2, ASSISTANT_ID2)
 new_client = ProfessorClient(OPENAI_API_KEY2, ASSISTANT_ID3)
 
 professor_dp = Dispatcher(storage=MemoryStorage())
-professor_dp.include_routers(professor_user_router, professor_admin_router)
+professor_dp.include_routers(professor_admin_router, professor_user_router)
 professor_dp.message.middleware(ContextMiddleware(professor_bot, professor_client))
 professor_dp.callback_query.middleware(ContextMiddleware(professor_bot, professor_client))
 
 dose_dp = Dispatcher(storage=MemoryStorage())
-dose_dp.include_routers(dose_user_router, dose_admin_router)
+dose_dp.include_routers(dose_admin_router, dose_user_router)
 dose_dp.message.middleware(ContextMiddleware(dose_bot, dose_client))
 dose_dp.callback_query.middleware(ContextMiddleware(dose_bot, dose_client))
 
