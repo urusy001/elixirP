@@ -19,7 +19,7 @@ dose_user_router = Router(name="user3")
 
 professor_user_router.message.filter(lambda message: message.from_user.id not in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE)
 professor_user_router.callback_query.filter(lambda call: call.data.startswith("user") and call.from_user.id not in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
-dose_user_router.message.filter(lambda message: message.from_user.id in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE)
+dose_user_router.message.filter(lambda message: message.from_user.id not in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE)
 dose_user_router.callback_query.filter(lambda call: call.data.startswith("user") and call.from_user.id not in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
 
 
