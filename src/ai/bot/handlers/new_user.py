@@ -291,10 +291,7 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
         await state.update_data(assistant_id=assistant_id)
         await _notify_user(message, user_texts.pick_fallback_free, 10)
 
-    elif assistant_id == NEW_ASSISTANT_ID and user.premium_requests <= 0:
-        await message.answer(user_texts.premium_limit_0, reply_markup=user_keyboards.only_free)
-        assistant_id = PROFESSOR_ASSISTANT_ID
-        await state.update_data(assistant_id=assistant_id)
+    elif assistant_id == NEW_ASSISTANT_ID and user.premium_requests <= 0: return await message.answer(user_texts.premium_limit_0, reply_markup=user_keyboards.only_free)
 
     response = await professor_client.send_message(message.text, user.thread_id, assistant_id)
     async with get_session() as session:

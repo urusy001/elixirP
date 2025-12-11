@@ -151,7 +151,7 @@ class ProfessorBot(Bot):
 
         if not files and not text:
             logger.warning("EMPTY response (no files, no text)")
-            return await message.answer("oshibochka vishla da", reply_markup=user_keyboards.backk if back_menu == True else ReplyKeyboardRemove())
+            return await message.reply("oshibochka vishla da", reply_markup=user_keyboards.backk if back_menu == True else ReplyKeyboardRemove())
 
         if files:
             logger.info("OUTGOING response has %d file(s)", len(files))
@@ -161,7 +161,7 @@ class ProfessorBot(Bot):
                     "OUTGOING single photo | caption_len=%d",
                     len(caption or ""),
                 )
-                return await message.answer_photo(
+                return await message.reply_photo(
                     FSInputFile(files[0]),
                     caption=caption,
                     parse_mode=ParseMode.MARKDOWN,
@@ -177,7 +177,7 @@ class ProfessorBot(Bot):
                     "OUTGOING media group | first_caption_len=%d",
                     len(media[0].caption or ""),
                 )
-                return await message.answer_media_group(media)
+                return await message.reply_media_group(media)
 
         if len(text) > MAX_TG_MSG_LEN:
             logger.info("OUTGOING long text | len=%d | splitting", len(text))
@@ -190,12 +190,12 @@ class ProfessorBot(Bot):
                     len(chunks),
                     len(clean_chunk),
                 )
-                await message.answer(
+                await message.reply(
                     clean_chunk,
                     parse_mode=ParseMode.MARKDOWN,
                     reply_markup=ReplyKeyboardRemove(),
                 )
-            return await message.answer(re.sub(r"【[^】]*】", "", chunks[-1]), parse_mode=ParseMode.MARKDOWN, reply_markup=user_keyboards.backk if back_menu == True else ReplyKeyboardRemove())
+            return await message.reply(re.sub(r"【[^】]*】", "", chunks[-1]), parse_mode=ParseMode.MARKDOWN, reply_markup=user_keyboards.backk if back_menu == True else ReplyKeyboardRemove())
 
         clean_text = re.sub(r"【[^】]*】", "", text)
         logger.info(
@@ -203,7 +203,7 @@ class ProfessorBot(Bot):
             len(clean_text),
             clean_text[:200],
         )
-        return await message.answer(
+        return await message.reply(
             clean_text,
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=user_keyboards.backk if back_menu == True else ReplyKeyboardRemove() if back_menu == True else ReplyKeyboardRemove(),

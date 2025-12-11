@@ -450,6 +450,16 @@ async def CHAT_NOT_BANNED_FILTER(user_id: int) -> bool:
         else: return True
     except: return True
 
+async def CHAT_ADMIN_REPLY_FILTER(message: Message, bot: Bot) -> bool:
+    if getattr(message.chat, "id") not in [ELIXIR_CHAT_ID]: return False
+    elif not message.reply_to_message: return False
+    if message.sender_chat and message.sender_chat.id == message.chat.id: return True
+
+    if message.from_user:
+        member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+        return member.status in ("administrator", "creator")
+
+    return False
 
 class TelegramAuthPayload(BaseModel): initData: str
 class TelegramInitDataError(Exception):
