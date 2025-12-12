@@ -17,6 +17,7 @@ import {apiPost} from "../../services/api.js";
 export async function renderPaymentPage() {
     showLoader();
     setupPaymentPage();
+    setupPaymentCommentary();
 
     toolbarEl.style.display = "none";
     listEl.style.display = "none";
@@ -30,7 +31,6 @@ export async function renderPaymentPage() {
     processPaymentEl.style.display = "none";
     navBottomEl.style.display = "none";
     profilePageEl.style.display = "none";
-
 
     if (isTelegramApp()) {
         showBackButton();
@@ -102,6 +102,25 @@ function setupPaymentPage() {
     };
 }
 
+function setupPaymentCommentary() {
+    const commentaryEl = document.getElementById("payment-commentary-input");
+    if (!commentaryEl) return;
+
+    // Restore from sessionStorage if exists
+    const saved = sessionStorage.getItem("payment_commentary");
+    if (saved) {
+        commentaryEl.value = saved;
+    }
+
+    // Save to sessionStorage on input (once)
+    if (!commentaryEl.dataset.boundInput) {
+        commentaryEl.addEventListener("input", () => {
+            sessionStorage.setItem("payment_commentary", commentaryEl.value);
+        });
+        commentaryEl.dataset.boundInput = "1";
+    }
+}
+
 async function handlePaymentSubmit() {
     try {
         showLoader();
@@ -123,6 +142,12 @@ async function handlePaymentSubmit() {
             ? window.getSelectedPaymentMethod()
             : null;
 
+        // read commentary from DOM (and fallback to session)
+        const commentaryEl = document.getElementById("payment-commentary-input");
+        const payment_commentary = commentaryEl
+            ? commentaryEl.value.trim()
+            : (sessionStorage.getItem("payment_commentary") || "").trim();
+
         if (!payment_method) {
             alert("Выберите способ оплаты.");
             return;
@@ -140,10 +165,14 @@ async function handlePaymentSubmit() {
             checkout_data,
             selected_delivery,
             selected_delivery_service,
-            payment_method,   // 👈 HERE we include chosen method
+            payment_method,      // выбранный способ оплаты
+            payment_commentary,  // 👈 комментарий к заказу
             source: "telegram",
         };
-        alert(JSON.stringify(payload));
+
+        // временный debug, можешь убрать
+        // alert(JSON.stringify(payload));
+
         const res = await apiPost("/payments/create", payload);
 
         if (!res.ok) {
@@ -157,17 +186,20 @@ async function handlePaymentSubmit() {
             sessionStorage.setItem("order_id", String(data.order_id));
         }
 
+        // комментарий уже ушёл на бэк — можно очистить локальное хранилище
+        sessionStorage.removeItem("payment_commentary");
+
         // optional: handle method-specific redirects
         if (payment_method === "yookassa" && data?.confirmation_url) {
             // YooKassa: redirect to payment page
             window.location.href = data.confirmation_url;
             return;
         } else if (payment_method === "usdt" && data?.usdt_address) {
-
+            // тут можно будет заполнить блок USDT (qr, адрес и т.д.)
+            // пока просто идём на страницу process-payment
         }
 
-        // USDT / later: you may want to show a success screen or instructions
-        // For now, just navigate to some local "success" route:
+        // USDT / later: navigate to local "process" / success route
         navigateTo("/process-payment");
 
     } catch (err) {

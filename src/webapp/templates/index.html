@@ -170,10 +170,10 @@
     </div>
     <div id="payment-page" style="display:none;">
         <div class="payment-card">
-            <div class="payment-summary-row total">
+            <!--<div class="payment-summary-row total">
                 <span>К оплате</span>
                 <span id="payment-total">0 ₽</span>
-            </div>
+            </div>-->
             <div class="payment-summary-row" id="payment-delivery-row" style="display:none;">
                 <span>Доставка</span>
                 <span id="payment-delivery-amount">0 ₽</span>
@@ -227,25 +227,21 @@
                 Способ оплаты: USDT. После оформления мы покажем вам реквизиты.
             </div>
         </div>
-        <div id="process-payment-page" class="payment-card" style="display: none;">
-            <div id="usdt" style="display: none;">
-                <div id="qr-code">
-
-                </div>
-                <span id="usdt-address"></span>
-                <label id="txid">
-                    <input type="text" name="tx_id">
-                </label>
-            </div>
-            <div id="yookassa" style="display: none;">
-                <svg class="redirect-svg"></svg>
-            </div>
-            <div id="later" style="display: none">
-                С вами скоро свяжутся
-            </div>
+        <div class="payment-commentary" id="payment-commentary">
+            <label class="payment-commentary-label" for="payment-commentary-input">
+                <span class="payment-commentary-title">Комментарий к заказу (необязательно)</span>
+                <span class="payment-commentary-hint">
+            Например: «Не звоните, пожалуйста», «Позвонить за 10 минут до доставки»
+        </span>
+                <textarea
+                        id="payment-commentary-input"
+                        name="comment"
+                        rows="2"
+                        placeholder="Добавьте комментарий к заказу..."
+                ></textarea>
+            </label>
         </div>
     </div>
-
 </div>
 {% endblock %}
 

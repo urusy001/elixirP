@@ -179,3 +179,52 @@
     color: #4b5563;
     padding: 4px 0;
 }
+
+.payment-commentary {
+    margin-top: 8px;
+}
+
+/* Обёртка над заголовком, подсказкой и полем */
+.payment-commentary-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: #4b5563; /* text-slate-600 vibe */
+}
+
+/* Заголовок поля */
+.payment-commentary-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #111827; /* text-slate-900 */
+}
+
+/* Подсказка под заголовком */
+.payment-commentary-hint {
+    font-size: 11px;
+    color: #9ca3af; /* text-gray-400 */
+}
+
+/* Само поле комментария */
+.payment-commentary-label textarea {
+    margin-top: 4px;
+    width: 100%;
+    min-height: 56px;
+    max-height: 120px;
+    resize: vertical;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    font-size: 13px;
+    line-height: 1.4;
+    outline: none;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+/* Фокус-состояние в стиле остальных инпутов */
+.payment-commentary-label textarea:focus {
+    border-color: var(--color-brand, #2381cc);
+    box-shadow: 0 0 0 1px rgba(35, 129, 204, 0.18);
+}
