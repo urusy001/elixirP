@@ -499,23 +499,6 @@ def validate_init_data(
             params[key] = value
 
     if received_hash is None:
-        return {'user': {
-            "tg_id": 7994732323,
-            "tg_ref_id": None,
-            "tg_phone": "17632730385",
-            "photo_url": "https://t.me/i/userpic/320/gW9aIsQa-lmpXo6P0sNmiHj_muG-QRt7nsyi9849Pz9BS3gBjXHb9PxiAlH7IdUj.svg",
-            "name": "Paylak",
-            "surname": "Urusyan",
-            "email": None,
-            "phone": None,
-            "premium_requests": 793215,
-            "thread_id": "thread_jM2U5iNJ71OJo8jyQijnwPOt",
-            "input_tokens": 1686106,
-            "output_tokens": 52017,
-            "blocked_until": None,
-            "accepted_terms": True,
-            "favourites": [],
-        }}
         raise TelegramInitDataSignatureError("Missing 'hash' parameter in init data.")
 
     # 2. Build data_check_string: "key=value" sorted by key and joined with '\n'
