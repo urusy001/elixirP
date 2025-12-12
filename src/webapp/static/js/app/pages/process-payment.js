@@ -24,7 +24,7 @@ export async function renderProcessPaymentPage(order_number) {
     profilePageEl.style.display = "none";
 
     // Header / nav
-    headerTitle.textContent = `Номер заказа ${order_number}`;
+    headerTitle.textContent = `Номер заказа ${order_number ?? "—"}`;
     searchBtnEl.style.display = "flex";
     navBottomEl.style.display = "flex";
 
@@ -33,15 +33,6 @@ export async function renderProcessPaymentPage(order_number) {
         window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
     } catch (_) {
         window.scrollTo(0, 0);
-    }
-
-    // ---- Order number ----
-    const storedOrderId = sessionStorage.getItem("order_id");
-    const finalOrderId = (order_number ?? storedOrderId ?? "—").toString();
-
-    const orderNumberEl = processPaymentEl.querySelector("#order-number");
-    if (orderNumberEl) {
-        orderNumberEl.textContent = finalOrderId;
     }
 
     // ---- Lottie animation ----
@@ -55,7 +46,7 @@ export async function renderProcessPaymentPage(order_number) {
             renderer: "svg",
             loop: false,
             autoplay: true,
-            path: "/static/stickers/cherry-congrats.json"
+            path: "/static/stickers/cherry-congrats.json",
         });
     }
 
