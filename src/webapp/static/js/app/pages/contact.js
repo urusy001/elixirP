@@ -181,7 +181,7 @@ export async function renderContactPage() {
 
         } catch (err) {
             console.error("Ошибка при создании платежа:", err);
-            alert(JSON.stringify(err));
+            alert(err)
         } finally {
             hideLoader();
 
