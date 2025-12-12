@@ -19,7 +19,7 @@ async def cdek_proxy(request: Request):
     params = request.query_params
     raw_body = await request.body()
     body = raw_body.decode(encoding="utf-8")
-    body = json.loads(body)
+    print(body)
     method = request.method
 
     action = params.get("action") or body.get("action")
