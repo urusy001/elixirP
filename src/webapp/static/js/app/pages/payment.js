@@ -29,7 +29,7 @@ export async function renderPaymentPage() {
     paymentPageEl.style.display = "block";
     searchBtnEl.style.display = "none";
     processPaymentEl.style.display = "none";
-    navBottomEl.style.display = "none";
+    navBottomEl.style.display = "flex";
     profilePageEl.style.display = "none";
 
     if (isTelegramApp()) {
