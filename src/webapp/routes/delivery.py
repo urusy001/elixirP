@@ -75,8 +75,10 @@ async def cdek_proxy(request: Request):
 
     params = request.query_params
     raw_body = await request.body()
-    try: body = json.loads(raw_body.decode("utf-8")) if raw_body else {}
-    except json.JSONDecodeError: body = {}
+    raw_body = raw_body.decode(encoding="utf-8")
+    print(raw_body or 'no body')
+    body = json.loads(raw_body) if raw_body else {}
+    print(body)
     method = request.method
 
     action = params.get("action") or body.get("action")
