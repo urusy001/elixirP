@@ -1,5 +1,4 @@
 import {showLoader, hideLoader} from "../ui/loader.js";
-import navigateTo from "../router.js";
 import {state} from "../state.js";
 import {
     isTelegramApp,
@@ -18,6 +17,7 @@ import {
     toolbarEl
 } from "./constants.js";
 import {apiGet, apiPost} from "../../services/api.js";
+import {renderProcessPaymentPage} from "./process-payment.js";
 
 const form = document.getElementById("contact-form");
 
@@ -173,11 +173,12 @@ export async function renderContactPage() {
                 const text = await res.text().catch(() => "");
                 throw new Error(`POST /payments/create failed: ${res.status} ${text}`);
             }
-            const data = await res.json().catch(() => ({}));
-            if (data?.order_number)
-
             sessionStorage.removeItem("payment_commentary");
-            navigateTo("/process-payment");
+            const data = await res.json().catch(() => ({}));
+            if (data?.order_number) {
+                await renderProcessPaymentPage(data.order_number);
+            }
+
         } catch (err) {
             console.error("Ошибка при создании платежа:", err);
             alert("Не удалось создать заказ. Попробуйте снова.");

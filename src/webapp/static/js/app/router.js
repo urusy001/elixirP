@@ -4,9 +4,9 @@ import {renderCartPage} from "./pages/cart.js";
 import {renderCheckoutPage} from "./pages/checkout.js";
 import {renderContactPage} from "./pages/contact.js";
 import {renderPaymentPage} from "./pages/payment.js";
+import {renderProcessPaymentPage} from "./pages/process-payment.js";
 import {setupBottomNav, updateBottomNavActive} from "./ui/nav-bottom.js";
 import {renderProfilePage} from "./pages/profile.js";
-import {launchConfettiBurst} from "./ui/telegram.js";
 
 const routes = [
     {match: p => p === "/" || p === "", action: renderHomePage},
@@ -14,7 +14,7 @@ const routes = [
     {match: p => p === "/cart", action: renderCartPage},
     {match: p => p === "/checkout", action: renderCheckoutPage},
     {match: p => p === "/contact", action: renderContactPage},
-    {match: p => p === "/payment", action: renderPaymentPage},
+    //{match: p => p === "/payment", action: renderPaymentPage},//
     {match: p => p === "/favourites", action: renderFavouritesPage},
     {match: p => p === "/profile", action: renderProfilePage},
 ];
@@ -36,8 +36,7 @@ export async function renderCurrentPath() {
     await renderHomePage();
 }
 
-function navigateTo(path) {
-    launchConfettiBurst();
+export function navigateTo(path) {
     setupBottomNav();
     const normalized = path.startsWith("/") ? path : `/${path}`;
     updateBottomNavActive(normalized);
@@ -45,8 +44,6 @@ function navigateTo(path) {
     if (window.location.hash === targetHash) return;
     window.location.hash = normalized;
 }
-
-export default navigateTo
 
 export function enablePopstate() {
     window.addEventListener("hashchange", () => {

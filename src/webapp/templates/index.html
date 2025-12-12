@@ -183,21 +183,36 @@
 
     <!-- Payment page is no longer used; keep empty container so JS/constants do not explode -->
     <div id="payment-page" style="display:none;"></div>
-    <div id="process-payment-page" class="payment-card" style="display: none;">
-        <div id="usdt" style="display: none;">
-            <div id="qr-code">
+    <div id="process-payment-page" style="display: none;">
+        <div class="process-card">
+            <!-- Lottie animation container -->
+            <div id="order-lottie" class="process-lottie"></div>
 
+            <div class="process-icon">
+                <!-- simple checkmark circle -->
+                <svg viewBox="0 0 48 48" aria-hidden="true">
+                    <circle cx="24" cy="24" r="22"></circle>
+                    <path d="M16 24.5 21.5 30 32 18"></path>
+                </svg>
             </div>
-            <span id="usdt-address"></span>
-            <label id="txid">
-                <input type="text" name="tx_id">
-            </label>
-        </div>
-        <div id="yookassa" style="display: none;">
-            <svg class="redirect-svg"></svg>
-        </div>
-        <div id="later" style="display: none">
-            С вами скоро свяжутся
+
+            <h2 class="process-title">Заказ оформлен 🎉</h2>
+
+            <p class="process-text">
+                Спасибо! Мы получили ваш заказ и скоро с вами свяжемся для подтверждения и оплаты.
+            </p>
+
+            <div class="process-order-box">
+                <div class="process-order-label">Номер заказа</div>
+                <div class="process-order-value">
+                    <!-- заполняется из JS -->
+                    <span id="order-number">—</span>
+                </div>
+            </div>
+
+            <p class="process-hint">
+                Пожалуйста, сохраните номер заказа — его могут спросить при обращении в поддержку.
+            </p>
         </div>
     </div>
 </div>

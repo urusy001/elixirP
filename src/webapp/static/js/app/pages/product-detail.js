@@ -9,7 +9,7 @@ import {
     hideBackButton,
     isTelegramApp,
 } from "../ui/telegram.js";
-import navigateTo from "../router.js";
+import { navigateTo } from "../router.js";
 import {
     cartPageEl,
     checkoutPageEl,

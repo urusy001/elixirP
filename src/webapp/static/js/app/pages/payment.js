@@ -1,6 +1,6 @@
 import {showLoader, hideLoader} from "../ui/loader.js";
 import {isTelegramApp, showBackButton, showMainButton} from "../ui/telegram.js";
-import navigateTo from "../router.js";
+import {navigateTo} from "../router.js";
 import { state } from "../state.js";
 import {
     cartPageEl,

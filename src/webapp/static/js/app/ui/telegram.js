@@ -1,5 +1,5 @@
 import {state} from "../state.js";
-import navigateTo from "../router.js";
+import {navigateTo} from "../router.js";
 import {getCurrentPathFromHash, updateBottomNavActive} from "./nav-bottom.js";
 
 /* ---------------- TELEGRAM DETECTION ---------------- */

@@ -1,0 +1,128 @@
+/* ---------------- PROCESS PAYMENT PAGE ---------------- */
+
+#process-payment-page {
+    display: none; /* toggled via JS */
+    max-width: 900px;
+    margin: 0.5rem auto 1rem;
+    padding: 0.5rem;
+    background: transparent; /* page bg already white via main wrapper */
+    box-sizing: border-box;
+}
+
+/* main card */
+.process-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 0.75rem 0.75rem 1rem;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+    text-align: center;
+}
+
+/* Lottie container */
+.process-lottie {
+    width: 120px;
+    height: 120px;
+    margin: 0.25rem auto 0.25rem;
+}
+
+/* fallback icon (svg circle + check) */
+.process-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0.25rem auto 0.25rem;
+}
+
+.process-icon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.process-icon circle {
+    fill: #e0f2fe;
+}
+
+.process-icon path {
+    fill: none;
+    stroke: #1E669E;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* title + text */
+
+.process-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-top: 0.25rem;
+    margin-bottom: 0.3rem;
+    color: #111827;
+}
+
+.process-text {
+    font-size: 0.95rem;
+    color: #4b5563;
+    margin: 0 0 0.7rem;
+    line-height: 1.4;
+}
+
+/* order number box */
+
+.process-order-box {
+    padding: 0.6rem 0.75rem;
+    border-radius: 10px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    text-align: left;
+    margin-bottom: 0.5rem;
+}
+
+.process-order-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b7280;
+    margin-bottom: 0.2rem;
+}
+
+.process-order-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+    word-break: break-all;
+}
+
+/* hint under the order number */
+
+.process-hint {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-top: 0.1rem;
+    line-height: 1.35;
+}
+
+/* ---------------- RESPONSIVE ---------------- */
+
+@media (max-width: 600px) {
+    #process-payment-page {
+        margin: 0.5rem auto 1rem;
+        padding: 0.5rem;
+    }
+
+    .process-card {
+        padding: 0.75rem 0.75rem 0.9rem;
+    }
+
+    .process-title {
+        font-size: 1.1rem;
+    }
+
+    .process-text {
+        font-size: 0.9rem;
+    }
+
+    .process-order-value {
+        font-size: 0.95rem;
+    }
+}
