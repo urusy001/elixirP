@@ -174,9 +174,8 @@ export async function renderContactPage() {
                 throw new Error(`POST /payments/create failed: ${res.status} ${text}`);
             }
             sessionStorage.removeItem("payment_commentary");
-            const data = await res.json().catch(() => ({}));
-            if (data?.order_number) {
-                await renderProcessPaymentPage(data.order_number);
+            if (res?.order_number) {
+                await renderProcessPaymentPage(res.order_number);
             }
 
         } catch (err) {
