@@ -3,8 +3,6 @@
 #contact-page {
     display: none; /* toggled via JS */
     max-width: 900px;
-    margin: 0.5rem auto;
-    padding: 0.5rem;
     background: #fff;
     border-radius: 12px;
     animation: fadeIn 0.3s ease forwards;
@@ -128,11 +126,6 @@
 
 /* ---------------- RESPONSIVE ---------------- */
 @media (max-width: 600px) {
-    #contact-page {
-        margin: 1rem;
-        padding: 1rem;
-    }
-
     #contact-page h2 {
         font-size: 1.2rem;
     }
