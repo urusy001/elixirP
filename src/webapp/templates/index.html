@@ -166,75 +166,34 @@
             <input type="text" name="surname" placeholder="Фамилия" required/>
             <input type="tel" name="phone" placeholder="Телефон" required/>
             <input type="email" name="email" placeholder="Email" required/>
+
+            <!-- Static info about payment method (always "later") -->
+            <div class="contact-payment-note">
+                <div class="contact-payment-note-title">Способ оплаты</div>
+                <div class="contact-payment-note-body">
+                    Оплатить позже. Мы свяжемся с вами для подтверждения заказа и оплаты.
+                </div>
+            </div>
+
+            <!-- Comment to order (moved from payment page) -->
+            <div class="contact-commentary">
+                <label class="contact-commentary-label" for="payment-commentary-input">
+                    <span class="contact-commentary-title">
+                        Комментарий к заказу (необязательно)
+                    </span>
+                    <textarea
+                            id="payment-commentary-input"
+                            name="commentary"
+                            rows="2"
+                            placeholder="Добавьте комментарий к заказу..."
+                    ></textarea>
+                </label>
+            </div>
         </form>
     </div>
-    <div id="payment-page" style="display:none;">
-        <div class="payment-card">
-            <div class="payment-summary-row" id="payment-delivery-row" style="display:none;">
-                <span>Доставка</span>
-                <span id="payment-delivery-amount">0 ₽</span>
-            </div>
-        </div>
 
-        <!-- Methods -->
-        <div class="payment-card">
-            <div class="payment-summary-row" style="margin-bottom:8px;">
-                <span>Способ оплаты</span>
-            </div>
-
-            <div class="payment-method-list" id="payment-methods">
-
-                <!-- Crypto USDT
-                <label class="payment-method active">
-                    <input type="radio" name="payment_method" value="usdt" checked>
-                    <div>
-                        <div class="payment-method-title">Криптовалюта USDT</div>
-                        <div class="payment-method-desc">
-                            Оплата заказа в USDT после подтверждения. Мы покажем адрес кошелька и сумму.
-                        </div>
-                    </div>
-                </label> -->
-
-                <!-- YooKassa
-                <label class="payment-method">
-                    <input type="radio" name="payment_method" value="yookassa">
-                    <div>
-                        <div class="payment-method-title">ЮKassa (карта, СБП и др.)</div>
-                        <div class="payment-method-desc">
-                            Перенаправим вас на защищённую страницу ЮKassa для онлайн-оплаты.
-                        </div>
-                    </div>
-                </label> -->
-
-                <!-- Pay later -->
-                <label class="payment-method">
-                    <input type="radio" name="payment_method" value="later">
-                    <div>
-                        <div class="payment-method-title">Оплатить позже</div>
-                        <div class="payment-method-desc">
-                            Оформить заказ без оплаты сейчас. Мы свяжемся с вами и уточним детали.
-                        </div>
-                    </div>
-                </label>
-
-            </div>
-
-            <div class="payment-note" id="payment-method-note" style="margin-top: 8px !important;">
-                Способ оплаты: USDT. После оформления мы покажем вам реквизиты.
-            </div>
-        </div>
-        <div class="payment-commentary" id="payment-commentary">
-            <label class="payment-commentary-label" for="payment-commentary-input">
-                <span class="payment-commentary-title">Комментарий к заказу (необязательно)</span>
-                <textarea
-                        id="payment-commentary-input"
-                        name="comment"
-                        rows="2"
-                        placeholder="Добавьте комментарий к заказу..."
-                ></textarea>
-            </label>
-        </div>
-    </div>
+    <!-- Payment page is no longer used; keep empty container so JS/constants do not explode -->
+    <div id="payment-page" style="display:none;"></div>
     <div id="process-payment-page" class="payment-card" style="display: none;">
         <div id="usdt" style="display: none;">
             <div id="qr-code">

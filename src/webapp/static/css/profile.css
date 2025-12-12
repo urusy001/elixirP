@@ -1,115 +1,114 @@
-/* Page wrapper */
+/* =========================
+   Process Payment Page
+   ========================= */
 
-.profile-page {
-    max-width: 480px;
-    margin: 0 auto;
-    padding: 32px 16px 24px;
-    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    color: #111827;
+#process-payment-page {
+    margin-top: 8px;
+    padding: 16px;
+    max-width: 390px;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 12px;
+    background: #ffffff;
+    box-sizing: border-box;
 }
 
-/* Header */
-
-.profile-header {
+/* Общий стиль для внутренних блоков (USDT / YooKassa / Later) */
+#process-payment-page > div {
+    text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 24px;
+    gap: 8px;
+    font-size: 15px;
+    color: #374151;
 }
 
-.profile-avatar {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 20%, #f0b4ff, #b56dff);
-    display: block;
-    object-fit: cover;
-    overflow: hidden;
-    margin-bottom: 16px;
-}
+/* ---------- USDT блок ---------- */
 
-.profile-name {
-    font-size: 24px;
-    font-weight: 700;
-}
-
-/* Menu container (card) */
-
-.profile-menu {
-    margin-top: 16px;
-    border-radius: 16px;
-    background: #ffffff;
-    overflow: hidden;
-}
-
-/* Common item styles */
-
-.profile-item {
-    width: 100%;
-    border: none;
-    outline: none;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px;
-    cursor: pointer;
-    font-size: 16px;
-    color: #111827;
-    background: #ffffff;
-}
-
-/* Left block (icon + title) */
-
-.profile-item-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-    min-width: 0;
-}
-
-.profile-item-title {
-    font-size: 17px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Icon wrapper */
-
-.profile-icon {
-    flex: 0 0 40px;
-    width: 40px;
-    height: 40px;
+#qr-code {
+    width: 160px;
+    height: 160px;
+    margin-bottom: 8px;
     border-radius: 12px;
+    background: #f3f4f6;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
 
-.profile-icon-inner {
+/* Адрес кошелька */
+#usdt-address {
+    display: block;
+    width: 100%;
+    font-family:
+            ui-monospace,
+            SFMono-Regular,
+            Menlo,
+            Monaco,
+            Consolas,
+            "Liberation Mono",
+            "Courier New",
+            monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    word-break: break-all;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #f9fafb;
+    border: 1px dashed #e5e7eb;
+}
+
+/* Поле ввода TXID */
+#txid {
+    width: 100%;
+    margin-top: 4px;
+}
+
+#txid input[type="text"] {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    font-size: 15px;
+    outline: none;
+    background: #ffffff;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+}
+
+#txid input[type="text"]:focus {
+    border-color: var(--color-brand, #2381cc);
+    box-shadow: 0 0 0 1px rgba(35, 129, 204, 0.18);
+}
+
+/* ---------- YooKassa блок ---------- */
+
+#yookassa {
+    min-height: 80px;
+    justify-content: center;
+}
+
+.redirect-svg {
     width: 32px;
     height: 32px;
-    display: flex;
-    align-items: center;
+    margin-bottom: 4px;
+    animation: payment-redirect-spin 1s linear infinite;
+}
+
+/* Простая анимация "крутилки" для svg */
+@keyframes payment-redirect-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* ---------- Later блок ---------- */
+
+#later {
+    min-height: 64px;
     justify-content: center;
-}
-
-/* Make SVGs fill the icon square and align by center */
-
-.profile-icon-inner svg {
-    width: 100%;
-    height: 100%;
-    display: block;
-}
-
-/* Chevron */
-
-.profile-item-chevron {
-    flex: 0 0 auto;
-    width: 7px;
-    height: 7px;
-    border-right: 2px solid #c4c4c8;
-    border-bottom: 2px solid #c4c4c8;
-    transform: rotate(-45deg);
+    font-size: 15px;
+    color: #4b5563;
+    padding: 4px 0;
 }

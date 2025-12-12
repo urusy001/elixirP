@@ -17,7 +17,7 @@ import {
     searchBtnEl,
     toolbarEl
 } from "./constants.js";
-import {apiGet} from "../../services/api.js";
+import {apiGet, apiPost} from "../../services/api.js";
 
 const form = document.getElementById("contact-form");
 
@@ -30,20 +30,24 @@ export async function renderContactPage() {
         return;
     }
 
+    // Hide everything except contact page
     cartPageEl.style.display = "none";
     detailEl.style.display = "none";
     listEl.style.display = "none";
     toolbarEl.style.display = "none";
-    contactPageEl.style.display = "none";
-    headerTitle.textContent = "Контактная информация";
     checkoutPageEl.style.display = "none";
-    searchBtnEl.style.display = "none";
-    paymentPageEl.style.display = "none";
-    contactPageEl.style.display = "block";
+    contactPageEl.style.display = "none";
+    paymentPageEl && (paymentPageEl.style.display = "none");
     processPaymentEl.style.display = "none";
-    navBottomEl.style.display = "none";
     profilePageEl.style.display = "none";
 
+    headerTitle.textContent = "Оформление заказа";
+    searchBtnEl.style.display = "none";
+
+    // You can choose: show or hide bottom nav here. Let's keep it visible like on your screenshot.
+    navBottomEl.style.display = "flex";
+
+    contactPageEl.style.display = "block";
 
     // Prevent default submit/enter
     form.addEventListener("submit", (e) => e.preventDefault());
@@ -59,6 +63,7 @@ export async function renderContactPage() {
     const surnameInput = form.querySelector('[name="surname"]');
     const emailInput = form.querySelector('[name="email"]');
     const phoneInput = form.querySelector('[name="phone"]');
+    const commentaryInput = form.querySelector('#payment-commentary-input');
 
     // Create / find error containers per input (attach right after input)
     function ensureErrorEl(input) {
@@ -66,12 +71,8 @@ export async function renderContactPage() {
         if (input._errorEl) return input._errorEl;
 
         const err = document.createElement("div");
-        err.className = "field-error";
-        err.style.color = "#ef4444";
-        err.style.fontSize = "12px";
-        err.style.marginTop = "4px";
-
-        input.insertAdjacentElement("afterend", err); // 👈 always unique per input
+        err.className = "field-error"; // styles in contact.css
+        input.insertAdjacentElement("afterend", err);
         input._errorEl = err;
         return err;
     }
@@ -120,18 +121,76 @@ export async function renderContactPage() {
         }
     }
 
-    // 💾 save contact info (called from MainButton)
+    // 💾 save contact info (used in order payload)
     function saveContactInfo(contact_info) {
         sessionStorage.setItem("contact_info", JSON.stringify(contact_info));
         if (user_id) sessionStorage.setItem("tg_user_id", String(user_id));
     }
 
     async function handleSubmit() {
-        if (!validateForm()) return; // double check before submit
+        if (!validateForm()) return;
 
         const formData = Object.fromEntries(new FormData(form).entries());
         saveContactInfo(formData);
-        navigateTo("/payment");
+
+        try {
+            showLoader();
+
+            const tg = state.telegram;
+            const user_id_from_storage = sessionStorage.getItem("tg_user_id");
+            const user_id_final =
+                user_id_from_storage ||
+                (tg?.initDataUnsafe?.user?.id != null
+                    ? String(tg.initDataUnsafe.user.id)
+                    : null);
+
+            const contact_info = formData;
+            const checkout_data = JSON.parse(sessionStorage.getItem("checkout_data") || "null");
+            const promocode = JSON.parse(sessionStorage.getItem("promocode") || "null");
+            const selected_delivery = JSON.parse(sessionStorage.getItem("selected_delivery") || "null");
+            const selected_delivery_service =
+                sessionStorage.getItem("selected_delivery_service") || "Yandex";
+
+            const payment_method = "later"; // only option now
+            const payment_commentary =
+                (commentaryInput?.value || "").trim();
+
+            const payload = {
+                user_id: user_id_final,
+                contact_info,
+                checkout_data,
+                selected_delivery,
+                selected_delivery_service,
+                payment_method,            // fixed: "later"
+                commentary: payment_commentary,
+                promocode,
+                source: "telegram",
+            };
+
+            const res = await apiPost("/payments/create", payload);
+
+            if (!res.ok) {
+                const text = await res.text().catch(() => "");
+                throw new Error(`POST /payments/create failed: ${res.status} ${text}`);
+            }
+
+            const data = await res.json().catch(() => ({}));
+
+            if (data?.order_id) {
+                sessionStorage.setItem("order_id", String(data.order_id));
+            }
+
+            // clear temp commentary storage if you decide to use it later
+            sessionStorage.removeItem("payment_commentary");
+
+            // For "later" we just go to process-payment page (shows "С вами скоро свяжутся")
+            navigateTo("/process-payment");
+        } catch (err) {
+            console.error("Ошибка при создании платежа:", err);
+            alert("Не удалось создать заказ. Попробуйте снова.");
+        } finally {
+            hideLoader();
+        }
     }
 
     hideMainButton();
@@ -194,7 +253,10 @@ export async function renderContactPage() {
 
         // MainButton logic
         if (isValid) {
-            showMainButton("Перейти к оплате", () => handleSubmit());
+            showMainButton("Оформить заказ", () => {
+                // allow async
+                handleSubmit();
+            });
         } else {
             hideMainButton();
         }
@@ -212,6 +274,19 @@ export async function renderContactPage() {
                 validateForm();
             });
         });
+
+        if (commentaryInput) {
+            commentaryInput.addEventListener("input", () => {
+                // optional: if you ever want to auto-save comment:
+                sessionStorage.setItem("payment_commentary", commentaryInput.value);
+            });
+        }
+    }
+
+    // Restore saved commentary if exists
+    const savedComment = sessionStorage.getItem("payment_commentary");
+    if (savedComment && commentaryInput) {
+        commentaryInput.value = savedComment;
     }
 
     // ---------- Prefill / auto-skip ----------
@@ -229,7 +304,10 @@ export async function renderContactPage() {
         };
 
         saveContactInfo(contact_info);
-        navigateTo("/payment");
+        // With merged page we DON'T go to /payment anymore,
+        // we just prefill the form and validate.
+        prefillFormFromUser(userModel);
+        validateForm();
     } else {
         if (userModel) {
             prefillFormFromUser(userModel);
