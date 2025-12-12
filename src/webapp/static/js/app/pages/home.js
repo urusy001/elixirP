@@ -539,7 +539,7 @@ export async function renderHomePage() {
     showLoader();
     const user = state.user || await getUser();
     if (!user) {
-        console.warn("[Home] invalid user (auth failed)");
+        await openHomePage();
     } else {
         document.getElementById("bottom-nav-avatar").src =
             user.photo_url ||
