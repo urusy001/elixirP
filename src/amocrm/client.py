@@ -394,4 +394,3 @@ amocrm = AsyncAmoCRM(
     access_token=AMOCRM_ACCESS_TOKEN,
     refresh_token=AMOCRM_REFRESH_TOKEN,
 )
-print(asyncio.run(amocrm.get_main_pipeline_statuses()))

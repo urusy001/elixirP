@@ -40,11 +40,13 @@ packaging==25.0
 pandas==2.3.3
 phonenumbers==9.0.20
 pillow==12.0.0
+playwright==1.57.0
 propcache==0.4.1
 pyaes==1.6.1
 pyasn1==0.6.1
 pydantic==2.12.5
 pydantic_core==2.41.5
+pyee==13.0.0
 pyparsing==3.2.5
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.1
