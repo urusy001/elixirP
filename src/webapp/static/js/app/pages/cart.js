@@ -29,7 +29,7 @@ let cartRows = {};
 
 // small helper to read promo input
 function getPromoInput() {
-    return document.getElementById("cart-promocode-input");
+    return document.getElementById("promo");
 }
 
 // === TOTAL & QTY HANDLING ===
@@ -60,7 +60,7 @@ function updateTotal() {
     `;
 
     if (isTelegramApp()) {
-        const promoInput = document.getElementById("cart-promocode-input");
+        const promoInput = getPromoInput();
         const hasPromo = promoInput && promoInput.value.trim().length > 0;
         alert(JSON.stringify(hasPromo));
 
