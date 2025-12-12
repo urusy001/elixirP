@@ -212,8 +212,8 @@
    ========================= */
 
 .payment-commentary {
-    /* lock commentary section to the bottom of the page area */
-    margin-top: auto;
+    margin-bottom: 24px;
+    margin-top: 4rem;
     padding-top: 10px;
 }
 
