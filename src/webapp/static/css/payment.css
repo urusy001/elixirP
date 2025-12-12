@@ -3,14 +3,11 @@
    ========================= */
 
 #payment-page {
-    padding: 0 16px 12px;                /* bottom padding = gap above nav */
-
+    padding: 0 16px 12px;      /* small gap above bottom-nav */
+    flex: 1;                   /* fill main's vertical space */
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-
-    /* page height = viewport minus bottom-nav (64px) */
-    min-height: calc(100vh - 64px);
 }
 
 .payment-card {
@@ -212,8 +209,8 @@
    ========================= */
 
 .payment-commentary {
-    margin-bottom: 24px;
-    margin-top: 4rem;
+    /* push commentary block to the bottom of payment-page area */
+    margin-top: auto;
     padding-top: 10px;
 }
 
