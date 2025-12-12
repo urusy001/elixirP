@@ -23,7 +23,7 @@ export async function renderPaymentPage() {
     listEl.style.display = "none";
     detailEl.style.display = "none";
     cartPageEl.style.display = "none";
-    headerTitle.textContent = "Оплата";
+    headerTitle.textContent = "  Выберите способ оплаты";
     checkoutPageEl.style.display = "none";
     contactPageEl.style.display = "none";
     paymentPageEl.style.display = "block";
