@@ -45,7 +45,7 @@ export async function renderContactPage() {
     searchBtnEl.style.display = "none";
 
     // You can choose: show or hide bottom nav here. Let's keep it visible like on your screenshot.
-    navBottomEl.style.display = "flex";
+    navBottomEl.style.display = "none";
 
     contactPageEl.style.display = "block";
 
