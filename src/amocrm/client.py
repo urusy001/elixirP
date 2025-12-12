@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import httpx
@@ -318,7 +319,7 @@ class AsyncAmoCRM:
             name=f"Заказ №{order_number} с Приложения ТГ",
             price=price,
             custom_fields=lead_custom_fields,
-            status_id=status_id or self.STATUS_IDS[""]
+            status_id=status_id or self.STATUS_IDS["main"]
         )
         lead_id = lead["id"]
 
@@ -359,6 +360,30 @@ class AsyncAmoCRM:
 
         return lead
 
+    async def get_main_pipeline_statuses(self) -> dict[str, int]:
+        """
+        Получить все статусы основного пайплайна (self.PIPELINE_ID).
+
+        Возвращает словарь:
+        {
+            "Новый лид": 123456,
+            "В работе": 123457,
+            ...
+        }
+        """
+        data = await self.get(f"/api/v4/leads/pipelines/{self.PIPELINE_ID}/statuses")
+
+        embedded = data.get("_embedded", {})
+        statuses = embedded.get("statuses", [])
+
+        result: dict[str, int] = {}
+        for st in statuses:
+            name = st.get("name")
+            sid = st.get("id")
+            if name and sid is not None:
+                result[name] = sid
+
+        return result
 
 # ---------- INSTANCE ----------
 amocrm = AsyncAmoCRM(
@@ -369,3 +394,4 @@ amocrm = AsyncAmoCRM(
     access_token=AMOCRM_ACCESS_TOKEN,
     refresh_token=AMOCRM_REFRESH_TOKEN,
 )
+print(asyncio.run(amocrm.get_main_pipeline_statuses()))
