@@ -3,13 +3,11 @@
    ========================= */
 
 #payment-page {
-    padding: 0 16px 12px;      /* small gap above bottom-nav */
-    flex: 1;                   /* fill main's vertical space */
-    display: flex;
-    flex-direction: column;
+    padding: 0 16px 220px;      /* bottom padding = space so content doesn't hide behind fixed commentary */
     box-sizing: border-box;
 }
 
+/* card with payment summary, etc. */
 .payment-card {
     margin-bottom: 14px;
 }
@@ -205,13 +203,36 @@
 }
 
 /* =========================
-   Комментарий к заказу
+   Комментарий к заказу (fixed above bottom nav)
    ========================= */
 
+/*
+  This block is FIXED and always sits just above the bottom nav.
+  Assumes bottom-nav height ~64px + some gap -> we reserved space
+  via #payment-page padding-bottom.
+*/
+
 .payment-commentary {
-    /* push commentary block to the bottom of payment-page area */
-    margin-top: auto;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+
+    /* put it right above the bottom nav:
+       if you tweak bottom-nav height / gap, adjust this */
+    bottom: 76px; /* 64px nav + ~12px gap */
+
+    width: 100%;
+    max-width: 390px;
+
     padding-top: 10px;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-bottom: 0;
+
+    background: var(--color-bg, #ffffff);
+    box-sizing: border-box;
+
+    z-index: 950; /* below nav (1000), above scrolling content */
 }
 
 .payment-commentary-label {
@@ -228,14 +249,16 @@
     color: #111827;
 }
 
-/* Поле комментария — чуть больше и нативнее */
+/* Поле комментария — iOS-friendly */
 .payment-commentary-label textarea {
     margin-top: 4px;
     width: 100%;
+
     min-height: 96px;
     max-height: 190px;
     resize: vertical;
-    padding: 10px 12px;   /* +1px по всем сторонам */
+
+    padding: 10px 12px;
     border-radius: 10px;
     border: 1px solid #d1d5db;
     font-size: 15px;      /* было 14px */
@@ -243,7 +266,14 @@
     outline: none;
     background: #f9fafb;
     box-sizing: border-box;
+
+    /* iOS fixes / overrides against global * { user-select: none } */
     -webkit-appearance: none;
+    -webkit-user-select: text !important;
+    user-select: text !important;
+    -webkit-touch-callout: default;
+    -webkit-overflow-scrolling: touch;
+    cursor: text;
 }
 
 .payment-commentary-label textarea:focus {
