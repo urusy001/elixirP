@@ -27,11 +27,16 @@ const cartItemsEl = document.getElementById("cart-items");
 
 let cartRows = {};
 
+// small helper to read promo input
+function getPromoInput() {
+    return document.getElementById("cart-promocode-input");
+}
+
 // === TOTAL & QTY HANDLING ===
 function updateTotal() {
     const keys = Object.keys(state.cart);
 
-    // если в корзине вообще нет ключей — показываем "к товарам"
+    // если в корзине вообще нет ключей — показываем "К товарам"
     if (!keys.length) {
         cartTotalEl.innerHTML = "";
         if (isTelegramApp()) {
@@ -54,9 +59,19 @@ function updateTotal() {
         <span class="total-amount">${total.toLocaleString("ru-RU")} ₽</span>
     `;
 
-    // если есть хоть что-то в корзине — показываем "Оформить заказ"
     if (isTelegramApp()) {
-        showMainButton("Оформить заказ", () => handleCheckout());
+        const promoInput = document.getElementById("cart-promocode-input");
+        const hasPromo = promoInput && promoInput.value.trim().length > 0;
+
+        if (hasPromo) {
+            // 🔹 Промокод введён — меняем и текст, и действие
+            showMainButton("Применить промокод", () => {
+                alert("промокоды скоро станут доступны");
+            });
+        } else {
+            // 🔹 Обычное поведение — оформление заказа
+            showMainButton("Оформить заказ", () => handleCheckout());
+        }
     }
 }
 
@@ -76,8 +91,7 @@ function updateQuantity(key, delta) {
 
     saveCart();
 
-    // если после изменения корзина стала пустой — перерисуем страницу,
-    // чтобы показать лотти "rabby-shop"
+    // если после изменения корзина стала пустой — перерисуем страницу
     if (!Object.keys(state.cart).length) {
         renderCart();
         return;
@@ -194,12 +208,31 @@ async function renderCart() {
     updateTotal();
 }
 
+// === PROMO INPUT WATCHER ===
+function setupPromoWatcher() {
+    const promoInput = getPromoInput();
+    if (!promoInput) return;
+
+    if (!promoInput.dataset.boundPromoInput) {
+        promoInput.addEventListener("input", () => {
+            // если корзина пустая — смысла крутить нет
+            if (!Object.keys(state.cart).length) return;
+            updateTotal();
+        });
+        promoInput.dataset.boundPromoInput = "1";
+    }
+
+    // при первой отрисовке тоже обновим кнопку
+    if (Object.keys(state.cart).length) {
+        updateTotal();
+    }
+}
+
 // === CHECKOUT ===
 export async function handleCheckout() {
     updateMainButton("Обработка…", true, true);
 
-    // на всякий случай оставляю поддержку checkout-btn,
-    // но в твоём сценарии он просто не будет существовать
+    // на всякий случай оставляю поддержку checkout-btn
     const checkoutBtn = document.getElementById("checkout-btn");
     if (checkoutBtn) {
         checkoutBtn.disabled = true;
@@ -248,6 +281,9 @@ export async function renderCartPage() {
     searchBtnEl.style.display = "none";
 
     await withLoader(renderCart);
+
+    // вот тут вешаем реакцию на промокод
+    setupPromoWatcher();
 
     if (isTelegramApp()) showBackButton();
 }

@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from typing import List
 
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 
-async def enrich_cart_items(items: List[Dict], db: AsyncSession) -> Dict:
+async def enrich_cart_items(items: List[dict], db: AsyncSession) -> dict:
     from src.webapp.models import Feature
     """
     Given a list of items with 'featureId' and 'qty', returns enriched info:
@@ -107,9 +107,10 @@ class ContactInfo(BaseModel):
 class CheckoutData(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     user_id: int
-    checkout_data: Dict[str, Any]
-    selected_delivery: Dict[str, Any]
+    checkout_data: dict[str, Any]
+    selected_delivery: dict[str, Any]
     selected_delivery_service: str
     contact_info: Optional[ContactInfo] = None
     source: Optional[str] = None  # accepts "telegram"
     payment_method: str
+    promocode: Optional[str] = None

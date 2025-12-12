@@ -168,6 +168,8 @@ def format_order_for_amocrm(order_number: int | str, payload: dict[str, Any], de
     """
     Format Telegram checkout payload into AmoCRM-friendly Russian text.
 
+    :param promocode:
+    :param commentary_text:
     :param order_number: e.g. 12529
     :param payload: checkout JSON dict (your big object from backend)
     :param delivery_service: e.g. "CDEK", "Yandex"
@@ -273,10 +275,7 @@ def normalize_address_for_cf(address: object, service: Literal["cdek", "yandex"]
         - CDEK/Yandex address dict (like your example)
         Returns a short string <= 255 chars suitable for Amo text CF.
         """
-        if not address:
-            return None
-
-        # Already a string
+        if not address: return None
         if isinstance(address, str):
             s = address
         # dict from CDEK/Yandex

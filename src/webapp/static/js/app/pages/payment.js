@@ -153,6 +153,7 @@ async function handlePaymentSubmit() {
 
         const contact_info = JSON.parse(sessionStorage.getItem("contact_info") || "null");
         const checkout_data = JSON.parse(sessionStorage.getItem("checkout_data") || "null");
+        const promocode = JSON.parse(sessionStorage.getItem("promocode") || "null");
         const selected_delivery = JSON.parse(sessionStorage.getItem("selected_delivery") || "null");
         const selected_delivery_service =
             sessionStorage.getItem("selected_delivery_service") || "Yandex";
