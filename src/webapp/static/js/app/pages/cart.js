@@ -62,9 +62,9 @@ function updateTotal() {
     if (isTelegramApp()) {
         const promoInput = document.getElementById("cart-promocode-input");
         const hasPromo = promoInput && promoInput.value.trim().length > 0;
+        alert(JSON.stringify(hasPromo));
 
         if (hasPromo) {
-            // 🔹 Промокод введён — меняем и текст, и действие
             showMainButton("Применить промокод", () => {
                 alert("промокоды скоро станут доступны");
             });
@@ -215,7 +215,6 @@ function setupPromoWatcher() {
 
     if (!promoInput.dataset.boundPromoInput) {
         promoInput.addEventListener("input", () => {
-            // если корзина пустая — смысла крутить нет
             if (!Object.keys(state.cart).length) return;
             updateTotal();
         });
