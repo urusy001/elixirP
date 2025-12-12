@@ -1,6 +1,6 @@
 import {withLoader} from "../ui/loader.js";
 import {state, saveCart, setCheckoutData} from "../state.js";
-import {navigateTo} from "../router.js";
+import navigateTo from "../router.js";
 import {apiPost, apiGet} from "../../services/api.js";
 import {
     hideMainButton,

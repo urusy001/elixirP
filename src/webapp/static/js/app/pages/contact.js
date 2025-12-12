@@ -1,5 +1,5 @@
 import {showLoader, hideLoader} from "../ui/loader.js";
-import {navigateTo} from "../router.js";
+import navigateTo from "../router.js";
 import {state} from "../state.js";
 import {
     isTelegramApp,
@@ -173,23 +173,17 @@ export async function renderContactPage() {
                 const text = await res.text().catch(() => "");
                 throw new Error(`POST /payments/create failed: ${res.status} ${text}`);
             }
-
             const data = await res.json().catch(() => ({}));
+            if (data?.order_number)
 
-            if (data?.order_id) {
-                sessionStorage.setItem("order_id", String(data.order_id));
-            }
-
-            // clear temp commentary storage if you decide to use it later
             sessionStorage.removeItem("payment_commentary");
-
-            // For "later" we just go to process-payment page (shows "С вами скоро свяжутся")
             navigateTo("/process-payment");
         } catch (err) {
             console.error("Ошибка при создании платежа:", err);
             alert("Не удалось создать заказ. Попробуйте снова.");
         } finally {
             hideLoader();
+
         }
     }
 

@@ -1,6 +1,6 @@
 import {searchProducts} from "../../services/productService.js";
 import {hideLoader, showLoader, withLoader} from "../ui/loader.js";
-import {navigateTo} from "../router.js";
+import navigateTo from "../router.js";
 import {saveCart, state} from "../state.js";
 import {hideBackButton, hideMainButton, showBackButton, showMainButton} from "../ui/telegram.js";
 import {

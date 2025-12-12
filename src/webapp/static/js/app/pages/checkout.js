@@ -3,7 +3,7 @@
 // ============================================================================
 import {showLoader, hideLoader} from "../ui/loader.js";
 import {isTelegramApp, showBackButton, showMainButton} from "../ui/telegram.js";
-import {navigateTo} from "../router.js";
+import navigateTo from "../router.js";
 import {fetchPVZByCode, getSelectedPVZCode} from "../../services/pvzService.js";
 import {YandexPvzWidget} from "./yandex-pvz-widget.js";
 import {

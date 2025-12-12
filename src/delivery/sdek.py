@@ -162,7 +162,6 @@ class CDEKClientV2:
                 },
             )
 
-        print(resp.json())
         return resp.json()
 
     # ===================== high-level методы =====================

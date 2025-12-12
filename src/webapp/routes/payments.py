@@ -105,7 +105,12 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
 
         result["payment_method"] = payment_method
         from src.amocrm.client import amocrm
-        result = await amocrm.create_lead_with_contact_and_note(**order_lead_kwargs)
+        lead = await amocrm.create_lead_with_contact_and_note(**order_lead_kwargs)
+        if lead: return {
+            "status": "success",
+            "status_code": 202,
+            "order_number": order_number,
+        }
         return result
 
     raise HTTPException(status_code=400, detail="Failed when lead")

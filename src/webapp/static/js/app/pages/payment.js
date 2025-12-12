@@ -1,6 +1,6 @@
 import {showLoader, hideLoader} from "../ui/loader.js";
 import {isTelegramApp, showBackButton, showMainButton} from "../ui/telegram.js";
-import {navigateTo} from "../router.js";
+import navigateTo from "../router.js";
 import { state } from "../state.js";
 import {
     cartPageEl,
@@ -191,7 +191,7 @@ async function handlePaymentSubmit() {
             source: "telegram",
         };
 
-        const res = await apiPost("/payments/create", payload);
+        /* const res = await apiPost("/payments/create", payload);
 
         if (!res.ok) {
             const text = await res.text().catch(() => "");
@@ -217,7 +217,7 @@ async function handlePaymentSubmit() {
         }
 
         // USDT / later: navigate to local "process" / success route
-        navigateTo("/process-payment");
+        navigateTo("/process-payment"); */
 
     } catch (err) {
         console.error("Ошибка при создании платежа:", err);

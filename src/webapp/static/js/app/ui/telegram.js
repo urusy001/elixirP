@@ -1,5 +1,5 @@
 import {state} from "../state.js";
-import {navigateTo} from "../router.js";
+import navigateTo from "../router.js";
 import {getCurrentPathFromHash, updateBottomNavActive} from "./nav-bottom.js";
 
 /* ---------------- TELEGRAM DETECTION ---------------- */
@@ -155,4 +155,31 @@ export function openTgLink(pathFull) {
     } else if (window.parent) {
         window.parent.postMessage(webData, 'https://web.telegram.org');
     }
+}
+
+export function launchConfettiBurst() {
+    if (typeof confetti !== 'function') return;
+
+    // simple “yay” burst
+    confetti({
+        particleCount: 140,
+        spread: 70,
+        startVelocity: 45,
+        origin: { y: 0.6 }
+    });
+
+    // second burst for a richer feel
+    setTimeout(() => {
+        confetti({
+            particleCount: 100,
+            spread: 100,
+            startVelocity: 35,
+            origin: { y: 0.4 }
+        });
+    }, 250);
+
+    // optional haptic feedback in Telegram
+    try {
+        window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('rigid');
+    } catch (_) {}
 }
