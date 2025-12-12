@@ -200,12 +200,6 @@
     color: #111827; /* text-slate-900 */
 }
 
-/* Подсказка под заголовком */
-.payment-commentary-hint {
-    font-size: 11px;
-    color: #9ca3af; /* text-gray-400 */
-}
-
 /* Само поле комментария */
 .payment-commentary-label textarea {
     margin-top: 4px;

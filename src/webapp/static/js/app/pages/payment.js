@@ -100,6 +100,25 @@ function setupPaymentPage() {
         const checked = document.querySelector('input[name="payment_method"]:checked');
         return checked ? checked.value : null;
     };
+
+    // 🔹 Set default active method = "later" once
+    if (!methodsContainer.dataset.defaultSet) {
+        const defaultRadio = methodsContainer.querySelector('input[name="payment_method"][value="later"]');
+        if (defaultRadio) {
+            defaultRadio.checked = true;
+
+            methodsContainer.querySelectorAll('.payment-method').forEach(label => {
+                const radio = label.querySelector('input[type="radio"]');
+                label.classList.toggle('active', radio === defaultRadio);
+            });
+
+            if (noteEl && notes.later) {
+                noteEl.textContent = notes.later;
+            }
+
+            methodsContainer.dataset.defaultSet = "1";
+        }
+    }
 }
 
 function setupPaymentCommentary() {
@@ -166,12 +185,9 @@ async function handlePaymentSubmit() {
             selected_delivery,
             selected_delivery_service,
             payment_method,      // выбранный способ оплаты
-            payment_commentary,  // 👈 комментарий к заказу
+            payment_commentary,  // комментарий к заказу
             source: "telegram",
         };
-
-        // временный debug, можешь убрать
-        // alert(JSON.stringify(payload));
 
         const res = await apiPost("/payments/create", payload);
 
@@ -196,7 +212,6 @@ async function handlePaymentSubmit() {
             return;
         } else if (payment_method === "usdt" && data?.usdt_address) {
             // тут можно будет заполнить блок USDT (qr, адрес и т.д.)
-            // пока просто идём на страницу process-payment
         }
 
         // USDT / later: navigate to local "process" / success route
