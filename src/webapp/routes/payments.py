@@ -43,7 +43,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     await upsert_user(db, user_upsert)
 
     log.info("Create payment payload: %s", ())
-    order_number = str(datetime.now().timestamp())
+    order_number = str(int(datetime.now().timestamp()))
     if delivery_service == "yandex":
         url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/pricing-calculator"
 
