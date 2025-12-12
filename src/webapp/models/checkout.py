@@ -111,6 +111,7 @@ class CheckoutData(BaseModel):
     selected_delivery: dict[str, Any]
     selected_delivery_service: str
     contact_info: Optional[ContactInfo] = None
-    source: Optional[str] = None  # accepts "telegram"
-    payment_method: str
+    source: Optional[str] = None
+    payment_method: Optional[str] = None
     promocode: Optional[str] = None
+    commentary: Optional[str] = None

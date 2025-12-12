@@ -186,7 +186,8 @@ async function handlePaymentSubmit() {
             selected_delivery,
             selected_delivery_service,
             payment_method,      // выбранный способ оплаты
-            payment_commentary,  // комментарий к заказу
+            "commentary": payment_commentary,
+            promocode,// комментарий к заказу
             source: "telegram",
         };
 

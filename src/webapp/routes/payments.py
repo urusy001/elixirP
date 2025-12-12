@@ -26,8 +26,8 @@ log = logging.getLogger(__name__)
 @router.post("/create", response_model=None)
 async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_db)):
     result = {}
-
     enriched_cart = await cart_json(payload.checkout_data, db=db)
+    print(json.dumps(enriched_cart, ensure_ascii=False, indent=4))
     delivery_service = payload.selected_delivery_service.lower()
     delivery_data = payload.selected_delivery
     tariff = delivery_data["deliveryMode"]
@@ -72,20 +72,16 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
         }
 
         async with httpx.AsyncClient(timeout=15.0) as client:
-            print(url, json.dumps(params, ensure_ascii=False, indent=4))
-            print(json.dumps(body, ensure_ascii=False, indent=4))
             resp = await client.post(url, params=params, json=body, headers=headers)
             try: resp.raise_for_status()
             except httpx.HTTPError as e:
                 log.exception("Yandex Delivery error: %s", resp.text)
                 raise HTTPException(status_code=502, detail="Yandex Delivery API error")
 
-            data = resp.json()
-
         delivery_status = "ok"
 
     elif delivery_service == "cdek":
-        try: cdek_result = await cdek_client.create_order_from_payload(payload_dict, order_number)
+        try: await cdek_client.create_order_from_payload(payload_dict, order_number)
         except HTTPException: raise
         except Exception as e:
             log.exception("CDEK create_order failed: %s", e)
@@ -103,14 +99,13 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
             "delivery_service": delivery_service,
             "price": total,
             "order_number": order_number,
-            "note_text": format_order_for_amocrm(order_number, payload_dict, delivery_service, tariff),
+            "note_text": format_order_for_amocrm(order_number, payload_dict, delivery_service, tariff, payload.commentary, payload.promocode),
             "payment_method": payment_method.upper(),
         }
 
         result["payment_method"] = payment_method
-        print(json.dumps(result, ensure_ascii=False, indent=4))
         from src.amocrm.client import amocrm
         result = await amocrm.create_lead_with_contact_and_note(**order_lead_kwargs)
-        print(json.dumps(result, ensure_ascii=False, indent=4))
         return result
+
     raise HTTPException(status_code=400, detail="Failed when lead")
