@@ -12,62 +12,6 @@ logger = logging.getLogger(__name__)
 cdek_router = APIRouter(prefix="/delivery/cdek", tags=["cdek"])
 yandex_router = APIRouter(prefix="/delivery/yandex", tags=["yandex"])
 
-@cdek_router.api_route(path="", methods=["GET", "POST"])
-async def cdek_proxy(request: Request):
-    headers = {"Authorization": f"Bearer {cdek_client._access_token}"}
-
-    params = request.query_params
-    raw_body = await request.body()
-    body = raw_body.decode(encoding="utf-8")
-    print(body or 'no body')
-    method = request.method
-
-    action = params.get("action") or body.get("action")
-    if action == "offices": endpoint = f"{CDEK_API_URL}/deliverypoints"
-    elif action == "calculate":
-        if isinstance(body, dict):
-            to_location = body.get("to_location", None)
-            if to_location and isinstance(to_location, dict):
-                endpoint = f"{CDEK_API_URL}/calculator/tarifflist"
-                body.update({"type": 2})
-            else: return Response(status_code=400, content='{"error": "Invalid to_location"}')
-        else: return Response(status_code=400, content='{"error": "Invalid body"}')
-    else: return Response(status_code=400, content='{"error": "Unknown action"}')
-
-    async with httpx.AsyncClient() as client:
-        if method == "GET": resp = await client.get(endpoint, params=params, headers=headers)
-        else: resp = await client.post(endpoint, content=f'{body}', headers={**headers, "Content-Type": "application/json"})
-
-    if action == "calculate" and resp.status_code == 200:
-        try:
-            data = resp.json()
-            print(data)
-            tariffs = data.get("tariff_codes", [])
-            filtered = [
-                t for t in tariffs
-                if isinstance(t, dict)
-                   and t.get("tariff_name", "").lower().find("склад-") != -1 and not 'магист' in t.get("tariff_name", "").lower()
-            ]
-
-            data["tariff_codes"] = filtered
-
-            return Response(
-                content=json.dumps(data, ensure_ascii=False),
-                status_code=200,
-                media_type="application/json",
-            )
-        except Exception as e:
-            print("⚠️ Error filtering tariffs:", e)
-
-    return Response(
-        content=resp.content,
-        status_code=resp.status_code,
-        media_type="application/json",
-    )
-
-
-def _http_err(detail: str, status: int = 502) -> HTTPException: return HTTPException(status_code=status, detail=detail)
-
 
 @cdek_router.api_route(path="", methods=["GET", "POST"])
 async def cdek_proxy(request: Request):
@@ -112,7 +56,6 @@ async def cdek_proxy(request: Request):
             logger.warning("Error filtering tariffs: %s", e)
 
     return Response(content=resp.content, status_code=resp.status_code, media_type="application/json")
-
 
 @yandex_router.get("/reverse-geocode")
 async def reverse_geocode(
