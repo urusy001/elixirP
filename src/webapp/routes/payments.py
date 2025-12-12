@@ -13,11 +13,11 @@ from config import (
 )
 from src.delivery.sdek import client as cdek_client
 from src.helpers import format_order_for_amocrm
-from src.webapp.crud import upsert_user
+from src.webapp.crud import upsert_user, add_or_increment_item, create_cart
 from src.webapp.database import get_db
 from src.webapp.models.checkout import CheckoutData
 from src.webapp.routes.cart import cart_json
-from src.webapp.schemas import UserCreate
+from src.webapp.schemas import UserCreate, CartCreate, CartItemCreate
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 log = logging.getLogger(__name__)
@@ -106,6 +106,12 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
         result["payment_method"] = payment_method
         from src.amocrm.client import amocrm
         lead = await amocrm.create_lead_with_contact_and_note(**order_lead_kwargs)
+        cart_create = CartCreate(is_active=True, user_id=user_id)
+        cart = await create_cart(db, cart_create)
+        for item in enriched_cart.get("items", []):
+            cart_item_create = CartItemCreate(product_onec_id=item["id"], feature_onec_id=item["featureId"], quantity=item["qty"])
+            cart_item = await add_or_increment_item(db, cart.id, cart_item_create)
+
         if lead: return {
             "status": "success",
             "status_code": 202,

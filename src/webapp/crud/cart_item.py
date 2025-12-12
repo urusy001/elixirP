@@ -31,14 +31,14 @@ async def get_cart_item_by_product(db: AsyncSession, cart_id: int, product_onec_
     return result.scalar_one_or_none()
 
 
-async def add_or_increment_item(db: AsyncSession, cart: Cart, data: CartItemCreate) -> CartItem:
+async def add_or_increment_item(db: AsyncSession, cart_id: int, data: CartItemCreate) -> CartItem:
     """
     If an item with same product/feature exists in this cart → increment quantity.
     Otherwise create a new row.
     """
     item = await get_cart_item_by_product(
         db=db,
-        cart_id=cart.id,
+        cart_id=cart_id,
         product_onec_id=data.product_onec_id,
         feature_onec_id=data.feature_onec_id,
     )

@@ -33,8 +33,12 @@ async def cdek_proxy(request: Request):
     else: return Response(status_code=400, content='{"error": "Unknown action"}')
 
     async with httpx.AsyncClient() as client:
-        if method == "GET": resp = await client.get(endpoint, params=params, headers=headers)
-        else: resp = await client.post(endpoint, content=raw_body, headers={**headers, "Content-Type": "application/json"})
+        if method == "GET":
+            print(params)
+            resp = await client.get(endpoint, params=params, headers=headers)
+        else:
+            print(raw_body, body)
+            resp = await client.post(endpoint, content=raw_body, headers={**headers, "Content-Type": "application/json"})
 
     if action == "calculate" and resp.status_code == 200:
         try:
