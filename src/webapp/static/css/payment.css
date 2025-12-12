@@ -49,7 +49,10 @@
     border: 1px solid var(--color-border-subtle, #e5e7eb);
     background: var(--color-bg, #fff);
     cursor: pointer;
-    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+    transition:
+            border-color 0.15s ease,
+            background-color 0.15s ease,
+            box-shadow 0.15s ease;
 }
 
 .payment-method input[type="radio"] {
@@ -69,8 +72,8 @@
 
 .payment-method.active {
     border-color: var(--color-brand, #2381cc);
-    box-shadow: 0 0 0 1px rgba(35,129,204,0.15);
-    background: rgba(35,129,204,0.04);
+    box-shadow: 0 0 0 1px rgba(35, 129, 204, 0.15);
+    background: rgba(35, 129, 204, 0.04);
 }
 
 .payment-note {
@@ -106,7 +109,7 @@
     height: 160px;
     margin-bottom: 8px;
     border-radius: 12px;
-    background: #f3f4f6;         /* светлый фон под QR */
+    background: #f3f4f6; /* светлый фон под QR */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -117,8 +120,15 @@
 #usdt-address {
     display: block;
     width: 100%;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+    font-family:
+            ui-monospace,
+            SFMono-Regular,
+            Menlo,
+            Monaco,
+            Consolas,
+            "Liberation Mono",
+            "Courier New",
+            monospace;
     font-size: 12px;
     line-height: 1.4;
     word-break: break-all;
@@ -180,32 +190,34 @@
     padding: 4px 0;
 }
 
+/* =========================
+   Комментарий к заказу
+   ========================= */
+
 .payment-commentary {
     margin-top: 8px;
 }
 
-/* Обёртка над заголовком, подсказкой и полем */
 .payment-commentary-label {
     display: flex;
     flex-direction: column;
     gap: 4px;
     font-size: 12px;
-    color: #4b5563; /* text-slate-600 vibe */
+    color: #4b5563;
 }
 
-/* Заголовок поля */
 .payment-commentary-title {
     font-size: 13px;
     font-weight: 500;
-    color: #111827; /* text-slate-900 */
+    color: #111827;
 }
 
-/* Само поле комментария */
+/* Поле комментария — чуть больше по высоте */
 .payment-commentary-label textarea {
     margin-top: 4px;
     width: 100%;
-    min-height: 56px;
-    max-height: 120px;
+    min-height: 80px;
+    max-height: 180px;
     resize: vertical;
     padding: 8px 10px;
     border-radius: 8px;
@@ -217,7 +229,6 @@
     box-sizing: border-box;
 }
 
-/* Фокус-состояние в стиле остальных инпутов */
 .payment-commentary-label textarea:focus {
     border-color: var(--color-brand, #2381cc);
     box-shadow: 0 0 0 1px rgba(35, 129, 204, 0.18);
