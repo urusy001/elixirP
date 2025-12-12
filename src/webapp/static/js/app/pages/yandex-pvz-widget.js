@@ -155,6 +155,7 @@ export class YandexPvzWidget {
 
         this.suggestEl?.addEventListener("click", (e) => {
             const row = e.target.closest(".ydw-suggest-row");
+            this.queryEl.value = "";
             if (!row) return;
             const idx = Number(row.getAttribute("data-index") || "-1");
             const item = this._searchVariants?.[idx];
