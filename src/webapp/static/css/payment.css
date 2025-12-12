@@ -1,11 +1,17 @@
+/* =========================
+   Payment Page Layout
+   ========================= */
+
 #payment-page {
-    padding: 0 12px 16px;
+    padding: 0 16px 20px;
 }
 
 .payment-card {
     background: var(--color-surface, #fff);
-    border-radius: 12px;
-    margin-bottom: 12px;
+    border-radius: 14px;
+    margin-bottom: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.25); /* softer border */
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
 }
 
 .payment-header-title {
@@ -32,6 +38,10 @@
     font-size: 15px;
 }
 
+/* =========================
+   Payment Methods
+   ========================= */
+
 .payment-method-list {
     display: flex;
     flex-direction: column;
@@ -48,6 +58,7 @@
     border: 1px solid var(--color-border-subtle, #e5e7eb);
     background: var(--color-bg, #fff);
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
     transition:
             border-color 0.15s ease,
             background-color 0.15s ease,
@@ -60,22 +71,25 @@
 
 .payment-method-title {
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     margin-bottom: 2px;
 }
 
 .payment-method-desc {
     font-size: 12px;
     color: #6b7280;
+    line-height: 1.35;
 }
 
+/* Активный способ оплаты — аккуратный голубой контейнер */
 .payment-method.active {
     border-color: var(--color-brand, #2381cc);
-    box-shadow: 0 0 0 1px rgba(35, 129, 204, 0.15);
-    background: rgba(35, 129, 204, 0.04);
+    box-shadow: 0 0 0 1px rgba(35, 129, 204, 0.14);
+    background: rgba(35, 129, 204, 0.03);
 }
 
 .payment-note {
+    margin-top: 6px;
     font-size: 12px;
     color: #6b7280;
 }
@@ -98,7 +112,7 @@
     align-items: center;
     gap: 8px;
     font-size: 14px;
-    color: #374151; /* чуть темнее, чем .payment-note */
+    color: #374151;
 }
 
 /* ---------- USDT блок ---------- */
@@ -108,7 +122,7 @@
     height: 160px;
     margin-bottom: 8px;
     border-radius: 12px;
-    background: #f3f4f6; /* светлый фон под QR */
+    background: #f3f4f6;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -152,6 +166,7 @@
     outline: none;
     background: #ffffff;
     box-sizing: border-box;
+    -webkit-appearance: none;
 }
 
 #txid input[type="text"]:focus {
@@ -194,7 +209,7 @@
    ========================= */
 
 .payment-commentary {
-    margin-top: 8px;
+    margin-top: 10px;
 }
 
 .payment-commentary-label {
@@ -211,24 +226,26 @@
     color: #111827;
 }
 
-/* Поле комментария — чуть больше по высоте */
+/* Поле комментария — чуть больше и нативнее */
 .payment-commentary-label textarea {
     margin-top: 4px;
     width: 100%;
-    min-height: 80px;
-    max-height: 180px;
+    min-height: 96px;
+    max-height: 190px;
     resize: vertical;
-    padding: 8px 10px;
-    border-radius: 8px;
+    padding: 9px 11px;
+    border-radius: 10px;
     border: 1px solid #d1d5db;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.4;
     outline: none;
-    background: #ffffff;
+    background: #f9fafb;
     box-sizing: border-box;
+    -webkit-appearance: none;
 }
 
 .payment-commentary-label textarea:focus {
     border-color: var(--color-brand, #2381cc);
     box-shadow: 0 0 0 1px rgba(35, 129, 204, 0.18);
+    background: #ffffff;
 }
