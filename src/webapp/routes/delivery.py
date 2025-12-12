@@ -37,7 +37,7 @@ async def cdek_proxy(request: Request):
             print(params)
             resp = await client.get(endpoint, params=params, headers=headers)
         else:
-            print(raw_body, body)
+            print(raw_body)
             resp = await client.post(endpoint, content=raw_body, headers={**headers, "Content-Type": "application/json"})
 
     if action == "calculate" and resp.status_code == 200:
