@@ -36,6 +36,8 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     checkout_data = payload.checkout_data
     total = checkout_data["total"]
     payment_method = payload.payment_method
+    promocode = payload.promocode or "Не указан"
+    commetary_text = payload.commetary or "Не указан"
 
     payload_dict = payload.model_dump()
 
@@ -99,7 +101,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
             "delivery_service": delivery_service,
             "price": total,
             "order_number": order_number,
-            "note_text": format_order_for_amocrm(order_number, payload_dict, delivery_service, tariff, payload.commentary, payload.promocode),
+            "note_text": format_order_for_amocrm(order_number, payload_dict, delivery_service, tariff, commetary_text, promocode),
             "payment_method": payment_method.upper(),
         }
 
