@@ -5,7 +5,6 @@
 .payment-card {
     background: var(--color-surface, #fff);
     border-radius: 12px;
-    padding: 12px 14px;
     margin-bottom: 12px;
 }
 
