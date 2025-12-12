@@ -79,27 +79,6 @@
     background-color: #fef2f2 !important;
 }
 
-/* ---------------- PAY-LATER INFO BLOCK ---------------- */
-
-.contact-payment-note {
-    margin-top: 4px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    font-size: 0.9rem;
-    color: #374151;
-}
-
-.contact-payment-note-title {
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.contact-payment-note-body {
-    line-height: 1.4;
-}
-
 /* ---------------- COMMENTARY BLOCK ---------------- */
 
 .contact-commentary {
