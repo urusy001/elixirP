@@ -7,21 +7,17 @@
 }
 
 .payment-card {
-    background: var(--color-surface, #fff);
-    border-radius: 14px;
     margin-bottom: 14px;
-    border: 1px solid rgba(148, 163, 184, 0.25); /* softer border */
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
 }
 
 .payment-header-title {
-    font-size: 18px;
+    font-size: 20px;       /* было 18px */
     font-weight: 600;
     margin-bottom: 4px;
 }
 
 .payment-header-sub {
-    font-size: 13px;
+    font-size: 14px;       /* было 13px */
     color: #6b7280;
 }
 
@@ -29,13 +25,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 14px;
+    font-size: 15px;       /* было 14px */
     margin-bottom: 4px;
 }
 
 .payment-summary-row.total {
     font-weight: 600;
-    font-size: 15px;
+    font-size: 16px;       /* было 15px */
 }
 
 /* =========================
@@ -70,15 +66,15 @@
 }
 
 .payment-method-title {
-    font-size: 14px;
+    font-size: 15px;       /* было 14px */
     font-weight: 600;
     margin-bottom: 2px;
 }
 
 .payment-method-desc {
-    font-size: 12px;
+    font-size: 13px;       /* было 12px */
     color: #6b7280;
-    line-height: 1.35;
+    line-height: 1.4;
 }
 
 /* Активный способ оплаты — аккуратный голубой контейнер */
@@ -90,7 +86,7 @@
 
 .payment-note {
     margin-top: 6px;
-    font-size: 12px;
+    font-size: 13px;       /* было 12px */
     color: #6b7280;
 }
 
@@ -111,7 +107,7 @@
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    font-size: 14px;
+    font-size: 15px;       /* было 14px */
     color: #374151;
 }
 
@@ -142,7 +138,7 @@
             "Liberation Mono",
             "Courier New",
             monospace;
-    font-size: 12px;
+    font-size: 13px;      /* было 12px */
     line-height: 1.4;
     word-break: break-all;
     padding: 8px 10px;
@@ -162,7 +158,7 @@
     padding: 8px 10px;
     border-radius: 8px;
     border: 1px solid #d1d5db;
-    font-size: 14px;
+    font-size: 15px;      /* было 14px */
     outline: none;
     background: #ffffff;
     box-sizing: border-box;
@@ -199,7 +195,7 @@
 #later {
     min-height: 64px;
     justify-content: center;
-    font-size: 14px;
+    font-size: 15px;      /* было 14px */
     color: #4b5563;
     padding: 4px 0;
 }
@@ -216,12 +212,12 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    font-size: 12px;
+    font-size: 13px;      /* было 12px */
     color: #4b5563;
 }
 
 .payment-commentary-title {
-    font-size: 13px;
+    font-size: 14px;      /* было 13px */
     font-weight: 500;
     color: #111827;
 }
@@ -233,11 +229,11 @@
     min-height: 96px;
     max-height: 190px;
     resize: vertical;
-    padding: 9px 11px;
+    padding: 10px 12px;   /* +1px по всем сторонам */
     border-radius: 10px;
     border: 1px solid #d1d5db;
-    font-size: 14px;
-    line-height: 1.4;
+    font-size: 15px;      /* было 14px */
+    line-height: 1.45;
     outline: none;
     background: #f9fafb;
     box-sizing: border-box;

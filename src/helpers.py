@@ -472,7 +472,7 @@ class TelegramInitDataExpiredError(TelegramInitDataError):
 def validate_init_data(
         init_data: str,
         bot_token: str = NEW_BOT_TOKEN,
-        max_age_seconds: int = 600  # e.g. 10 minutes; adjust as you like
+        max_age_seconds: int = 60*60*2  # e.g. 10 minutes; adjust as you like
 ) -> dict[str, Any]:
     """
     Validate Telegram Mini App init data according to the official algorithm.
