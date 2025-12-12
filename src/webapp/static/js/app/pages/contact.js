@@ -181,7 +181,7 @@ export async function renderContactPage() {
 
         } catch (err) {
             console.error("Ошибка при создании платежа:", err);
-            alert("Не удалось создать заказ. Попробуйте снова.");
+            alert(JSON.stringify(err));
         } finally {
             hideLoader();
 
