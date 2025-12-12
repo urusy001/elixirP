@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import httpx
@@ -80,7 +81,6 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
                 raise HTTPException(status_code=502, detail="Yandex Delivery API error")
 
             data = resp.json()
-            with open("receipt_yandex.json", "w", encoding="utf-8") as f: json.dump(data, f, indent=4, ensure_ascii=False)
 
         delivery_status = "ok"
 
@@ -108,6 +108,9 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
         }
 
         result["payment_method"] = payment_method
-        print(order_lead_kwargs)
+        print(json.dumps(result, ensure_ascii=False, indent=4))
+        from src.amocrm.client import amocrm
+        result = await amocrm.create_lead_with_contact_and_note(**order_lead_kwargs)
+        print(json.dumps(result, ensure_ascii=False, indent=4))
         return result
     raise HTTPException(status_code=400, detail="Failed when lead")
