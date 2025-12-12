@@ -62,11 +62,12 @@ function updateTotal() {
     if (isTelegramApp()) {
         const promoInput = getPromoInput();
         const hasPromo = promoInput && promoInput.value.trim().length > 0;
-        alert(JSON.stringify(hasPromo));
 
         if (hasPromo) {
             showMainButton("Применить промокод", () => {
-                alert("промокоды скоро станут доступны");
+                alert("Промокоды скоро станут доступны");
+                promoInput.value = "";
+                showMainButton("Оформить заказ", () => handleCheckout());
             });
         } else {
             // 🔹 Обычное поведение — оформление заказа
