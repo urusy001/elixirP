@@ -169,7 +169,7 @@ export async function renderContactPage() {
 
             const res = await apiPost("/payments/create", payload);
 
-            if (!res.ok) {
+            if (res?.status !== "success") {
                 const text = await res.text().catch(() => "");
                 throw new Error(`POST /payments/create failed: ${res.status} ${text}`);
             }
