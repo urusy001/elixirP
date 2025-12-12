@@ -3,8 +3,8 @@
 #contact-page {
     display: none; /* toggled via JS */
     max-width: 900px;
-    margin: 2rem auto;
-    padding: 1.5rem;
+    margin: 0.5rem auto;
+    padding: 0.5rem;
     background: #fff;
     border-radius: 12px;
     animation: fadeIn 0.3s ease forwards;

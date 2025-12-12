@@ -37,7 +37,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     total = checkout_data["total"]
     payment_method = payload.payment_method
     promocode = payload.promocode or "Не указан"
-    commetary_text = payload.commetary or "Не указан"
+    commentary_text = payload.commentary or "Не указан"
 
     payload_dict = payload.model_dump()
 
@@ -48,9 +48,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     order_number = str(int(datetime.now().timestamp()))
     if delivery_service == "yandex":
         url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/pricing-calculator"
-
         addr = delivery_data["address"]
-
         if tariff == "time_interval": destination = {"address": addr["address"]}
         else: destination = {"platform_station_id": addr["code"]}
 
@@ -101,7 +99,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
             "delivery_service": delivery_service,
             "price": total,
             "order_number": order_number,
-            "note_text": format_order_for_amocrm(order_number, payload_dict, delivery_service, tariff, commetary_text, promocode),
+            "note_text": format_order_for_amocrm(order_number, payload_dict, delivery_service, tariff, commentary_text, promocode),
             "payment_method": payment_method.upper(),
         }
 
