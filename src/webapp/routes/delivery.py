@@ -27,22 +27,21 @@ async def cdek_proxy(request: Request):
     elif action == "calculate":
         if isinstance(body, dict):
             to_location = body.get("to_location", None)
-            if to_location and isinstance(to_location, dict): endpoint = f"{CDEK_API_URL}/calculator/tarifflist"
+            if to_location and isinstance(to_location, dict):
+                endpoint = f"{CDEK_API_URL}/calculator/tarifflist"
+                body.update({"type": 2})
             else: return Response(status_code=400, content='{"error": "Invalid to_location"}')
         else: return Response(status_code=400, content='{"error": "Invalid body"}')
     else: return Response(status_code=400, content='{"error": "Unknown action"}')
 
     async with httpx.AsyncClient() as client:
-        if method == "GET":
-            print(params)
-            resp = await client.get(endpoint, params=params, headers=headers)
-        else:
-            print(raw_body)
-            resp = await client.post(endpoint, content=raw_body, headers={**headers, "Content-Type": "application/json"})
+        if method == "GET": resp = await client.get(endpoint, params=params, headers=headers)
+        else: resp = await client.post(endpoint, content=f'{body}', headers={**headers, "Content-Type": "application/json"})
 
     if action == "calculate" and resp.status_code == 200:
         try:
             data = resp.json()
+            print(data)
             tariffs = data.get("tariff_codes", [])
             filtered = [
                 t for t in tariffs
