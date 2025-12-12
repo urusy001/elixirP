@@ -18,8 +18,8 @@ async def cdek_proxy(request: Request):
 
     params = request.query_params
     raw_body = await request.body()
-    try: body = json.loads(raw_body.decode("utf-8"))
-    except json.JSONDecodeError: body = {}
+    body = raw_body.decode(encoding="utf-8")
+    body = json.loads(body)
     method = request.method
 
     action = params.get("action") or body.get("action")
