@@ -15,7 +15,7 @@ import {
 import {state} from "../state.js";
 import {hideLoader, showLoader} from "../ui/loader.js";
 import {hideMainButton, openTgLink, showBackButton} from "../ui/telegram.js";
-import {navigateTo} from "../router";
+import {navigateTo} from "../router.js";
 
 export function renderProfilePage() {
     showLoader();
