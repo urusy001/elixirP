@@ -46,7 +46,7 @@ async def add_or_increment_item(db: AsyncSession, cart_id: int, data: CartItemCr
     if item: item.quantity += data.quantity
     else:
         item = CartItem(
-            cart_id=cart.id,
+            cart_id=cart_id,
             product_onec_id=data.product_onec_id,
             feature_onec_id=data.feature_onec_id,
             quantity=data.quantity,
