@@ -27,6 +27,7 @@ async def cdek_proxy(request: Request):
     if action == "offices": endpoint = f"{CDEK_API_URL}/deliverypoints"
     elif action == "calculate":
         if isinstance(body, dict) and isinstance(body.get("to_location"), dict):
+            print(body.get("to_location"), body.get("from_location"))
             endpoint = f"{CDEK_API_URL}/calculator/tarifflist"
             body.update({"type": 2})
         else: return Response(status_code=400, content='{"error":"Invalid to_location"}')
