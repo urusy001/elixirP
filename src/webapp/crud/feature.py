@@ -65,6 +65,7 @@ async def get_features(db: AsyncSession) -> List[Feature]:
 
 
 async def get_feature(db: AsyncSession, attr_name: str, value: Any) -> Optional[Feature]:
+    print('b')
     if not hasattr(Feature, attr_name):
         raise AttributeError(f"Feature has no attribute '{attr_name}'")
     column = getattr(Feature, attr_name)

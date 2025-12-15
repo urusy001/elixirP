@@ -86,7 +86,8 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
         delivery_status = "ok"
 
     elif delivery_service == "cdek":
-        try: await cdek_client.create_order_from_payload(payload_dict, order_number)
+        delivery_sum = payload.selected_delivery["tariff"]["delivery_sum"]
+        try: await cdek_client.create_order_from_payload(payload_dict, order_number, delivery_sum=delivery_sum)
         except HTTPException: raise
         except Exception as e:
             log.exception("CDEK create_order failed: %s", e)

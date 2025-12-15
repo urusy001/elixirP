@@ -213,6 +213,7 @@ class CDEKClientV2:
             sender_email: str | None = None,
             default_item_weight_grams: int = 100,
             package_dims_cm: tuple[int, int, int] = (25, 15, 10),
+            delivery_sum: int | float = 295
     ) -> dict[str, Any]:
         """
         Превращает твой checkout-payload в body для POST /v2/orders.
@@ -358,13 +359,15 @@ class CDEKClientV2:
             order_body["delivery_point"] = delivery_point
             del order_body["to_location"]
 
+        order_body.update({"delivery_recipient_cost": {"value": delivery_sum}})
+
         return order_body
 
-    async def create_order_from_payload(self, payload: dict[str, Any], order_number: str) -> dict[str, Any]:
+    async def create_order_from_payload(self, payload: dict[str, Any], order_number: str, delivery_sum: float | int | None = None) -> dict[str, Any]:
         """
         Хелпер: берёт твой payload, собирает body для /v2/orders и шлёт запрос.
         """
-        order = self.build_order_from_payload(payload, order_number)
+        order = self.build_order_from_payload(payload, order_number, delivery_sum=delivery_sum)
         return await self.create_order(order)
 
 
