@@ -4,12 +4,18 @@ from fastapi import APIRouter, HTTPException, Query, Depends, Body
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.webapp.crud import get_product, get_feature, create_cart
+from src.webapp.crud import get_product, get_feature, create_cart, get_user_carts
 from src.webapp.database import get_db
 from src.webapp.models import Feature
 from src.webapp.schemas import CartCreate
 
 router = APIRouter(prefix="/cart", tags=["cart"])
+
+@router.get("/{user_id}")
+async def get(user_id: int, db: AsyncSession = Depends(get_db)):
+    carts = await get_user_carts(db, user_id)
+    for cart in carts: print(cart.model_dump())
+
 
 @router.get("/product/{onec_id}")
 async def get_cart_product(onec_id: str, feature_id: str = Query("", alias="feature_id"), db: AsyncSession = Depends(get_db)):

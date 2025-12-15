@@ -9,6 +9,7 @@ import {
     tosOverlayEl
 } from "./constants.js";
 import {state} from "../state.js";
+import {apiGet} from "../../services/api.js";
 
 export function renderOrdersPage() {
     navBottomEl.style.display = "flex";
@@ -30,10 +31,11 @@ export function renderOrdersPage() {
 
 }
 
-function getUserCarts() {
+async function getUserCarts() {
     const user = state.user
     if (user) {
-        alert(JSON.stringify(user))
+        const user_id = user.tg_id
+        const result = await apiGet(`/carts/${user_id}`)
     } else {
         alert('nouser')
     }
