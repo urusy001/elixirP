@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_db)):
     result = {}
     enriched_cart = await cart_json(payload.checkout_data, db=db)
-    print(json.dumps(payload, ensure_ascii=False, indent=4))
+    print(payload.model_dump_json(indent=4, ensure_ascii=False))
     delivery_service = payload.selected_delivery_service.lower()
     delivery_data = payload.selected_delivery
     tariff = delivery_data["deliveryMode"]
