@@ -42,13 +42,6 @@ async def cdek_proxy(request: Request):
     if action == "calculate" and resp.status_code == 200:
         try:
             data = resp.json()
-            tariffs = data.get("tariff_codes", [])
-            filtered = [
-                t for t in tariffs
-                if isinstance(t, dict) and "tariff_name" in t
-                   and (t.get("tariff_name", "").lower().find("склад-склад") != -1) or (t.get("tariff_name", "").lower().find("склад-дверь") != -1)
-            ]
-            data["tariff_codes"] = filtered
             return Response(
                 content=json.dumps(data, ensure_ascii=False),
                 status_code=200,
