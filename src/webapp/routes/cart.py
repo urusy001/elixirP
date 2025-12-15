@@ -27,8 +27,7 @@ async def get_cart_product(onec_id: str, feature_id: str = Query("", alias="feat
         feature = await get_feature(db, 'onec_id', feature_id)
         if not feature: raise HTTPException(status_code=404, detail="Feature not found")
 
-    print({"product": product.to_dict(), "feature": feature.to_dict()})
-    return {"product": product, "feature": feature}
+    return {"product": product.to_dict(), "feature": feature.to_dict()}
 
 @router.post("/create")
 async def create(cart_data: CartCreate, db: AsyncSession = Depends(get_db)):
