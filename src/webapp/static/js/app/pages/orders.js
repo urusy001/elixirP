@@ -8,6 +8,7 @@ import {
     toolbarEl,
     tosOverlayEl
 } from "./constants.js";
+import {state} from "../state.js";
 
 export function renderOrdersPage() {
     navBottomEl.style.display = "flex";
@@ -25,4 +26,15 @@ export function renderOrdersPage() {
     profilePageEl.style.display = "none";
     ordersPageEl.style.display = "block";
     orderDetailEl.style.display = "none";
+    getUserCarts();
+
+}
+
+function getUserCarts() {
+    const user = state.user
+    if (user) {
+        alert(JSON.stringify(user))
+    } else {
+        alert('nouser')
+    }
 }
