@@ -45,7 +45,6 @@ async def get_product_with_features(db: AsyncSession, onec_id: str) -> Optional[
 
 
 async def get_product(db: AsyncSession, attr_name: str, value: Any) -> Optional[Product]:
-    print('a')
     if not hasattr(Product, attr_name):
         raise AttributeError(f"Product has no attribute '{attr_name}'")
     column = getattr(Product, attr_name)
