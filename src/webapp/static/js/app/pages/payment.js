@@ -6,7 +6,7 @@ import {
     cartPageEl,
     checkoutPageEl,
     contactPageEl, detailEl,
-    headerTitle, listEl, navBottomEl,
+    headerTitle, listEl, navBottomEl, orderDetailEl, ordersPageEl,
     paymentPageEl,
     processPaymentEl, profilePageEl,
     searchBtnEl,
@@ -31,6 +31,8 @@ export async function renderPaymentPage() {
     processPaymentEl.style.display = "none";
     navBottomEl.style.display = "flex";
     profilePageEl.style.display = "none";
+    ordersPageEl.style.display = "none";
+    orderDetailEl.style.display = "none";
 
     if (isTelegramApp()) {
         showBackButton();

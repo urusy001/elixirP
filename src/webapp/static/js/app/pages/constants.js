@@ -11,3 +11,5 @@ export const processPaymentEl = document.getElementById("process-payment-page");
 export const tosOverlayEl = document.getElementById("tos-overlay");
 export const navBottomEl = document.getElementById("nav-bottom");
 export const profilePageEl = document.getElementById("profile-page");
+export const ordersPageEl = document.getElementById("orders-page");
+export const orderDetailEl = document.getElementById("order-detail-page");

@@ -17,7 +17,7 @@ import {
     detailEl,
     headerTitle,
     listEl,
-    navBottomEl,
+    navBottomEl, orderDetailEl, ordersPageEl,
     paymentPageEl,
     processPaymentEl, profilePageEl,
     searchBtnEl,
@@ -63,6 +63,8 @@ export async function renderProductDetailPage(onec_id) {
     searchBtnEl.style.display = "flex";
     detailEl.style.display = "block";
     processPaymentEl.style.display = "none";
+    ordersPageEl.style.display = "none";
+    orderDetailEl.style.display = "none";
 
     // ---- ИЗБРАННОЕ: CORRECTED LOGIC ----
     const initiallyFav = isProductFavorite(onec_id);

@@ -10,7 +10,7 @@ import {
     cartPageEl,
     checkoutPageEl,
     contactPageEl, detailEl,
-    headerTitle, listEl, navBottomEl,
+    headerTitle, listEl, navBottomEl, orderDetailEl, ordersPageEl,
     paymentPageEl,
     processPaymentEl, profilePageEl,
     searchBtnEl,
@@ -40,6 +40,8 @@ export async function renderContactPage() {
     paymentPageEl && (paymentPageEl.style.display = "none");
     processPaymentEl.style.display = "none";
     profilePageEl.style.display = "none";
+    ordersPageEl.style.display = "none";
+    orderDetailEl.style.display = "none";
 
     headerTitle.textContent = "Оформление заказа";
     searchBtnEl.style.display = "none";

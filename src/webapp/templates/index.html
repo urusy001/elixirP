@@ -49,7 +49,7 @@
 
         <div class="profile-menu">
             <!-- История заказов -->
-            <button class="profile-item" type="button">
+            <button class="profile-item" id="orders-button" type="button">
                 <div class="profile-item-left">
                     <div class="profile-icon">
                     <span class="profile-icon-inner">
@@ -189,6 +189,95 @@
             <h2 class="process-title">Заказ оформлен 🎉</h2>
             <p class="process-text">Мы получили ваш заказ и скоро с вами свяжемся для подтверждения и оплаты. Пожалуйста, сохраните номер заказа</p>
             <div id="order-lottie" class="process-lottie"></div>
+        </div>
+    </div>
+    <div id="orders-page" style="display:none;">
+        <div class="orders-page">
+            <!-- Активные -->
+            <section class="orders-section">
+                <header class="orders-section-header">
+                    <h3 class="orders-section-title">Активные</h3>
+                    <span class="orders-section-counter" id="orders-active-count">0</span>
+                </header>
+
+                <div class="orders-list" id="orders-active-list"></div>
+
+                <p class="orders-empty" id="orders-active-empty" style="display: none;">
+                    Активные заказы отсутствуют.
+                </p>
+            </section>
+
+            <!-- Обработанные -->
+            <section class="orders-section">
+                <header class="orders-section-header">
+                    <h3 class="orders-section-title">Обработанные</h3>
+                    <span class="orders-section-counter" id="orders-processed-count">0</span>
+                </header>
+
+                <div class="orders-list" id="orders-processed-list"></div>
+
+                <p class="orders-empty" id="orders-processed-empty" style="display: none;">
+                    Обработанные заказы отсутствуют.
+                </p>
+            </section>
+        </div>
+    </div>
+    <div id="order-detail-page" style="display:none;">
+        <div class="order-detail">
+            <header class="order-detail-header">
+                <div class="order-detail-id-row">
+                    <h2 class="order-detail-title">
+                        Заказ №<span id="order-detail-id"></span>
+                    </h2>
+                    <span id="order-detail-status"
+                          class="order-detail-status">
+                    <!-- текст статуса JS -->
+                </span>
+                </div>
+                <p class="order-detail-date" id="order-detail-date">
+                    <!-- дата/время оформления -->
+                </p>
+            </header>
+
+            <!-- Товары -->
+            <section class="order-detail-section">
+                <h3 class="order-detail-section-title">Товары</h3>
+                <div class="order-items" id="order-items-list"></div>
+            </section>
+
+            <!-- Доставка -->
+            <section class="order-detail-section">
+                <h3 class="order-detail-section-title">Доставка</h3>
+                <p class="order-detail-text" id="order-delivery-summary"></p>
+            </section>
+
+            <!-- Оплата -->
+            <section class="order-detail-section">
+                <h3 class="order-detail-section-title">Оплата</h3>
+                <p class="order-detail-text" id="order-payment-method"></p>
+            </section>
+
+            <!-- Комментарий -->
+            <section class="order-detail-section">
+                <h3 class="order-detail-section-title">Комментарий</h3>
+                <p class="order-detail-text" id="order-comment-text"></p>
+            </section>
+
+            <!-- Итоги -->
+            <section class="order-detail-section order-detail-summary">
+                <div class="order-summary-row">
+                    <span>Товары</span>
+                    <span id="order-subtotal"></span>
+                </div>
+                <div class="order-summary-row">
+                    <span>Доставка</span>
+                    <span id="order-delivery-price"></span>
+                </div>
+                <div class="order-summary-row order-summary-row-total">
+                    <span>Итого</span>
+                    <span id="order-total"></span>
+                </div>
+            </section>
         </div>
     </div>
 </div>

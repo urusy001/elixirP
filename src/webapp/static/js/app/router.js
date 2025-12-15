@@ -3,10 +3,9 @@ import {renderProductDetailPage} from "./pages/product-detail.js";
 import {renderCartPage} from "./pages/cart.js";
 import {renderCheckoutPage} from "./pages/checkout.js";
 import {renderContactPage} from "./pages/contact.js";
-import {renderPaymentPage} from "./pages/payment.js";
-import {renderProcessPaymentPage} from "./pages/process-payment.js";
 import {setupBottomNav, updateBottomNavActive} from "./ui/nav-bottom.js";
 import {renderProfilePage} from "./pages/profile.js";
+import {renderOrdersPage} from "./pages/orders.js";
 
 const routes = [
     {match: p => p === "/" || p === "", action: renderHomePage},
@@ -17,6 +16,7 @@ const routes = [
     //{match: p => p === "/payment", action: renderPaymentPage},//
     {match: p => p === "/favourites", action: renderFavouritesPage},
     {match: p => p === "/profile", action: renderProfilePage},
+    {match: p => p === "/orders", action: renderOrdersPage},
 ];
 
 function getCurrentPath() {

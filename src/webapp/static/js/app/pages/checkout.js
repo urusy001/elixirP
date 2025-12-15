@@ -10,7 +10,7 @@ import {
     cartPageEl,
     checkoutPageEl,
     contactPageEl, detailEl,
-    headerTitle, listEl, navBottomEl,
+    headerTitle, listEl, navBottomEl, orderDetailEl, ordersPageEl,
     paymentPageEl,
     processPaymentEl, profilePageEl,
     searchBtnEl,
@@ -377,6 +377,8 @@ export async function renderCheckoutPage() {
     processPaymentEl.style.display = "none";
     navBottomEl.style.display = "none";
     profilePageEl.style.display = "none";
+    ordersPageEl.style.display = "none";
+    orderDetailEl.style.display = "none";
     checkoutPageEl.style.display = "block";
     await new Promise((r) => requestAnimationFrame(r));
 

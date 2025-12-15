@@ -1,38 +1,642 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 48 48">
-    <!-- Generator: Adobe Illustrator 30.0.0, SVG Export Plug-In . SVG Version: 2.1.1 Build 123)  -->
-    <defs>
-        <style>
-            .st0 {
-                fill: url(#linear-gradient2);
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Orders Page Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        /* ======= BASE ======= */
+        :root {
+            --bg-page: #f3f4f6;
+            --bg-card: #ffffff;
+            --radius-md: 12px;
+            --shadow-card: 0 1px 4px rgba(15, 23, 42, 0.06);
+            --border-subtle: #e5e7eb;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg-page);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+            color: var(--text-main);
+        }
+
+        body {
+            padding: 0.75rem;
+        }
+
+        /* just for demo wrapper */
+        .demo-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .demo-heading {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0 0 0.25rem;
+        }
+
+        /* =========================
+           ORDERS LIST PAGE
+           ========================= */
+
+        #orders-page {
+            /* in real app: display: none; */
+            display: block;
+        }
+
+        .orders-page {
+            max-width: 900px;
+            margin: 0.25rem auto;
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-card);
+            box-sizing: border-box;
+        }
+
+        .orders-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0 0 0.75rem;
+            color: #111827;
+        }
+
+        .orders-section {
+            margin-bottom: 0.75rem;
+        }
+
+        .orders-section:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .orders-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.3rem;
+        }
+
+        .orders-section-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .orders-section-counter {
+            min-width: 1.8em;
+            padding: 0.1rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+        .orders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .orders-empty {
+            margin: 0.25rem 0 0.1rem;
+            padding: 0.5rem 0.4rem;
+            font-size: 0.85rem;
+            color: #9ca3af;
+            text-align: left;
+        }
+
+        .order-card {
+            width: 100%;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 0.5rem 0.6rem;
+            background: #fff;
+            text-align: left;
+            cursor: pointer;
+
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+
+            font: inherit;
+            color: inherit;
+            outline: none;
+        }
+
+        .order-card:active {
+            background: #f3f4ff;
+        }
+
+        .order-card-top {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .order-card-id-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.4rem;
+        }
+
+        .order-card-id {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .order-card-status {
+            padding: 0.1rem 0.45rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .order-card-status--active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .order-card-status--processed {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .order-card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .order-card-date::after {
+            content: "•";
+            margin: 0 0.25rem;
+            color: #d1d5db;
+        }
+
+        .order-card-total {
+            font-weight: 500;
+        }
+
+        .order-card-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #4b5563;
+            margin-top: 0.15rem;
+        }
+
+        .order-card-delivery {
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .order-card-chevron {
+            margin-left: 0.4rem;
+            font-size: 1.1rem;
+            color: #9ca3af;
+        }
+
+        /* =========================
+           ORDER DETAIL PAGE
+           ========================= */
+
+        #order-detail-page {
+            /* in real app: display: none; */
+            display: block;
+        }
+
+        .order-detail {
+            max-width: 900px;
+            margin: 0.25rem auto;
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-card);
+            box-sizing: border-box;
+        }
+
+        .order-detail-header {
+            margin-bottom: 0.6rem;
+        }
+
+        .order-detail-id-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        .order-detail-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+            color: #111827;
+        }
+
+        .order-detail-status {
+            padding: 0.15rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .order-detail-status--active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .order-detail-status--processed {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .order-detail-date {
+            margin: 0.25rem 0 0;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .order-detail-section {
+            padding-top: 0.5rem;
+            margin-top: 0.4rem;
+            border-top: 1px solid #f3f4f6;
+        }
+
+        .order-detail-section:first-of-type {
+            border-top: none;
+            padding-top: 0;
+            margin-top: 0;
+        }
+
+        .order-detail-section-title {
+            margin: 0 0 0.25rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .order-detail-text {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #4b5563;
+            line-height: 1.4;
+        }
+
+        .order-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .order-item {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.5rem;
+            padding: 0.35rem 0;
+            border-bottom: 1px dashed #e5e7eb;
+        }
+
+        .order-item:last-child {
+            border-bottom: none;
+        }
+
+        .order-item-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .order-item-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #111827;
+            margin-bottom: 0.15rem;
+        }
+
+        .order-item-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .order-item-qty {
+            font-weight: 500;
+        }
+
+        .order-item-price {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #111827;
+            white-space: nowrap;
+        }
+
+        .order-detail-summary {
+            margin-top: 0.6rem;
+        }
+
+        .order-summary-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #374151;
+            margin-bottom: 0.15rem;
+        }
+
+        .order-summary-row-total {
+            margin-top: 0.25rem;
+            padding-top: 0.35rem;
+            border-top: 1px solid #e5e7eb;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 0.5rem;
             }
 
-            .st1 {
-                fill: url(#linear-gradient1);
+            .orders-page,
+            .order-detail {
+                margin: 0.25rem;
+                padding: 0.5rem;
             }
 
-            .st2 {
-                fill: url(#linear-gradient);
+            .order-card {
+                padding: 0.45rem 0.5rem;
             }
 
-            .st3 {
-                fill: #fff;
+            .order-detail-title {
+                font-size: 1.02rem;
             }
-        </style>
-        <linearGradient id="linear-gradient" x1="2.51" y1="18.46" x2="45.49" y2="18.46" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#8fceea"/>
-            <stop offset=".5" stop-color="#67bee1"/>
-            <stop offset=".58" stop-color="#53b9dd"/>
-            <stop offset=".87" stop-color="#17a9d3"/>
-            <stop offset="1" stop-color="#00a4cf"/>
-        </linearGradient>
-        <linearGradient id="linear-gradient1" x1="26.81" y1="43.17" x2="26.81" y2="43.17" xlink:href="#linear-gradient"/>
-        <linearGradient id="linear-gradient2" x1="2.5" y1="36.98" x2="28.64" y2="36.98" xlink:href="#linear-gradient"/>
-    </defs>
-    <path class="st2" d="M38.23,34.55c-3.47,0-6.94,0-10.42,0-6.02,0-12.03,0-18.05,0-.48,0-3.06-.05-5.14-2.13-.66-.66-1.19-1.44-1.56-2.31s-.57-1.82-.57-2.83V9.64c0-4.01,3.25-7.26,7.26-7.26h28.46c4.01,0,7.26,3.25,7.26,7.26v17.65c0,4.01-3.25,7.26-7.26,7.26Z"/>
-    <path class="st1" d="M26.81,43.17"/>
-    <circle class="st3" cx="13.17" cy="18.46" r="3.31"/>
-    <circle class="st3" cx="24" cy="18.46" r="3.31"/>
-    <circle class="st3" cx="34.83" cy="18.46" r="3.31"/>
-    <path class="st0" d="M28.64,34.55c.02.1-11.38-1.11-18.61,5.26-3.76,3.31-4.83,7.24-6.18,6.83-.44-.13-1.25-.83-1.34-14.85-.01-1.9,0-3.47,0-4.51,0,0,.03.26.12.67,0,0,.18.9.44,1.61.39,1.09,2.05,2.48,2.72,2.88,3.69,2.23,22.83,1.98,22.85,2.1Z"/>
-</svg>
+
+            .order-item-name {
+                font-size: 0.88rem;
+            }
+
+            .order-item-price {
+                font-size: 0.88rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="demo-wrapper">
+    <div>
+        <p class="demo-heading">Список заказов</p>
+        <!-- ========== ORDERS LIST PAGE ========== -->
+        <div id="orders-page">
+            <div class="orders-page">
+                <h2 class="orders-title">Мои заказы</h2>
+
+                <!-- Активные -->
+                <section class="orders-section">
+                    <header class="orders-section-header">
+                        <h3 class="orders-section-title">Активные</h3>
+                        <span class="orders-section-counter" id="orders-active-count">2</span>
+                    </header>
+                    <div class="orders-list" id="orders-active-list">
+                        <button class="order-card" type="button" data-order-id="1001">
+                            <div class="order-card-top">
+                                <div class="order-card-id-row">
+                                    <span class="order-card-id">Заказ №1001</span>
+                                    <span class="order-card-status order-card-status--active">
+                                        Активен
+                                    </span>
+                                </div>
+                                <div class="order-card-meta">
+                                    <span class="order-card-date">12.12.2025</span>
+                                    <span class="order-card-total">3 товара • 7 990 ₽</span>
+                                </div>
+                            </div>
+                            <div class="order-card-bottom">
+                                <span class="order-card-delivery">
+                                    ПВЗ Яндекс, Москва, Тверская 7
+                                </span>
+                                <span class="order-card-chevron">›</span>
+                            </div>
+                        </button>
+
+                        <button class="order-card" type="button" data-order-id="1002">
+                            <div class="order-card-top">
+                                <div class="order-card-id-row">
+                                    <span class="order-card-id">Заказ №1002</span>
+                                    <span class="order-card-status order-card-status--active">
+                                        Активен
+                                    </span>
+                                </div>
+                                <div class="order-card-meta">
+                                    <span class="order-card-date">11.12.2025</span>
+                                    <span class="order-card-total">1 товар • 3 500 ₽</span>
+                                </div>
+                            </div>
+                            <div class="order-card-bottom">
+                                <span class="order-card-delivery">
+                                    Курьер, Санкт-Петербург
+                                </span>
+                                <span class="order-card-chevron">›</span>
+                            </div>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Обработанные -->
+                <section class="orders-section">
+                    <header class="orders-section-header">
+                        <h3 class="orders-section-title">Обработанные</h3>
+                        <span class="orders-section-counter" id="orders-processed-count">1</span>
+                    </header>
+                    <div class="orders-list" id="orders-processed-list">
+                        <button class="order-card" type="button" data-order-id="999">
+                            <div class="order-card-top">
+                                <div class="order-card-id-row">
+                                    <span class="order-card-id">Заказ №999</span>
+                                    <span class="order-card-status order-card-status--processed">
+                                        Обработан
+                                    </span>
+                                </div>
+                                <div class="order-card-meta">
+                                    <span class="order-card-date">05.12.2025</span>
+                                    <span class="order-card-total">2 товара • 5 990 ₽</span>
+                                </div>
+                            </div>
+                            <div class="order-card-bottom">
+                                <span class="order-card-delivery">
+                                    ПВЗ СДЭК, Казань
+                                </span>
+                                <span class="order-card-chevron">›</span>
+                            </div>
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <p class="demo-heading">Страница одного заказа</p>
+        <!-- ========== SINGLE ORDER PAGE ========== -->
+        <div id="order-detail-page">
+            <div class="order-detail">
+                <header class="order-detail-header">
+                    <div class="order-detail-id-row">
+                        <h2 class="order-detail-title">
+                            Заказ №<span id="order-detail-id">1001</span>
+                        </h2>
+                        <span id="order-detail-status"
+                              class="order-detail-status order-detail-status--active">
+                            Активен
+                        </span>
+                    </div>
+                    <p class="order-detail-date" id="order-detail-date">
+                        Оформлен: 12.12.2025, 14:32
+                    </p>
+                </header>
+
+                <!-- Товары -->
+                <section class="order-detail-section">
+                    <h3 class="order-detail-section-title">Товары</h3>
+                    <div class="order-items" id="order-items-list">
+                        <div class="order-item">
+                            <div class="order-item-main">
+                                <div class="order-item-name">
+                                    Семавик — 2.0 мг / 1.5 мл
+                                </div>
+                                <div class="order-item-meta">
+                                    <span class="order-item-variant">0.5 мг • 30 дней</span>
+                                    <span class="order-item-qty">× 2</span>
+                                </div>
+                            </div>
+                            <div class="order-item-price">
+                                3 500 ₽
+                            </div>
+                        </div>
+
+                        <div class="order-item">
+                            <div class="order-item-main">
+                                <div class="order-item-name">
+                                    Тирзепатид — 5 мг / 0.5 мл
+                                </div>
+                                <div class="order-item-meta">
+                                    <span class="order-item-variant">Курс 4 недели</span>
+                                    <span class="order-item-qty">× 1</span>
+                                </div>
+                            </div>
+                            <div class="order-item-price">
+                                4 490 ₽
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Доставка -->
+                <section class="order-detail-section">
+                    <h3 class="order-detail-section-title">Доставка</h3>
+                    <p class="order-detail-text" id="order-delivery-summary">
+                        ПВЗ Яндекс, Москва, Тверская 7
+                    </p>
+                </section>
+
+                <!-- Оплата -->
+                <section class="order-detail-section">
+                    <h3 class="order-detail-section-title">Оплата</h3>
+                    <p class="order-detail-text" id="order-payment-method">
+                        Оплата позже (по договорённости)
+                    </p>
+                </section>
+
+                <!-- Комментарий -->
+                <section class="order-detail-section">
+                    <h3 class="order-detail-section-title">Комментарий</h3>
+                    <p class="order-detail-text" id="order-comment-text">
+                        Пожалуйста, упаковать максимально незаметно, без упоминания содержания.
+                    </p>
+                </section>
+
+                <!-- Итоги -->
+                <section class="order-detail-section order-detail-summary">
+                    <div class="order-summary-row">
+                        <span>Товары</span>
+                        <span id="order-subtotal">7 990 ₽</span>
+                    </div>
+                    <div class="order-summary-row">
+                        <span>Доставка</span>
+                        <span id="order-delivery-price">0 ₽</span>
+                    </div>
+                    <div class="order-summary-row order-summary-row-total">
+                        <span>Итого</span>
+                        <span id="order-total">7 990 ₽</span>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template (for when you wire JS later) -->
+    <template id="order-card-template">
+        <button class="order-card" type="button" data-order-id="">
+            <div class="order-card-top">
+                <div class="order-card-id-row">
+                    <span class="order-card-id">Заказ №12345</span>
+                    <span class="order-card-status order-card-status--active">
+                        Активен
+                    </span>
+                </div>
+                <div class="order-card-meta">
+                    <span class="order-card-date">12.12.2025</span>
+                    <span class="order-card-total">3 товара • 7 990 ₽</span>
+                </div>
+            </div>
+            <div class="order-card-bottom">
+                <span class="order-card-delivery">
+                    Доставка: ПВЗ Яндекс, Москва
+                </span>
+                <span class="order-card-chevron">›</span>
+            </div>
+        </button>
+    </template>
+
+    <template id="order-item-template">
+        <div class="order-item">
+            <div class="order-item-main">
+                <div class="order-item-name">Название продукта</div>
+                <div class="order-item-meta">
+                    <span class="order-item-variant">30 мг / 3 мл</span>
+                    <span class="order-item-qty">× 2</span>
+                </div>
+            </div>
+            <div class="order-item-price">
+                3 500 ₽
+            </div>
+        </div>
+    </template>
+</div>
+</body>
+</html>

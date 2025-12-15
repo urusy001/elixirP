@@ -10,7 +10,7 @@ import {
     detailEl,
     headerTitle,
     listEl,
-    navBottomEl,
+    navBottomEl, orderDetailEl, ordersPageEl,
     paymentPageEl,
     processPaymentEl, profilePageEl,
     searchBtnEl,
@@ -323,6 +323,8 @@ async function openHomePage() {
     paymentPageEl.style.display = "none";
     processPaymentEl.style.display = "none";
     profilePageEl.style.display = "none";
+    ordersPageEl.style.display = "none";
+    orderDetailEl.style.display = "none";
 
     // начинаем с 0-й страницы, а loadMore сам будет дотягивать, если < 4
     page = 0;
