@@ -47,7 +47,7 @@ async def cdek_proxy(request: Request):
             filtered = [
                 t for t in tariffs
                 if isinstance(t, dict) and "tariff_name" in t
-                   and t.get("tariff_name", "").lower().find("склад-склад") != -1
+                   and (t.get("tariff_name", "").lower().find("склад-склад") != -1) or (t.get("tariff_name", "").lower().find("склад-дверь") != -1)
             ]
             data["tariff_codes"] = filtered
             return Response(
