@@ -14,7 +14,7 @@ router = APIRouter(prefix="/cart", tags=["cart"])
 @router.get("/{user_id}")
 async def get(user_id: int, db: AsyncSession = Depends(get_db)):
     carts = await get_user_carts(db, user_id)
-    for cart in carts: print(cart.model_dump())
+    for cart in carts: print(cart.to_dict())
 
 
 @router.get("/product/{onec_id}")
