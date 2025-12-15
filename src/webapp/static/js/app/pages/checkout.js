@@ -225,11 +225,12 @@ async function initCDEKWidget(coords = [55.75, 37.61]) {
                 code: 256,
                 address: "ул. Революционная, 98/1 блок А",
                 country_code: "RU",
-                postal_code: "450078",
-                coords: [55.986566, 54.729366],
+                postal_code: 450078,
+                coords: [54.72922108153469, 55.987779811665256],
             },
             defaultLocation: coords,
             canChoose: true,
+            currency: 'RUB',
             hideFilters: {have_cashless: false, have_cash: false, is_dressing_room: false},
             hideDeliveryOptions: {office: false, door: false},
             goods: [{width: 10, height: 10, length: 10, weight: 10}],
@@ -244,6 +245,10 @@ async function initCDEKWidget(coords = [55.75, 37.61]) {
                 );
                 if (address?.code) fetchPVZByCode(address.code);
                 createProceedButton("Продолжить оформление");
+            },
+            tariffs: {
+                office: [234, 136, 138],
+                door: [233, 137, 139],
             },
             onCalculate: async () => {
                 const pvzCode = getSelectedPVZCode();
