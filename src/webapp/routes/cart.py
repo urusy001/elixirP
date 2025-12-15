@@ -11,8 +11,8 @@ from src.webapp.schemas import CartCreate
 
 router = APIRouter(prefix="/cart", tags=["cart"])
 
-@router.get("/{user_id}")
-async def get(user_id: int, db: AsyncSession = Depends(get_db)):
+@router.get("/")
+async def get_orders(user_id: int = Query(..., description="Telegram user id"), db = Depends(get_db)):
     carts = await get_user_carts(db, user_id)
     for cart in carts: print(cart.to_dict())
 
