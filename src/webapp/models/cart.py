@@ -1,8 +1,9 @@
+import random
+
 from sqlalchemy import BigInteger, Column, String, Boolean, DateTime, func, event, ForeignKey
 from sqlalchemy.orm import relationship
 
 from src.webapp.database import Base
-
 
 class Cart(Base):
     __tablename__ = "carts"
@@ -10,9 +11,10 @@ class Cart(Base):
     id = Column(
         BigInteger,
         primary_key=True,
-        autoincrement=True,
+        autoincrement=False,
         index=True,
         nullable=False,
+        default=lambda: random.randint(10 ** 6, 10 ** 7 - 1),
     )
 
     user_id = Column(
@@ -65,7 +67,7 @@ class Cart(Base):
 
 @event.listens_for(Cart, "after_insert")
 def set_cart_name(mapper, connection, target: Cart):
-    cart_name = f"Корзина #{target.id}"
+    cart_name = f"Заказ #{target.id}"
     connection.execute(
         Cart.__table__
         .update()

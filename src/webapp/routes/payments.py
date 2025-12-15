@@ -40,12 +40,17 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     commentary_text = payload.commentary or "Не указан"
 
     payload_dict = payload.model_dump()
+    cart_create = CartCreate(is_active=True, user_id=user_id)
+    cart = await create_cart(db, cart_create)
+    for item in enriched_cart.get("items", []):
+        cart_item_create = CartItemCreate(product_onec_id=item["id"], feature_onec_id=item["featureId"], quantity=item["qty"])
+        cart_item = await add_or_increment_item(db, cart.id, cart_item_create)
 
     user_upsert = UserCreate(**contact_info.model_dump(), tg_id=user_id)
     await upsert_user(db, user_upsert)
 
     log.info("Create payment payload: %s", ())
-    order_number = str(int(datetime.now().timestamp()))
+    order_number = cart.id
     if delivery_service == "yandex":
         url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/pricing-calculator"
         addr = delivery_data["address"]
@@ -106,11 +111,6 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
         result["payment_method"] = payment_method
         from src.amocrm.client import amocrm
         lead = await amocrm.create_lead_with_contact_and_note(**order_lead_kwargs)
-        cart_create = CartCreate(is_active=True, user_id=user_id)
-        cart = await create_cart(db, cart_create)
-        for item in enriched_cart.get("items", []):
-            cart_item_create = CartItemCreate(product_onec_id=item["id"], feature_onec_id=item["featureId"], quantity=item["qty"])
-            cart_item = await add_or_increment_item(db, cart.id, cart_item_create)
 
         if lead: return {
             "status": "success",
