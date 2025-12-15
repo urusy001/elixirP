@@ -246,10 +246,6 @@ async function initCDEKWidget(coords = [55.75, 37.61]) {
                 if (address?.code) fetchPVZByCode(address.code);
                 createProceedButton("Продолжить оформление");
             },
-            tariffs: {
-                office: [234, 136],
-                door: [233, 137],
-            },
             onCalculate: async () => {
                 const pvzCode = getSelectedPVZCode();
                 if (pvzCode) fetchPVZByCode(pvzCode);
