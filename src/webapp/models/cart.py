@@ -1,6 +1,6 @@
 import random
 
-from sqlalchemy import BigInteger, Column, String, Boolean, DateTime, func, event, ForeignKey
+from sqlalchemy import BigInteger, Column, String, Boolean, DateTime, func, event, ForeignKey, Numeric
 from sqlalchemy.orm import relationship
 
 from src.webapp.database import Base
@@ -29,6 +29,11 @@ class Cart(Base):
         nullable=False,
         default="",  # will be overwritten by after_insert
     )
+
+    sum = Column(Numeric(8, 2), nullable=False)
+    delivery_sum = Column(Numeric(8, 2), nullable=False)
+    delivery_string = Column(String, nullable=False, default="Не указан", server_default="Не указан")
+    commentary = Column(String, nullable=True)
 
     is_active = Column(
         Boolean,
