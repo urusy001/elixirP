@@ -493,8 +493,8 @@ async function openTosOverlay(user) {
                 is_active: true,
                 user_id: user.tg_id,
                 name: "Начальная",
-                sum: 0,
-                delivery_sum: 0,
+                sum: 0.00,
+                delivery_sum: 0.00,
                 delivery_string: "Начальная",
                 commentary: "Начальная"
             };
