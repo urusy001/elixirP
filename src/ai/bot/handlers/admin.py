@@ -32,7 +32,10 @@ async def add_premium(message: Message):
     args = message.text.removeprefix("/set_premium ").strip().split()
     if len(args) == 2:
         phone = normalize_phone(args[1])
-        user_id = await get_user_id_by_phone(phone)
+        async with get_session() as session:
+            user = await get_user(session, 'tg_phone', phone)
+
+        user_id = await get_user_id_by_phone(phone) if not (user and user.tg_id) else user.tg_id
         if not user_id: return await message.answer('Пользователь не найден по номеру в ТГ')
     else: return await message.answer('Ошибка команды: <code>/set_premium количество номер_в_тг</code>')
     amount = args[0]
