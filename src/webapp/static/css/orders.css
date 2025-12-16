@@ -7,7 +7,7 @@
     max-width: 900px;
     margin: 0;
     padding: 3px;
-    background: gray;
+    background: whitesmoke;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-card);
     box-sizing: border-box;
@@ -26,6 +26,7 @@
 
 .orders-section:last-of-type {
     margin-bottom: 0;
+    background: whitesmoke;
 }
 
 .orders-section-header {
