@@ -26,8 +26,7 @@ class Cart(Base):
 
     name = Column(
         String,
-        nullable=False,
-        default="",  # will be overwritten by after_insert
+        nullable=True,
     )
 
     sum = Column(Numeric(8, 2), nullable=False, default=0)
