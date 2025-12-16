@@ -14,6 +14,9 @@ async def create_tg_category(db: AsyncSession, data: TgCategoryCreate) -> TgCate
     await db.refresh(obj)
     return obj
 
+async def get_tg_category_by_id(db: AsyncSession, category_id: int) -> TgCategory | None:
+    return await db.get(TgCategory, category_id)
+
 
 async def list_tg_categories(db: AsyncSession, *, limit: int = 200, offset: int = 0) -> list[TgCategory]:
     q = select(TgCategory).order_by(TgCategory.name.asc()).offset(offset).limit(limit)

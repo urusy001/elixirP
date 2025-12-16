@@ -1,39 +1,68 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
-class ProductPhotoDoses(InlineKeyboardMarkup):
-    def __init__(self, doses: dict[str, str], product_onec_id: str):
-        doses = dict(sorted(doses.items(), key=lambda x: x[1]))
-        buttons = [InlineKeyboardButton(text=doses[onec_id], callback_data=f"product_photos:{onec_id}") for onec_id in doses]
-        super().__init__(inline_keyboard=[buttons[i: i+2] for i in range(0, len(buttons), 2)] + [
-            [InlineKeyboardButton(text="Удалить основное фото", callback_data=f"delete_photo:{product_onec_id}")]
-        ])
+def ProductPhotoDoses(doses: dict[str, str], product_onec_id: str) -> InlineKeyboardMarkup:
+    # your existing logic can stay; placeholder below if you already had it elsewhere
+    buttons = [
+        InlineKeyboardButton(
+            text=name,
+            callback_data=f"product_photos:{onec_id}",
+        )
+        for onec_id, name in doses.items()
+    ]
+    rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-class DeletePhoto(InlineKeyboardMarkup):
-    def __init__(self, onec_id: str):
-        super().__init__(inline_keyboard=[
+def DeletePhoto(onec_id: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
             [InlineKeyboardButton(text="🗑️ Удалить фото", callback_data=f"delete_photo:{onec_id}")]
-        ])
+        ]
+    )
 
 
-class SetCategory(InlineKeyboardMarkup):
-    def __init__(self, category_name: str):
-        super().__init__(inline_keyboard=[
-            [InlineKeyboardButton(text=category_name, callback_data=f"set_category:{category_name}")]
-        ])
+# =========================
+# TG CATEGORY ADMIN KB
+# =========================
+
+def CategoryButton(category_id: int, name: str) -> InlineKeyboardButton:
+    # ✅ store ONLY id in callback (names may contain spaces)
+    return InlineKeyboardButton(text=name, callback_data=f"set_category:{category_id}")
 
 
-class CategoryActions(InlineKeyboardMarkup):
+def CategoriesKeyboard(categories, per_row: int = 2) -> InlineKeyboardMarkup:
+    # categories: list[model] with .id and .name
+    buttons = [CategoryButton(c.id, c.name) for c in categories]
+    rows = [buttons[i:i + per_row] for i in range(0, len(buttons), per_row)]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def CategoryActions(category_id: int) -> InlineKeyboardMarkup:
+    # inline search helpers
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="➕ Добавить товар", switch_inline_query_current_chat="addcat "),
+                InlineKeyboardButton(text="➖ Убрать товар", switch_inline_query_current_chat="rmcat "),
+            ],
+            [
+                InlineKeyboardButton(text="🗑️ Удалить категорию", callback_data=f"delete_category:{category_id}"),
+            ],
+            [
+                InlineKeyboardButton(text="📦 Список категорий", callback_data="categories_list"),
+            ],
+        ]
+    )
+
+
+def SelectedCategoryScreen(categories, selected_id: int) -> InlineKeyboardMarkup:
     """
-    After selecting a category:
-    - add product via inline query
-    - remove product via inline query
-    - delete category via callback
+    Shows:
+      - other categories as quick switch
+      - actions for current category
     """
-    def __init__(self, category_name: str):
-        super().__init__(inline_keyboard=[
-            [InlineKeyboardButton(text="➕ Добавить товар в категорию", switch_inline_query_current_chat="addcat ")],
-            [InlineKeyboardButton(text="➖ Убрать товар из категории", switch_inline_query_current_chat="rmcat ")],
-            [InlineKeyboardButton(text="🗑️ Удалить категорию", callback_data=f"delete_category:{category_name}")],
-        ])
+    other = [c for c in categories if c.id != selected_id]
+    kb_other = CategoriesKeyboard(other).inline_keyboard if other else []
+    kb_actions = CategoryActions(selected_id).inline_keyboard
+    return InlineKeyboardMarkup(inline_keyboard=kb_other + kb_actions)
