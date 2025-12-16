@@ -21,15 +21,15 @@ open_app = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 main_menu = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='🤖 ИИ Эксперты 🧠', callback_data="user:ai:start"),
+    [InlineKeyboardButton(text='🤖 ИИ Ассистенты 🧠', callback_data="user:ai:start"),
      InlineKeyboardButton(text='✖️ Калькуляторы ➗', callback_data="user:calculators")],
     [InlineKeyboardButton(text="🛒 Открыть магазин 🛍️", web_app=WebAppInfo(url="https://elixirpeptides.devsivanschostakov.org"))],
     [InlineKeyboardButton(text="📑 Оферта", callback_data="user:offer"), InlineKeyboardButton(text="Данные ИП 👨🏻‍💻", callback_data="user:about")]
 ])
 
 pick_ai = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='✨Премиум', callback_data="user:ai:premium"),
-     InlineKeyboardButton(text='Бесплатная', callback_data="user:ai:free")],
+    [InlineKeyboardButton(text='✨ИИ-эксперт', callback_data="user:ai:premium"),
+     InlineKeyboardButton(text='⚡️ИИ-профессор', callback_data="user:ai:free")],
     [back_button]
 ])
 
