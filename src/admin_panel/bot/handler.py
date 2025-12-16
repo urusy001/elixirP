@@ -278,6 +278,27 @@ async def inline_rmcat(inline_query: InlineQuery, state: FSMContext):
     await inline_query.answer(results, cache_time=1)
 
 
+@router.inline_query(lambda inline_query: inline_query.query.startswith("photo"))
+async def set_product_photo(inline_query: InlineQuery):
+    query = inline_query.query.removeprefix("photo").strip()
+    if not query: return
+    async with get_session() as db: data = await search_products(db, q=query, page=0, limit=10)
+
+    results = []
+    for idx, item in enumerate(data["results"], start=1):
+        results.append(
+            InlineQueryResultArticle(
+                id=str(idx),
+                title=item["name"],
+                description=", ".join(f["name"] for f in item["features"]),
+                input_message_content=InputTextMessageContent(
+                    message_text=f'/photo {item["url"].removeprefix("/product/")}',
+                ),
+            )
+        )
+
+    await inline_query.answer(results, cache_time=1)
+
 # =========================
 # CALLBACKS
 # =========================
