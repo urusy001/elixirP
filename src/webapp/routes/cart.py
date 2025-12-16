@@ -31,7 +31,6 @@ async def get_cart_product(onec_id: str, feature_id: str = Query("", alias="feat
 
 @router.post("/create")
 async def create(cart_data: CartCreate, db: AsyncSession = Depends(get_db)):
-    print(cart_data.model_dump_json(indent=4, ensure_ascii=False))
     cart = await create_cart(db, cart_data)
     return cart.to_dict()
 
