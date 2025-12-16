@@ -387,7 +387,7 @@ def save_single_plot(x_data, y_data, title, y_label, legend_label, filename, inf
             f"Доза: {info.get('dose_mg', 0):g}мг\n"
             f"Интервал: {info.get('interval_days', 0):g}д\n"
             f"Курс: {info.get('weeks', 0):g}нед\n"
-            f"Осваивание: {info.get('F', 1.0)*100:.2f}%\n"
+            f"Усвоение: {info.get('F', 1.0)*100:.2f}%\n"
             f"t½: {info.get('t_half_days', 0):.2f}д"
         )
         ax.text(
