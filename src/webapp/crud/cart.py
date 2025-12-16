@@ -41,12 +41,17 @@ async def create_cart(db: AsyncSession, data: CartCreate) -> Cart:
     return cart
 
 
-async def update_cart(db: AsyncSession, cart: Cart, data: CartUpdate) -> Cart:
-    """
-    Update cart fields (is_active, name).
-    Use this e.g. to mark cart as processed: is_active = False.
-    """
-    for key, value in data.model_dump().items(): setattr(cart, key, value)
+async def update_cart(db: AsyncSession, cart_id: int, payload: CartUpdate) -> Cart:
+    res = await db.execute(select(Cart).where(Cart.id == cart_id))
+    cart = res.scalar_one_or_none()
+    if cart is None:
+        raise ValueError(f"Cart {cart_id} not found")
+
+    patch = payload.model_dump(exclude_unset=True, exclude_none=True)
+
+    for k, v in patch.items():
+        setattr(cart, k, v)
+
     await db.commit()
     await db.refresh(cart)
     return cart
