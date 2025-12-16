@@ -118,6 +118,5 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
             "status_code": 202,
             "order_number": order_number,
         }
-        return result
 
     raise HTTPException(status_code=400, detail="Failed when lead")

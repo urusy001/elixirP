@@ -350,7 +350,7 @@ class AsyncAmoCRM:
         await self.post(f"/api/v4/leads/{lead_id}/link", json=link_payload)
         await self.add_lead_note(lead_id, note_text)
 
-        return
+        return True
 
     async def get_main_pipeline_statuses(self) -> dict[str, int]:
         """
