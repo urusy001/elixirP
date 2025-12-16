@@ -498,6 +498,7 @@ async function openTosOverlay(user) {
                 delivery_string: "Начальная",
                 commentary: "Начальная"
             };
+            await apiPost('/cart/create', payload);
 
             // помечаем в фронте, что пользователь уже принял условия
             const currentUser = state.user || user;
