@@ -32,14 +32,10 @@ export async function renderOrdersPage() {
 }
 
 async function getUserCarts() {
-    alert('getusers')
     const user = state.user
     if (user) {
         const user_id = user.tg_id;
         const result = await apiGet(`/cart/?user_id=${user_id}`);
-        alert('result');
         alert(JSON.stringify(result));
-    } else {
-        alert('nouser')
     }
 }
