@@ -494,8 +494,6 @@ async function openTosOverlay(user) {
                 user_id: user.tg_id,
             };
 
-            await apiPost("/cart/create", payload);
-
             // помечаем в фронте, что пользователь уже принял условия
             const currentUser = state.user || user;
             if (currentUser) {
