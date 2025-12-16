@@ -34,10 +34,7 @@ async def create_cart(db: AsyncSession, data: CartCreate) -> Cart:
     Create a new cart.
     is_active in CartCreate decides whether it starts as unpaid/processed.
     """
-    cart = Cart(
-        user_id=data.user_id,
-        is_active=data.is_active,
-    )
+    cart = Cart(**data.model_dump())
     db.add(cart)
     await db.commit()
     await db.refresh(cart)
