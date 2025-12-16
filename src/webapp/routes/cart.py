@@ -14,6 +14,8 @@ router = APIRouter(prefix="/cart", tags=["cart"])
 @router.get("/")
 async def get_orders(user_id: int = Query(..., description="Telegram user id"), db = Depends(get_db)):
     carts = await get_user_carts(db, user_id)
+    carts = [cart.to_dict() for cart in carts]
+    print(len(carts))
     return [cart.to_dict() for cart in carts]
 
 

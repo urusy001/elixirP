@@ -5,9 +5,9 @@
 
 .orders-page {
     max-width: 900px;
-    margin: 0.25rem auto;
-    padding: 0.5rem;
-    background: var(--bg-card);
+    margin: 0;
+    padding: 3px;
+    background: gray;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-card);
     box-sizing: border-box;
