@@ -32,6 +32,7 @@ export async function renderOrdersPage() {
 }
 
 async function getUserCarts() {
+    alert('getusers')
     const user = state.user
     if (user) {
         const user_id = user.tg_id;
