@@ -22,11 +22,11 @@
 
 .orders-section {
     margin-bottom: 0.75rem;
+    background: whitesmoke;
 }
 
 .orders-section:last-of-type {
     margin-bottom: 0;
-    background: whitesmoke;
 }
 
 .orders-section-header {
@@ -34,12 +34,15 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: 0.3rem;
+    background: whitesmoke;
+
 }
 
 .orders-section-title {
     font-size: 0.95rem;
     font-weight: 600;
     color: #111827;
+    background: whitesmoke;
 }
 
 .orders-section-counter {
