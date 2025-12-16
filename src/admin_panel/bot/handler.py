@@ -35,10 +35,11 @@ router = Router()
 
 admin_filter = lambda obj: obj.from_user and obj.from_user.id in OWNER_TG_IDS and obj.chat.type == ChatType.PRIVATE
 admin_call_filter = lambda obj: obj.from_user and obj.from_user.id in OWNER_TG_IDS and obj.message.chat.type == ChatType.PRIVATE
+admin_inline_filter = lambda obj: obj.from_user and obj.from_user.id in OWNER_TG_IDS and obj.chat_type == ChatType.PRIVATE
 
 router.message.filter(admin_filter)
 router.callback_query.filter(admin_call_filter)
-router.inline_query.filter(admin_filter)
+router.inline_query.filter(admin_inline_filter)
 
 
 async def __handle_product_message(onec_id: str, message: Message, state: FSMContext):
