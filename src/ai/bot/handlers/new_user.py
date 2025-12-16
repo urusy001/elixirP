@@ -4,7 +4,7 @@ from aiogram import Router
 from aiogram.enums import ChatType
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import FSInputFile, Message, CallbackQuery
+from aiogram.types import FSInputFile, Message, CallbackQuery, ReplyKeyboardRemove
 
 from config import OWNER_TG_IDS, MOSCOW_TZ, DATA_DIR, PROFESSOR_ASSISTANT_ID, NEW_ASSISTANT_ID, BOT_KEYWORDS
 from src.ai.calc import generate_drug_graphs, plot_filled_scale
@@ -77,6 +77,7 @@ async def handle_user_registration(message: Message, state: FSMContext, professo
     phone = message.contact.phone_number
     await state.clear()
     await professor_bot.create_user(message.from_user.id, phone)
+    await (await message.answer('Проверка пройдена успешно ✅', reply_markup=ReplyKeyboardRemove())).delete()
     return await handle_user_start(message, state)
 
 @new_user_router.message(user_states.CalculateClicks.cartridge_volume, lambda message: message.text and message.text.strip())
