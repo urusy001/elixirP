@@ -124,9 +124,7 @@ async def handle_create_category(message: Message, state: FSMContext):
 
     await message.answer(
         f"✅ Категория <b>{category.name}</b> создана.\nВыберите её или управляйте кнопками ниже:",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [keyboards.SetCategory(category.name).inline_keyboard[0][0]],
-        ]),
+        reply_markup=keyboards.SetCategory(category.name),
     )
 
 
@@ -139,7 +137,7 @@ async def handle_categories(message: Message, state: FSMContext):
         await message.answer("Категорий нет. Создайте: <code>/create_category Название</code>")
         return
 
-    buttons = [keyboards.SetCategory(c.name) for c in categories]
+    buttons = [keyboards.SetCategory(c.name).inline_keyboard[0][0] for c in categories]
     kb = InlineKeyboardMarkup(inline_keyboard=[buttons[i: i + 2] for i in range(0, len(buttons), 2)])
     await message.answer("📦 Выберите категорию:", reply_markup=kb)
 
@@ -340,7 +338,7 @@ async def handle_callback(call: CallbackQuery, state: FSMContext):
         async with get_session() as db:
             categories = await list_tg_categories(db)
 
-        buttons = [keyboards.SetCategory(c.name) for c in categories if c.name != category_name]
+        buttons = [keyboards.SetCategory(c.name).inline_keyboard[0][0] for c in categories if c.name != category_name]
         kb = InlineKeyboardMarkup(inline_keyboard=[buttons[i: i + 2] for i in range(0, len(buttons), 2)])
 
         await call.message.edit_text(
