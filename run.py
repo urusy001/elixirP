@@ -17,7 +17,7 @@ logger = logging.getLogger("main")
 
 async def main():
     tasks = [
-        asyncio.coroutine(run_app()),
+        asyncio.create_task(run_app()),
         asyncio.create_task(cdek_client.token_worker())
     ]
 
