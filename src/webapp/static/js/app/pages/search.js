@@ -193,6 +193,7 @@ export function initSearchOverlay() {
                     if (!id) return;
                     history.pushState({ productId: id }, "", `/product/${id}`);
                     await renderProductDetailPage(id);
+                    navBottomEl.style.display = "none";
                     closeOverlay();
                 });
             });
