@@ -3,6 +3,7 @@ import asyncio
 import signal
 
 from src.delivery.sdek import client as cdek_client
+from src.webapp.main import run_app
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,6 +17,7 @@ logger = logging.getLogger("main")
 
 async def main():
     tasks = [
+        asyncio.coroutine(run_app())
         asyncio.create_task(cdek_client.token_worker())
     ]
 
