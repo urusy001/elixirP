@@ -65,7 +65,6 @@ async def handle_user_start(message: Message, state: FSMContext):
         return await message.answer(user_texts.verify_phone.replace('*', message.from_user.full_name), reply_markup=user_keyboards.phone)
 
     if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ): return await message.answer(user_texts.banned_until.replace("Блокировка до 9999-12-31, п", "П").replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}'))
-    if user.premium_requests <= 0: return await message.answer(user_texts.premium_limit_0, reply_markup=user_keyboards.only_free)
     return await message.answer(user_texts.greetings.replace('full_name', message.from_user.full_name), reply_markup=user_keyboards.main_menu)
 
 @new_user_router.message(user_states.Registration.phone)
