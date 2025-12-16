@@ -1,8 +1,7 @@
-import asyncio
 import json
 import logging
+
 import httpx
-from datetime import datetime
 from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,12 +11,12 @@ from config import (
     YANDEX_DELIVERY_WAREHOUSE_ID
 )
 from src.delivery.sdek import client as cdek_client
-from src.helpers import format_order_for_amocrm
-from src.webapp.crud import upsert_user, add_or_increment_item, create_cart
+from src.helpers import format_order_for_amocrm, normalize_address_for_cf
+from src.webapp.crud import upsert_user, add_or_increment_item, create_cart, update_cart
 from src.webapp.database import get_db
 from src.webapp.models.checkout import CheckoutData
 from src.webapp.routes.cart import cart_json
-from src.webapp.schemas import UserCreate, CartCreate, CartItemCreate
+from src.webapp.schemas import UserCreate, CartCreate, CartItemCreate, CartUpdate
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 log = logging.getLogger(__name__)
@@ -38,9 +37,9 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     payment_method = payload.payment_method
     promocode = payload.promocode or "Не указан"
     commentary_text = payload.commentary or "Не указан"
-
+    address_str = normalize_address_for_cf(delivery_data["address"])
     payload_dict = payload.model_dump()
-    cart_create = CartCreate(is_active=True, user_id=user_id)
+    cart_create = CartCreate(is_active=True, user_id=user_id, sum=total, delivery_sum=0, commentary=commentary_text, delivery_string=f"{delivery_service.upper()}: {address_str}")
     cart = await create_cart(db, cart_create)
     for item in enriched_cart.get("items", []):
         cart_item_create = CartItemCreate(product_onec_id=item["id"], feature_onec_id=item["featureId"], quantity=item["qty"])
@@ -87,6 +86,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
 
     elif delivery_service == "cdek":
         delivery_sum = payload.selected_delivery["tariff"]["delivery_sum"]
+        await update_cart(db, cart.id, CartUpdate(delivery_sum=delivery_sum))
         try: await cdek_client.create_order_from_payload(payload_dict, order_number, delivery_sum=delivery_sum)
         except HTTPException: raise
         except Exception as e:
@@ -101,7 +101,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
             "lead_name": f"{contact_info.name} {contact_info.surname}",
             "phone": contact_info.phone,
             "email": contact_info.email,
-            "address": delivery_data["address"],
+            "address_str": address_str,
             "delivery_service": delivery_service,
             "price": total,
             "order_number": order_number,
@@ -118,7 +118,6 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
             "status_code": 202,
             "order_number": order_number,
         }
-        print(json.dumps(payload_dict, indent=4))
         return result
 
     raise HTTPException(status_code=400, detail="Failed when lead")

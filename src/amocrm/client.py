@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 import httpx
@@ -279,7 +278,7 @@ class AsyncAmoCRM:
             self,
             lead_name: str,
             price: int,
-            address: object,  # can be str or dict from your payload
+            address_str: str,
             phone: str,
             email: str | None,
             order_number: str,
@@ -297,8 +296,6 @@ class AsyncAmoCRM:
 
         Returns dict: {"lead": lead_dict, "contact": contact_dict}
         """
-        address_str = normalize_address_for_cf(address)
-
         lead_custom_fields: dict[int, object] = {}
         if address_str: lead_custom_fields[self.CF["address"]] = address_str
         if tg_nick: lead_custom_fields[self.CF["tg_nick"]] = tg_nick
@@ -354,7 +351,7 @@ class AsyncAmoCRM:
         await self.post(f"/api/v4/leads/{lead_id}/link", json=link_payload)
         await self.add_lead_note(lead_id, note_text)
 
-        return lead
+        return
 
     async def get_main_pipeline_statuses(self) -> dict[str, int]:
         """
