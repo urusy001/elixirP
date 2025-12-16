@@ -207,6 +207,7 @@ async def handle_remove_category_from_product(message: Message, state: FSMContex
 
 @router.inline_query(lambda q: q.query.startswith("addcat"))
 async def inline_addcat(inline_query: InlineQuery, state: FSMContext):
+    print(inline_query.chat_type)
     st = await state.get_data()
     category_name = st.get("category_name")
     if not category_name:
@@ -220,7 +221,7 @@ async def inline_addcat(inline_query: InlineQuery, state: FSMContext):
 
     query = inline_query.query.removeprefix("addcat").strip()
     if not query:
-        return
+        return None
 
     async with get_session() as db:
         data = await search_products(db, q=query, page=0, limit=10)
@@ -239,7 +240,7 @@ async def inline_addcat(inline_query: InlineQuery, state: FSMContext):
             )
         )
 
-    await inline_query.answer(results, cache_time=1)
+    return await inline_query.answer(results, cache_time=1)
 
 
 @router.inline_query(lambda q: q.query.startswith("rmcat"))
