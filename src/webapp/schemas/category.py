@@ -1,5 +1,5 @@
+from __future__ import annotations
 from pydantic import BaseModel
-
 
 # Shared fields
 class CategoryBase(BaseModel):

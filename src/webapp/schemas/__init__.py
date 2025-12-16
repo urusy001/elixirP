@@ -7,6 +7,7 @@ from .usertokenusage import *
 from .cart import *
 from .cart_item import *
 from .favourite import *
+from .tg_category import *
 
 __all__ = [
     'CategoryUpdate', 'CategoryBase', 'CategoryRead', 'CategoryCreate',
@@ -15,6 +16,7 @@ __all__ = [
     'FeatureUpdate', 'FeatureBase', 'FeatureRead', 'FeatureCreate',
     'UserUpdate', 'UserBase', 'UserRead', 'UserCreate',
     'UserTokenUsageUpdate', 'UserTokenUsageRead', 'UserTokenUsageBase', 'UserTokenUsageCreate',
-    'CartCreate', 'CartUpdate', 'CartItemCreate', 'CartItemUpdate',
-    'FavouriteOut', 'FavouriteCreate', 'FavouriteDelete', 'FavouriteBase'
+    'CartCreate', 'CartUpdate', 'CartItemCreate', 'CartItemUpdate', 'CartBase', 'CartItemBase', 'CartRead',
+    'FavouriteOut', 'FavouriteCreate', 'FavouriteDelete', 'FavouriteBase',
+    'TgCategoryCreate', 'TgCategoryUpdate', 'TgCategoryBase', 'TgCategoryRead'
 ]

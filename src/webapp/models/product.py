@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
 from src.webapp.database import Base
+from src.webapp.models.tg_category import product_tg_categories  # <-- IMPORTANT
 
 
 class Product(Base):
@@ -9,11 +10,13 @@ class Product(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     onec_id = Column(String, primary_key=True, index=True, unique=True)
+
     name = Column(String(96), nullable=False)
     code = Column(String(16), nullable=False)
     description = Column(String, nullable=True)
     usage = Column(String, nullable=True)
     expiration = Column(String, nullable=True)
+
     category_onec_id = Column(
         String,
         ForeignKey("categories.onec_id", ondelete="SET NULL"),
@@ -30,13 +33,21 @@ class Product(Base):
         back_populates="product",
         foreign_keys="CartItem.product_onec_id",
         lazy="selectin",
-        passive_deletes=True,   # 👈 доверяем БД делать CASCADE
+        passive_deletes=True,
     )
 
     favourited_by = relationship(
         "Favourite",
         back_populates="product",
         cascade="all, delete-orphan",
+    )
+
+    # ✅ MANY-TO-MANY with TgCategory
+    tg_categories = relationship(
+        "TgCategory",
+        secondary=product_tg_categories,
+        back_populates="products",
+        lazy="selectin",
     )
 
     def __str__(self) -> str:
