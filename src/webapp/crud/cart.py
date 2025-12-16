@@ -46,9 +46,7 @@ async def update_cart(db: AsyncSession, cart: Cart, data: CartUpdate) -> Cart:
     Update cart fields (is_active, name).
     Use this e.g. to mark cart as processed: is_active = False.
     """
-    if data.is_active is not None: cart.is_active = data.is_active
-    if data.name is not None: cart.name = data.name
-
+    for key, value in data.model_dump().items(): setattr(cart, key, value)
     await db.commit()
     await db.refresh(cart)
     return cart
