@@ -11,7 +11,7 @@ class CartBase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     is_active: bool = True
-    name: str | None = None
+    name: str | None = ''
 
     # matches SQLAlchemy Numeric(8, 2)
     sum: Decimal | None = 0.00
