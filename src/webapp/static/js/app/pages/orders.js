@@ -34,9 +34,9 @@ export function renderOrdersPage() {
 async function getUserCarts() {
     const user = state.user
     if (user) {
-        const user_id = user.tg_id
-        const result = await apiGet(`/cart/?user_id=${user_id}`)
-
+        const user_id = user.tg_id;
+        const result = await apiGet(`/cart/?user_id=${user_id}`);
+        alert(JSON.stringify(result));
     } else {
         alert('nouser')
     }
