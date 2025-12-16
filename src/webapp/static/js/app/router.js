@@ -6,6 +6,7 @@ import {renderContactPage} from "./pages/contact.js";
 import {setupBottomNav, updateBottomNavActive} from "./ui/nav-bottom.js";
 import {renderProfilePage} from "./pages/profile.js";
 import {renderOrdersPage} from "./pages/orders.js";
+import {withLoader} from "./ui/loader.js";
 
 const routes = [
     {match: p => p === "/" || p === "", action: renderHomePage},
@@ -47,6 +48,6 @@ export function navigateTo(path) {
 
 export function enablePopstate() {
     window.addEventListener("hashchange", () => {
-        void renderCurrentPath();
+        void withLoader(renderCurrentPath());
     });
 }
