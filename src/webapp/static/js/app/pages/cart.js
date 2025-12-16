@@ -15,7 +15,7 @@ import {
     contactPageEl,
     detailEl,
     headerTitle,
-    listEl, navBottomEl,
+    listEl, navBottomEl, orderDetailEl, ordersPageEl,
     paymentPageEl,
     processPaymentEl, profilePageEl,
     searchBtnEl,
@@ -279,6 +279,8 @@ export async function renderCartPage() {
     cartPageEl.style.display = "block";
     headerTitle.textContent = "";
     searchBtnEl.style.display = "none";
+    ordersPageEl.style.display = "none";
+    orderDetailEl.style.display = "none";
 
     await withLoader(renderCart);
 

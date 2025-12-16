@@ -354,6 +354,8 @@ async function openFavouritesPage() {
     paymentPageEl.style.display = "none";
     processPaymentEl.style.display = "none";
     profilePageEl.style.display = "none";
+    ordersPageEl.style.display = "none";
+    orderDetailEl.style.display = "none";
 
     const favIds = state?.user?.favourites || [];
     if (!favIds.length) {
