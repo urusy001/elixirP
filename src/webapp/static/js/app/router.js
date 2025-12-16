@@ -6,7 +6,7 @@ import {renderContactPage} from "./pages/contact.js";
 import {setupBottomNav, updateBottomNavActive} from "./ui/nav-bottom.js";
 import {renderProfilePage} from "./pages/profile.js";
 import {renderOrdersPage} from "./pages/orders.js";
-import {withLoader} from "./ui/loader.js";
+import {hideLoader, showLoader} from "./ui/loader.js";
 
 const routes = [
     {match: p => p === "/" || p === "", action: renderHomePage},
@@ -27,6 +27,7 @@ function getCurrentPath() {
 }
 
 export async function renderCurrentPath() {
+    showLoader();
     const path = getCurrentPath();
     for (const r of routes) {
         if (r.match(path)) {
@@ -35,6 +36,7 @@ export async function renderCurrentPath() {
         }
     }
     await renderHomePage();
+    hideLoader();
 }
 
 export function navigateTo(path) {
@@ -48,6 +50,6 @@ export function navigateTo(path) {
 
 export function enablePopstate() {
     window.addEventListener("hashchange", () => {
-        void withLoader(renderCurrentPath());
+        void renderCurrentPath();
     });
 }
