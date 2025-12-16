@@ -11,7 +11,7 @@ import {
 import {state} from "../state.js";
 import {apiGet} from "../../services/api.js";
 
-export function renderOrdersPage() {
+export async function renderOrdersPage() {
     navBottomEl.style.display = "flex";
     headerTitle.textContent = "Магазин ElixirPeptide";
     tosOverlayEl.style.display = "none";
@@ -27,7 +27,7 @@ export function renderOrdersPage() {
     profilePageEl.style.display = "none";
     ordersPageEl.style.display = "block";
     orderDetailEl.style.display = "none";
-    getUserCarts();
+    await getUserCarts();
 
 }
 
