@@ -44,16 +44,19 @@ async def create_cart(db: AsyncSession, data: CartCreate) -> Cart:
     return cart
 
 
-async def update_cart(db: AsyncSession, cart: Cart, data: CartUpdate) -> Cart:
-    """
-    Update cart fields (is_active, name).
-    Use this e.g. to mark cart as processed: is_active = False.
-    """
-    if data.is_active is not None: cart.is_active = data.is_active
-    if data.name is not None: cart.name = data.name
+async def update_cart(db: AsyncSession, cart_id: int, payload: CartUpdate) -> Cart:
+    res = await db.execute(select(Cart).where(Cart.id == cart_id))
+    cart = res.scalar_one_or_none()
+    if cart is None:
+        raise ValueError(f"Cart {cart_id} not found")
+
+    data = payload.model_dump(exclude_unset=True)
+
+    for k, v in data.items():
+        setattr(cart, k, v)
 
     await db.commit()
-    await db.refresh(cart)
+    await db.refresh(cart)   # ✅ now cart is a mapped ORM instance
     return cart
 
 
