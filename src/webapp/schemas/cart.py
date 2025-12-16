@@ -14,8 +14,8 @@ class CartBase(BaseModel):
     name: str | None = None
 
     # matches SQLAlchemy Numeric(8, 2)
-    sum: Decimal | None = None
-    delivery_sum: Decimal | None = None
+    sum: Decimal | None = 0
+    delivery_sum: Decimal | None = 0
     delivery_string: str = "Не указан"
     commentary: str | None = None
 

@@ -30,8 +30,8 @@ class Cart(Base):
         default="",  # will be overwritten by after_insert
     )
 
-    sum = Column(Numeric(8, 2), nullable=False)
-    delivery_sum = Column(Numeric(8, 2), nullable=False)
+    sum = Column(Numeric(8, 2), nullable=False, default=0)
+    delivery_sum = Column(Numeric(8, 2), nullable=False, default=0)
     delivery_string = Column(String, nullable=False, default="Не указан", server_default="Не указан")
     commentary = Column(String, nullable=True)
 
