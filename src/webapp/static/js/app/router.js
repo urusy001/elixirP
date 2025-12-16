@@ -32,6 +32,7 @@ export async function renderCurrentPath() {
     for (const r of routes) {
         if (r.match(path)) {
             await r.action(path);
+            hideLoader();
             return;
         }
     }
