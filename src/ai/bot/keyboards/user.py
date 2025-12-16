@@ -28,13 +28,13 @@ main_menu = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 pick_ai = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='✨ИИ-эксперт', callback_data="user:ai:premium"),
-     InlineKeyboardButton(text='⚡️ИИ-профессор', callback_data="user:ai:free")],
+    [InlineKeyboardButton(text='✨ИИ-профессор', callback_data="user:ai:premium"),
+     InlineKeyboardButton(text='⚡️ИИ-эксперт', callback_data="user:ai:free")],
     [back_button]
 ])
 
 only_free = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='Бесплатная', callback_data="user:ai:free")],
+    [InlineKeyboardButton(text='⚡️ИИ-эксперт', callback_data="user:ai:free")],
     [back_button]
 ])
 
