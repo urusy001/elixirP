@@ -299,7 +299,6 @@ class AsyncAmoCRM:
         lead_custom_fields: dict[int, object] = {}
         if address_str: lead_custom_fields[self.CF["address"]] = address_str
         if tg_nick: lead_custom_fields[self.CF["tg_nick"]] = tg_nick
-        if isinstance(address, dict) and address.get("city"): lead_custom_fields[self.CF["city"]] = address["city"]
         if delivery_service.upper() == "CDEK":
             lead_custom_fields[self.CF["delivery_cdek"]] = "СДЭК"
             lead_custom_fields[self.CF["cdek_number"]] = order_number
