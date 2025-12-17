@@ -152,13 +152,34 @@ async def handle_desired_dosage_divisions(message: Message, state: FSMContext):
     dosage_mcg = desired_dosage_mg * 1000.0
 
     mcg_per_ml = vial_mcg / water_volume
-    mcg_per_division = mcg_per_ml * 0.01
-    divisions = dosage_mcg / mcg_per_division
+    mcg_per_division = mcg_per_ml * 0.01  # 0.01 ml == 1 "единица"
+    divisions = dosage_mcg / mcg_per_division  # может быть float из-за деления
 
-    n = divisions // 100 - 1
+    total_units = int(round(divisions))  # 500.0 -> 500
+    full_syringes = total_units // 100
+    remainder_units = total_units % 100
+
+    def ru_plural(n: int, one: str, two_four: str, five: str) -> str:
+        n = abs(n) % 100
+        n1 = n % 10
+        if 11 <= n <= 19: return five
+        if n1 == 1: return one
+        if 2 <= n1 <= 4: return two_four
+        return five
+
     caption = "Визуализация делений на шприце"
-    if n > 0: caption += f"\n<i>{n} полных шприца + 1 с {round(divisions, 0)}</i>"
-    fpath = plot_filled_scale(divisions % 100 if divisions > 100 else divisions)
+
+    if full_syringes > 0 and remainder_units > 0:
+        caption += (
+            f"\n<i>{full_syringes} {ru_plural(full_syringes, 'полный шприц', 'полных шприца', 'полных шприцев')}"
+            f" + 1 на {remainder_units} {ru_plural(remainder_units, 'единицу', 'единицы', 'единиц')}</i>"
+        )
+    elif full_syringes > 0 and remainder_units == 0: caption += f"\n<i>{full_syringes} {ru_plural(full_syringes, 'полный шприц', 'полных шприца', 'полных шприцев')}</i>"
+
+    if full_syringes > 0: value_for_plot = remainder_units if remainder_units > 0 else 100
+    else: value_for_plot = total_units
+
+    fpath = plot_filled_scale(value_for_plot)
     await message.answer_photo(FSInputFile(fpath), caption=caption)
     fpath.unlink()
 
@@ -170,7 +191,7 @@ async def handle_desired_dosage_divisions(message: Message, state: FSMContext):
         f"<b>Результаты</b>\n"
         f"Концентрация после разведения: {_fmt(vial_amount_mg)}мг ÷ {_fmt(water_volume)}мл = {_fmt(vial_amount_mg / water_volume)}мг/мл\n"
         f"Количество вещества на 1 единицу (0.01мл): {_fmt(vial_amount_mg / water_volume)}мг/мл • 0.01мл = {_fmt((vial_amount_mg / water_volume) * 0.01)}мг\n\n"
-        f"<b>ИТОГО НУЖНО НАБРАТЬ ЕДИНИЦ: {_fmt(desired_dosage_mg)}мг ÷ {_fmt((vial_amount_mg / water_volume) * 0.01)}мг = {round(divisions, 0)}</b>\n"
+        f"<b>ИТОГО НУЖНО НАБРАТЬ ЕДИНИЦ: {_fmt(desired_dosage_mg)}мг ÷ {_fmt((vial_amount_mg / water_volume) * 0.01)}мг = {total_units}</b>\n"
     )
 
     await message.answer(response_text, reply_markup=user_keyboards.backk)
