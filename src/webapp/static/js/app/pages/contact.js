@@ -1,5 +1,5 @@
 import {showLoader, hideLoader} from "../ui/loader.js";
-import {state} from "../state.js";
+import {state, saveCart} from "../state.js";
 import {
     isTelegramApp,
     showMainButton,
@@ -9,12 +9,18 @@ import {
 import {
     cartPageEl,
     checkoutPageEl,
-    contactPageEl, detailEl,
-    headerTitle, listEl, navBottomEl, orderDetailEl, ordersPageEl,
+    contactPageEl,
+    detailEl,
+    headerTitle,
+    listEl,
+    navBottomEl,
+    orderDetailEl,
+    ordersPageEl,
     paymentPageEl,
-    processPaymentEl, profilePageEl,
+    processPaymentEl,
+    profilePageEl,
     searchBtnEl,
-    toolbarEl
+    toolbarEl,
 } from "./constants.js";
 import {apiGet, apiPost} from "../../services/api.js";
 import {renderProcessPaymentPage} from "./process-payment.js";
@@ -46,7 +52,6 @@ export async function renderContactPage() {
     headerTitle.textContent = "Оформление заказа";
     searchBtnEl.style.display = "none";
 
-    // You can choose: show or hide bottom nav here. Let's keep it visible like on your screenshot.
     navBottomEl.style.display = "none";
 
     contactPageEl.style.display = "block";
@@ -65,7 +70,7 @@ export async function renderContactPage() {
     const surnameInput = form.querySelector('[name="surname"]');
     const emailInput = form.querySelector('[name="email"]');
     const phoneInput = form.querySelector('[name="phone"]');
-    const commentaryInput = form.querySelector('#payment-commentary-input');
+    const commentaryInput = form.querySelector("#payment-commentary-input");
 
     // Create / find error containers per input (attach right after input)
     function ensureErrorEl(input) {
@@ -129,6 +134,12 @@ export async function renderContactPage() {
         if (user_id) sessionStorage.setItem("tg_user_id", String(user_id));
     }
 
+    // 🧺 clear cart after successful order create
+    function clearCartAfterOrder() {
+        state.cart = {};
+        saveCart(); // writes localStorage + dispatches "cart:updated"
+    }
+
     async function handleSubmit() {
         if (!validateForm()) return;
 
@@ -154,8 +165,7 @@ export async function renderContactPage() {
                 sessionStorage.getItem("selected_delivery_service") || "Yandex";
 
             const payment_method = "later"; // only option now
-            const payment_commentary =
-                (commentaryInput?.value || "").trim();
+            const payment_commentary = (commentaryInput?.value || "").trim();
 
             const payload = {
                 user_id: user_id_final,
@@ -163,7 +173,7 @@ export async function renderContactPage() {
                 checkout_data,
                 selected_delivery,
                 selected_delivery_service,
-                payment_method,            // fixed: "later"
+                payment_method, // fixed: "later"
                 commentary: payment_commentary,
                 promocode,
                 source: "telegram",
@@ -171,21 +181,26 @@ export async function renderContactPage() {
 
             const res = await apiPost("/payments/create", payload);
 
+            // If your apiPost returns JSON object, res?.status should be "success"
             if (res?.status !== "success") {
-                const text = await res.text().catch(() => "");
-                throw new Error(`POST /payments/create failed: ${res.status} ${text}`);
+                // fallback attempt if res is a fetch Response (kept from your original)
+                const text = await res?.text?.().catch(() => "");
+                throw new Error(`POST /payments/create failed: ${res?.status} ${text}`);
             }
+
+            // ✅ success -> clear comment + clear cart
             sessionStorage.removeItem("payment_commentary");
+            clearCartAfterOrder();
+
+            // go to next screen
             if (res?.order_number) {
                 await renderProcessPaymentPage(res.order_number);
             }
-
         } catch (err) {
             console.error("Ошибка при создании платежа:", err);
-            alert(err)
+            alert(err);
         } finally {
             hideLoader();
-
         }
     }
 
@@ -250,7 +265,6 @@ export async function renderContactPage() {
         // MainButton logic
         if (isValid) {
             showMainButton("Оформить заказ", () => {
-                // allow async
                 handleSubmit();
             });
         } else {
@@ -273,7 +287,6 @@ export async function renderContactPage() {
 
         if (commentaryInput) {
             commentaryInput.addEventListener("input", () => {
-                // optional: if you ever want to auto-save comment:
                 sessionStorage.setItem("payment_commentary", commentaryInput.value);
             });
         }
@@ -300,8 +313,6 @@ export async function renderContactPage() {
         };
 
         saveContactInfo(contact_info);
-        // With merged page we DON'T go to /payment anymore,
-        // we just prefill the form and validate.
         prefillFormFromUser(userModel);
         validateForm();
     } else {
