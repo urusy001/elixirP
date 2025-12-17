@@ -102,6 +102,8 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
                 raise HTTPException(status_code=502, detail="Yandex Delivery offers/calculate error")
 
             offers_data = offers_resp.json()
+            print(offers_resp.text)
+            print(offers_data)
             offers = offers_data.get("offers") or []
             if not offers:
                 log.exception("Yandex: no offers returned: %s", offers_data)
@@ -175,13 +177,14 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
                 json=claim_body,
                 headers=headers,
             )
-            try:
-                claim_resp.raise_for_status()
+            try: claim_resp.raise_for_status()
             except httpx.HTTPError:
                 log.exception("Yandex claims/create error: %s", claim_resp.text)
                 raise HTTPException(status_code=502, detail="Yandex Delivery claims/create error")
 
             claim_data = claim_resp.json()
+            print(claim_resp.text)
+            print(claim_data)
             # Optional: store claim_data.get("id") / status in DB if you want tracking
 
         delivery_status = "ok"
