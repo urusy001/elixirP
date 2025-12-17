@@ -10,18 +10,174 @@ import {
     detailEl,
     headerTitle,
     listEl,
-    navBottomEl, orderDetailEl, ordersPageEl,
+    navBottomEl,
+    orderDetailEl,
+    ordersPageEl,
     paymentPageEl,
-    processPaymentEl, profilePageEl,
+    processPaymentEl,
+    profilePageEl,
     searchBtnEl,
     toolbarEl,
     tosOverlayEl
 } from "./constants.js";
-import {apiPost} from "../../services/api.js";
+import {apiPost, apiGet} from "../../services/api.js";
 
 let page = 0;
 let loading = false;
 let mode = "home";
+
+// =========================
+// TG Categories (front filter)
+// =========================
+let tgCategoriesCache = null;
+let activeTgCategoryName = null;
+let categoriesUiBound = false;
+
+// Prevent double-binding infinite scroll listener
+let infiniteScrollBound = false;
+
+function ensureCategoriesOverlay() {
+    let overlay = document.getElementById("categories-overlay");
+    if (overlay) return overlay;
+
+    overlay = document.createElement("div");
+    overlay.id = "categories-overlay";
+    overlay.className = "categories-overlay";
+    overlay.innerHTML = `
+      <div class="categories-modal" role="dialog" aria-modal="true">
+        <div class="categories-header">
+          <div class="categories-title">Категории</div>
+          <button class="categories-close" id="categories-close" type="button">✕</button>
+        </div>
+        <div class="categories-list" id="categories-list"></div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) closeCategoriesOverlay();
+    });
+
+    overlay.querySelector("#categories-close")?.addEventListener("click", closeCategoriesOverlay);
+
+    return overlay;
+}
+
+function openCategoriesOverlay() {
+    const overlay = ensureCategoriesOverlay();
+    overlay.classList.add("is-open");
+    document.body.style.overflow = "hidden";
+}
+
+function closeCategoriesOverlay() {
+    const overlay = document.getElementById("categories-overlay");
+    if (!overlay) return;
+    overlay.classList.remove("is-open");
+    document.body.style.overflow = "";
+}
+
+async function fetchTgCategories() {
+    if (Array.isArray(tgCategoriesCache)) return tgCategoriesCache;
+
+    // Adjust these paths if your backend uses different prefix
+    const res = await apiGet("/api/v1/public/tg-categories");
+    const cats = Array.isArray(res) ? res : (res?.data || res?.categories || []);
+    tgCategoriesCache = cats;
+    return cats;
+}
+
+function renderCategoriesChips(categories) {
+    const list = document.getElementById("categories-list");
+    if (!list) return;
+
+    list.innerHTML = "";
+
+    // "All" chip
+    const allBtn = document.createElement("button");
+    allBtn.type = "button";
+    allBtn.className = "categories-chip" + (!activeTgCategoryName ? " is-active" : "");
+    allBtn.textContent = "Все товары";
+    allBtn.addEventListener("click", async () => {
+        activeTgCategoryName = null;
+        closeCategoriesOverlay();
+        await withLoader(openHomePage);
+    });
+    list.appendChild(allBtn);
+
+    categories.forEach((c) => {
+        const name = String(c?.name ?? "").trim();
+        if (!name) return;
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "categories-chip" + (activeTgCategoryName === name ? " is-active" : "");
+        btn.textContent = name;
+
+        btn.addEventListener("click", async () => {
+            activeTgCategoryName = name;
+            closeCategoriesOverlay();
+            await withLoader(() => openTgCategoryPage(name));
+        });
+
+        list.appendChild(btn);
+    });
+}
+
+async function openTgCategoryPage(categoryName) {
+    mode = "category";
+
+    hideMainButton();
+    showBackButton(async () => {
+        activeTgCategoryName = null;
+        await withLoader(openHomePage);
+    });
+
+    navBottomEl.style.display = "flex";
+    headerTitle.textContent = categoryName;
+
+    tosOverlayEl.style.display = "none";
+    listEl.style.display = "grid";
+    toolbarEl.style.display = "flex";
+    searchBtnEl.style.display = "flex";
+
+    detailEl.style.display = "none";
+    cartPageEl.style.display = "none";
+    checkoutPageEl.style.display = "none";
+    contactPageEl.style.display = "none";
+    paymentPageEl.style.display = "none";
+    processPaymentEl.style.display = "none";
+    profilePageEl.style.display = "none";
+    ordersPageEl.style.display = "none";
+    orderDetailEl.style.display = "none";
+
+    // Adjust this path if needed
+    const res = await apiGet(`/api/v1/public/tg-categories/products?name=${encodeURIComponent(categoryName)}`);
+    const products = Array.isArray(res) ? res : (res?.data || res?.products || []);
+
+    const html = products.map(productCardHTML).join("");
+    listEl.innerHTML = html;
+    attachProductInteractions(listEl);
+}
+
+async function initTgCategoriesUi() {
+    if (categoriesUiBound) return;
+    categoriesUiBound = true;
+
+    const filterBtn = document.getElementById("filter-btn");
+    if (!filterBtn) return;
+
+    filterBtn.addEventListener("click", async () => {
+        try {
+            openCategoriesOverlay();
+            const cats = await withLoader(fetchTgCategories);
+            renderCategoriesChips(cats);
+        } catch (e) {
+            console.error("[TG Categories] failed:", e);
+            closeCategoriesOverlay();
+        }
+    });
+}
 
 // Helper: Handle image switching logic (Feature -> Product -> Default)
 function updateCardImage(selectElement) {
@@ -35,16 +191,14 @@ function updateCardImage(selectElement) {
     const productImgSrc = img.dataset.productImg;            // /static/images/ONEC_ID.png
     const defaultImgSrc = "/static/images/product.png";      // Fallback
 
-    // Define the error handler chain
     const setFallbackToProduct = () => {
         img.onerror = () => {
-            img.onerror = null; // Prevent infinite loop
+            img.onerror = null;
             img.src = defaultImgSrc;
         };
         img.src = productImgSrc;
     };
 
-    // 1. Try loading the Feature Image
     img.onerror = setFallbackToProduct;
     img.src = featureImgSrc;
 }
@@ -60,35 +214,24 @@ function productCardHTML(p) {
 
     const sortedFeatures = availableFeatures.sort((a, b) => b.price - a.price);
 
-    // Если нет ни одной фичи с положительным остатком — вообще НЕ рисуем карточку
-    if (!sortedFeatures.length) {
-        return "";
-    }
+    if (!sortedFeatures.length) return "";
 
-    // Prepare paths
     const productImgPath = `/static/images/${onecId}.png`;
     const defaultImgPath = "/static/images/product.png";
 
     const featureSelector = `
         <select class="feature-select" data-onec-id="${onecId}">
-            ${sortedFeatures
-        .map(
-            f =>
-                // Store the specific feature image path in data attribute
-                `<option value="${f.id}"
+            ${sortedFeatures.map(
+        f => `<option value="${f.id}"
                          data-price="${f.price}"
                          data-balance="${Number(f.balance ?? 0)}"
                          data-feature-img="/static/images/${f.id}.png">
                     ${f.name} - ${f.price} ₽
                  </option>`
-        )
-        .join("")}
+    ).join("")}
         </select>
     `;
 
-    // Initial image load logic:
-    // We try to load the Product Image first. If it fails, standard HTML onerror switches to default.
-    // (Dynamic feature switching happens via JS listeners later)
     return `
     <div class="product-card">
       <a href="/product/${onecId}" class="product-link" data-onec-id="${onecId}">
@@ -96,7 +239,7 @@ function productCardHTML(p) {
           <img src="${productImgPath}"
                data-product-img="${productImgPath}"
                data-default-img="${defaultImgPath}"
-               alt="${p.name}" 
+               alt="${p.name}"
                class="product-img"
                onerror="this.onerror=null; this.src='${defaultImgPath}';">
         </div>
@@ -121,21 +264,17 @@ function renderBuyCounter(btn, onecId) {
         const opt = selector.selectedOptions?.[0];
         if (!opt) return Infinity;
         const bal = Number(opt.dataset.balance ?? Infinity);
-        if (!Number.isFinite(bal) || bal <= 0) return Infinity; // на всякий случай
+        if (!Number.isFinite(bal) || bal <= 0) return Infinity;
         return bal;
     };
 
     const maxBalance = getMaxBalance();
 
-    // Приводим текущее количество к допустимому (не больше баланса)
     const current = state.cart[key] || 0;
     const safeCount = Math.min(current, maxBalance);
     if (safeCount !== current) {
-        if (safeCount > 0) {
-            state.cart[key] = safeCount;
-        } else {
-            delete state.cart[key];
-        }
+        if (safeCount > 0) state.cart[key] = safeCount;
+        else delete state.cart[key];
     }
     const count = state.cart[key] || 0;
 
@@ -159,11 +298,8 @@ function renderBuyCounter(btn, onecId) {
         minus.onclick = () => {
             const current = state.cart[key] || 0;
             const next = current - 1;
-            if (next <= 0) {
-                delete state.cart[key];
-            } else {
-                state.cart[key] = next;
-            }
+            if (next <= 0) delete state.cart[key];
+            else state.cart[key] = next;
             saveCart();
             renderBuyCounter(btn, onecId);
         };
@@ -177,10 +313,7 @@ function renderBuyCounter(btn, onecId) {
         plus.onclick = () => {
             const max = getMaxBalance();
             const current = state.cart[key] || 0;
-            if (current >= max) {
-                // Можно добавить какое-то уведомление/вибрацию, если захочешь
-                return;
-            }
+            if (current >= max) return;
             state.cart[key] = current + 1;
             saveCart();
             renderBuyCounter(btn, onecId);
@@ -189,9 +322,6 @@ function renderBuyCounter(btn, onecId) {
         btn.append(minus, qty, plus);
     }
 
-    // Note: The 'change' listener for the counter is handled here,
-    // but we moved the 'change' listener for images to attachProductInteractions
-    // to keep logic clean, or we can chain them.
     if (selector && !selector.dataset.counterBound) {
         selector.addEventListener("change", () => {
             renderBuyCounter(btn, onecId);
@@ -209,14 +339,11 @@ function attachProductInteractions(container) {
         });
     });
 
-    // Initialize Selectors for Image Switching
     container.querySelectorAll(".feature-select").forEach(select => {
         if (select.dataset.imageBound) return;
 
-        // 1. Immediately set the image to the "active" feature (selected option)
         updateCardImage(select);
 
-        // 2. Listen for future changes
         select.addEventListener("change", () => {
             updateCardImage(select);
         });
@@ -243,12 +370,8 @@ async function loadMore(container, append = false, useLoader = true) {
                 const data = await searchProducts({q: "", page: localPage});
                 const rawResults = Array.isArray(data.results) ? data.results : [];
 
-                if (!rawResults.length) {
-                    // Ничего больше нет — выходим
-                    break;
-                }
+                if (!rawResults.length) break;
 
-                // Отфильтруем тут те продукты, у которых вообще нет фич с balance > 0
                 for (const p of rawResults) {
                     const features = Array.isArray(p.features) ? p.features : [];
                     const hasStock = features.some(f => Number(f.balance ?? 0) > 0);
@@ -257,14 +380,9 @@ async function loadMore(container, append = false, useLoader = true) {
                 }
 
                 localPage += 1;
-
-                // Если набрали хотя бы 4 товара — достаточно
-                if (collected.length >= 6) {
-                    break;
-                }
+                if (collected.length >= 6) break;
             }
 
-            // Обновляем глобальный page на следующую страницу после последней взятой
             page = localPage;
             return collected;
         };
@@ -284,8 +402,11 @@ async function loadMore(container, append = false, useLoader = true) {
 }
 
 function setupInfiniteScroll(container) {
+    if (infiniteScrollBound) return;
+    infiniteScrollBound = true;
+
     function onScroll() {
-        // бесконечная прокрутка только в режиме "home"
+        // infinite scroll only in home mode
         if (mode !== "home") return;
         if (container.style.display === "none") return;
 
@@ -326,21 +447,21 @@ async function openHomePage() {
     ordersPageEl.style.display = "none";
     orderDetailEl.style.display = "none";
 
-    // начинаем с 0-й страницы, а loadMore сам будет дотягивать, если < 4
     page = 0;
     await loadMore(listEl, false);
     setupInfiniteScroll(listEl);
 }
 
 /**
- * Открыть страницу избранного.
- * Показывает те же карточки, но только для товаров,
- * onec_id которых лежат в state.user.favourites.
+ * favourites page
  */
 async function openFavouritesPage() {
     mode = "favourites";
     hideMainButton();
-    showBackButton();
+    showBackButton(async () => {
+        await withLoader(openHomePage);
+    });
+
     navBottomEl.style.display = "flex";
     headerTitle.textContent = "";
     tosOverlayEl.style.display = "none";
@@ -382,7 +503,6 @@ async function openFavouritesPage() {
             </div>
         `;
 
-        // Инициализируем Lottie-анимацию вместо gif
         const animContainer = document.getElementById("empty-fav-lottie");
         if (animContainer && window.lottie) {
             window.lottie.loadAnimation({
@@ -390,26 +510,21 @@ async function openFavouritesPage() {
                 renderer: "svg",
                 loop: true,
                 autoplay: true,
-                path: "/static/stickers/utya-fav.json", // или "static/..." если так раздаёшь
-                rendererSettings: {
-                    preserveAspectRatio: "xMidYMid meet",
-                },
+                path: "/static/stickers/utya-fav.json",
+                rendererSettings: { preserveAspectRatio: "xMidYMid meet" },
             });
         }
-
         return;
     }
 
     const favSet = new Set(favIds.map(String));
 
     const fetchFn = async () => {
-        // Берём побольше товаров и фильтруем по избранным.
         const data = await searchProducts({q: "", page: 0, limit: 500});
         const all = Array.isArray(data?.results) ? data.results : [];
         return all.filter((p) => {
             const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
 
-            // тут тоже можем отсечь товары без остатка
             const features = Array.isArray(p.features) ? p.features : [];
             const hasStock = features.some(f => Number(f.balance ?? 0) > 0);
             if (!hasStock) return false;
@@ -447,7 +562,7 @@ async function openFavouritesPage() {
     }
 }
 
-// закрытие только после согласия
+// TOS overlay close only after accept
 function closeTosOverlay() {
     if (!tosOverlayEl) return;
     tosOverlayEl.classList.add("hidden");
@@ -461,35 +576,28 @@ async function openTosOverlay(user) {
 
     const tosBodyEl = document.getElementById("tos-body");
 
-    // 1) Подгружаем текст оферты из /static/offer.html один раз
     if (tosBodyEl && !tosBodyEl.dataset.loaded) {
         try {
             const res = await fetch("/static/offer.html", { cache: "no-cache" });
-            if (!res.ok) {
-                throw new Error("Failed to load offer.html");
-            }
+            if (!res.ok) throw new Error("Failed to load offer.html");
             tosBodyEl.innerHTML = await res.text();
             tosBodyEl.dataset.loaded = "1";
         } catch (err) {
             console.error("Не удалось загрузить offer.html:", err);
-            tosBodyEl.innerHTML =
-                "<p>Не удалось загрузить текст публичной оферты. Попробуйте позже.</p>";
+            tosBodyEl.innerHTML = "<p>Не удалось загрузить текст публичной оферты. Попробуйте позже.</p>";
         }
     }
 
-    // 2) Показываем оверлей
     tosOverlayEl.classList.remove("hidden");
     tosOverlayEl.style.display = "flex";
     document.body.style.overflow = "hidden";
 
-    // локальный флаг: уже ли мы переключили кнопку на "соглашаюсь"
     let acceptMode = false;
 
     const setAcceptButton = () => {
         if (acceptMode) return;
         acceptMode = true;
 
-        // второй шаг — реальное согласие
         showMainButton("Прочитал(а) и соглашаюсь", async () => {
             const payload = {
                 is_active: true,
@@ -502,7 +610,6 @@ async function openTosOverlay(user) {
             };
             await apiPost('/cart/create', payload);
 
-            // помечаем в фронте, что пользователь уже принял условия
             const currentUser = state.user || user;
             if (currentUser) {
                 currentUser.accepted_terms = true;
@@ -510,34 +617,23 @@ async function openTosOverlay(user) {
             }
 
             await withLoader(openHomePage);
-
-            // прячем оверлей и возвращаем скролл
             closeTosOverlay();
         });
     };
 
-    // 3) Листенер: если юзер сам докрутил до низа — сразу включаем acceptMode
     if (tosBodyEl && !tosBodyEl.dataset.scrollBound) {
         tosBodyEl.addEventListener("scroll", () => {
             const el = tosBodyEl;
-            const atBottom =
-                el.scrollTop + el.clientHeight >= el.scrollHeight - 10; // небольшой зазор
-
-            if (!acceptMode && atBottom) {
-                setAcceptButton();
-            }
+            const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 10;
+            if (!acceptMode && atBottom) setAcceptButton();
         });
         tosBodyEl.dataset.scrollBound = "1";
     }
 
-    // 4) Первый шаг: MainButton скроллит оферту до низа и потом включает acceptMode
     showMainButton("Прокрутить вниз", () => {
         const body = document.getElementById("tos-body");
         if (body) {
-            body.scrollTo({
-                top: body.scrollHeight,
-                behavior: "smooth",
-            });
+            body.scrollTo({ top: body.scrollHeight, behavior: "smooth" });
         }
         setAcceptButton();
     });
@@ -546,6 +642,10 @@ async function openTosOverlay(user) {
 export async function renderHomePage() {
     showLoader();
     const user = state.user || await getUser();
+
+    // bind категории button once
+    await initTgCategoriesUi();
+
     if (!user) {
         await openHomePage();
     } else {
@@ -553,19 +653,22 @@ export async function renderHomePage() {
             user.photo_url ||
             `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
         state.user = user;
+
         if (!user.accepted_terms) {
             openTosOverlay(user);
-        } else await openHomePage();
+        } else {
+            await openHomePage();
+        }
     }
     hideLoader();
 }
 
-/**
- * Рендер страницы избранного (аналог renderHomePage,
- * но вместо openHomePage вызывает openFavouritesPage).
- */
 export async function renderFavouritesPage() {
     const user = state.user || await getUser();
+
+    // bind категории button once (no harm)
+    await initTgCategoriesUi();
+
     if (!user) {
         console.warn("[Favourites] invalid user (auth failed)");
     } else {
@@ -573,6 +676,7 @@ export async function renderFavouritesPage() {
             user.photo_url ||
             `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
         state.user = user;
+
         if (!user.accepted_terms) {
             openTosOverlay(user);
         } else {

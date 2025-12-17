@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from src.webapp.models import Product
 from src.webapp.models.tg_category import TgCategory
 from src.webapp.schemas.tg_category import TgCategoryCreate
 
@@ -33,3 +35,12 @@ async def get_tg_category_by_name(db: AsyncSession, name: str) -> TgCategory | N
 async def delete_tg_category(db: AsyncSession, category: TgCategory) -> None:
     await db.delete(category)
     await db.commit()
+
+async def list_products_by_tg_category_name(db: AsyncSession, name: str) -> list[Product]:
+    res = await db.execute(
+        select(TgCategory)
+        .where(TgCategory.name == name)
+        .options(selectinload(TgCategory.products))
+    )
+    cat = res.scalar_one_or_none()
+    return list(cat.products) if cat else []
