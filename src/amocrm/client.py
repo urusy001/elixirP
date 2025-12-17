@@ -442,7 +442,7 @@ class AsyncAmoCRM:
         Get the first (oldest) lead note with params.text and sum all позиционные prices inside it.
         Returns total price in rubles (int) or None if not found.
         """
-
+        await self.get_amomail_full_content(lead_id)
         price_re = re.compile(
             r"[—\-]\s*([0-9][0-9\s]*)\s*(?:руб\.?|₽)\b",
             flags=re.IGNORECASE,
@@ -470,7 +470,6 @@ class AsyncAmoCRM:
                     # "filter[note_type]": "common",
                 },
             )
-            print(json.dumps(data, indent=4, ensure_ascii=False))
             notes: list[dict[str, Any]] = (data.get("_embedded") or {}).get("notes") or []
             if not notes:
                 return None
@@ -485,6 +484,27 @@ class AsyncAmoCRM:
             page += 1
 
         return None
+
+    async def get_amomail_full_content(self, lead_id: int) -> str | None:
+        # 1) list notes (oldest first) and find amomail note id
+        notes_data = await self.get(
+            f"/api/v4/leads/{lead_id}/notes",
+            params={"limit": 50, "page": 1, "order[id]": "asc"},
+        )
+        notes = (notes_data.get("_embedded") or {}).get("notes") or []
+        amomail = next((n for n in notes if n.get("note_type") == "amomail_message"), None)
+        if not amomail:
+            return None
+
+        note_id = amomail["id"]
+
+        # 2) get the note with embedded data (this is where full body lives, if available)
+        note = await self.get(
+            f"/api/v4/leads/{lead_id}/notes/{note_id}",
+            params={"with": "entity"},
+        )
+
+        print(json.dumps(note, indent=4, ensure_ascii=False))
 
 # ---------- INSTANCE ----------
 amocrm = AsyncAmoCRM(
