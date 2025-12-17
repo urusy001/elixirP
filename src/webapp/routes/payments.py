@@ -95,15 +95,13 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
 
         async with httpx.AsyncClient(timeout=20.0) as client:
             offers_resp = await client.post(offers_url, json=offers_body, headers=headers)
-            try:
-                offers_resp.raise_for_status()
+            try: offers_resp.raise_for_status()
             except httpx.HTTPError:
                 log.exception("Yandex offers/calculate error: %s", offers_resp.text)
                 raise HTTPException(status_code=502, detail="Yandex Delivery offers/calculate error")
 
             offers_data = offers_resp.json()
-            print(offers_resp.text)
-            print(offers_data)
+            return print(json.dumps(offers_data, indent=4, ensure_ascii=False)), print(json.dumps(offers_body, indent=4, ensure_ascii=False))
             offers = offers_data.get("offers") or []
             if not offers:
                 log.exception("Yandex: no offers returned: %s", offers_data)
