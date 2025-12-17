@@ -89,6 +89,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
                 "skip_door_to_door": False,
             },
         }
+        print(dest_lon, dest_lat)
         print(json.dumps(offers_body, indent=4, ensure_ascii=False))
         async with httpx.AsyncClient(timeout=20.0) as client:
             offers_resp = await client.post(offers_url, json=offers_body, headers=headers)
