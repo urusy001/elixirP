@@ -443,6 +443,7 @@ async function loadMore(container, append = false, useLoader = true) {
             let localPage = page;
 
             const tg_category_ids = getSelectedCategoryIdsArray();
+            alert(JSON.stringify(tg_category_ids));
 
             while (true) {
                 // ✅ categories applied here (does NOT affect other mechanics)
