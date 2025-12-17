@@ -447,7 +447,7 @@ async function loadMore(container, append = false, useLoader = true) {
 
             while (true) {
                 // ✅ categories applied here (does NOT affect other mechanics)
-                const data = await searchProducts({ q: "", page: localPage, tg_category_ids });
+                const data = await searchProducts({ q: "", page: localPage, tgCategoryIds: tg_category_ids });
 
                 const rawResults = Array.isArray(data.results) ? data.results : [];
                 if (!rawResults.length) break;
@@ -604,7 +604,7 @@ async function openFavouritesPage() {
 
     const fetchFn = async () => {
         // ✅ categories filter also affects favourites (only if selected)
-        const data = await searchProducts({ q: "", page: 0, limit: 500, tg_category_ids });
+        const data = await searchProducts({ q: "", page: 0, limit: 500, tgCategoryIds: tg_category_ids });
         const all = Array.isArray(data?.results) ? data.results : [];
 
         return all.filter((p) => {
