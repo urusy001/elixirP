@@ -419,7 +419,6 @@ class AsyncAmoCRM:
 
             for lead in leads:
                 name = lead.get("name") or ""
-                print(name)
                 status_id = lead.get("status_id")
 
                 # ✅ exact match on your side (prevents №{code}1121, etc.)
@@ -477,8 +476,7 @@ class AsyncAmoCRM:
 
             for note in notes:
                 text = (note.get("params") or {}).get("text")
-                if text and str(text).strip():
-                    print(text)
+                if text and 'Cостав заказа' in str(text).strip():
                     total = sum_prices(str(text))
                     return total if total > 0 else None
 
