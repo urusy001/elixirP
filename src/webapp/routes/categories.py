@@ -17,13 +17,12 @@ async def get_categories(db: AsyncSession = Depends(get_db)):
     rows = await list_tg_categories(db)
     out: list[TgCategoryRead] = []
     for r in rows:
-        cat = r["category"]
         out.append(
             TgCategoryRead(
-                id=cat.id,
-                name=cat.name,
-                description=cat.description,
-                product_count=r["product_count"],
+                id=r.id,
+                name=r.name,
+                description=r.description,
+                product_count=len(r.products),
             )
         )
     return out

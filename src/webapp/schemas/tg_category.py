@@ -21,6 +21,7 @@ class TgCategoryRead(TgCategoryBase):
     id: int
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    product_count: int | None = None
 
     class Config:
         from_attributes = True
