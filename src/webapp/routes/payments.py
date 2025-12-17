@@ -6,7 +6,8 @@ import httpx
 from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import YANDEX_DELIVERY_TOKEN, YANDEX_WAREHOUSE_ADDRESS_FULLNAME, YANDEX_WAREHOUSE_LAT, YANDEX_WAREHOUSE_LON
+from config import YANDEX_DELIVERY_TOKEN, YANDEX_WAREHOUSE_ADDRESS_FULLNAME, YANDEX_WAREHOUSE_LAT, YANDEX_WAREHOUSE_LON, \
+    YANDEX_DELIVERY_BASE_URL
 from src.delivery.sdek import client as cdek_client
 from src.helpers import format_order_for_amocrm, normalize_address_for_cf
 from src.webapp.crud import upsert_user, add_or_increment_item, create_cart, update_cart
@@ -48,9 +49,8 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     log.info("Create payment payload: %s", ())
     order_number = cart.id
     if delivery_service == "yandex":
-        base = "https://b2b.taxi.yandex.net"
-        offers_url = f"{base}/b2b/cargo/integration/v2/offers/calculate"
-        claims_url = f"{base}/b2b/cargo/integration/v2/claims/create"
+        offers_url = f"{YANDEX_DELIVERY_BASE_URL}/b2b/cargo/integration/v2/offers/calculate"
+        claims_url = f"{YANDEX_DELIVERY_BASE_URL}/b2b/cargo/integration/v2/claims/create"
 
         headers = {
             "Authorization": f"Bearer {YANDEX_DELIVERY_TOKEN}",
@@ -61,17 +61,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
 
         addr = delivery_data["address"]
         dest_fullname = addr.get("address") or addr.get("fullname") or address_str
-
-        if "coordinates" in addr and isinstance(addr["coordinates"], (list, tuple)) and len(addr["coordinates"]) == 2:
-            dest_lon, dest_lat = float(addr["coordinates"][0]), float(addr["coordinates"][1])
-        else:
-            dest_lon = addr.get("lon") or addr.get("longitude")
-            dest_lat = addr.get("lat") or addr.get("latitude")
-            if dest_lon is None or dest_lat is None:
-                raise HTTPException(status_code=400, detail="Yandex delivery: destination coordinates missing")
-            dest_lon, dest_lat = float(dest_lon), float(dest_lat)
-
-
+        dest_lon, dest_lat = float(addr["coords"][0]), float(addr["coords"][1])
         wh_fullname = YANDEX_WAREHOUSE_ADDRESS_FULLNAME
         wh_lon = float(YANDEX_WAREHOUSE_LON)
         wh_lat = float(YANDEX_WAREHOUSE_LAT)
