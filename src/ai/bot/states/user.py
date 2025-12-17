@@ -17,3 +17,6 @@ class Graph(StatesGroup):
     dosage = State()
     course_length_weeks = State()
     course_interval_days = State()
+
+class AiStates(StatesGroup):
+    activate_code = State()

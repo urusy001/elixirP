@@ -36,7 +36,7 @@ class UserBase(BaseModel):
         None,
         description="Associated OpenAI thread ID",
     )
-    premium_requests: int = Field(
+    premium_requests: float = Field(
         0,
         ge=0,
         description="How many premium model requests the user has",
@@ -75,7 +75,7 @@ class UserUpdate(BaseModel):
     phone: str | None = None
     photo_url: str | None = None
     thread_id: str | None = None
-    premium_requests: int | None = Field(
+    premium_requests: float | None = Field(
         None,
         description="Updated premium requests counter",
     )

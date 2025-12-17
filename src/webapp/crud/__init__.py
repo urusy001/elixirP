@@ -9,6 +9,7 @@ from .cart_item import *
 from .favourite import *
 from .tg_category import *
 from .product_tg_categories import *
+from .used_code import *
 
 __all__ = [
     'create_product', 'get_product', 'get_products', 'update_product',
@@ -20,5 +21,6 @@ __all__ = [
     'delete_cart', 'get_cart_by_id', 'clear_cart', 'create_cart', 'get_cart_items', 'remove_cart_item', 'update_cart_item', 'update_cart',
     'get_user_carts', 'get_cart_item_by_id', 'get_cart_item_by_product', 'add_or_increment_item',
     'is_favourite', 'add_favourite', 'remove_favourite', 'get_user_favourites', 'get_user_favourite_by_onec',
-    'create_tg_category', 'delete_tg_category', 'list_tg_categories', 'add_tg_category_to_product', 'get_tg_category_by_name', 'remove_tg_category_from_product'
+    'create_tg_category', 'delete_tg_category', 'list_tg_categories', 'add_tg_category_to_product', 'get_tg_category_by_name', 'remove_tg_category_from_product',
+    'update_used_code', 'get_used_code', 'get_used_code_by_code', 'delete_used_code', 'create_used_code', 'list_used_codes_by_user'
 ]

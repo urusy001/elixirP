@@ -10,8 +10,9 @@ from config import OWNER_TG_IDS, MOSCOW_TZ, DATA_DIR, PROFESSOR_ASSISTANT_ID, NE
 from src.ai.calc import generate_drug_graphs, plot_filled_scale
 from src.helpers import CHAT_NOT_BANNED_FILTER, _notify_user, with_typing, _fmt
 from src.webapp import get_session
-from src.webapp.crud import write_usage, increment_tokens, get_user, update_user
-from src.webapp.schemas import UserUpdate
+from src.webapp.crud import write_usage, increment_tokens, get_user, update_user, get_used_code_by_code, \
+    create_used_code
+from src.webapp.schemas import UserUpdate, UsedCodeCreate
 from src.ai.bot.texts import user_texts
 from src.ai.bot.keyboards import user_keyboards
 from src.ai.bot.states import user_states
@@ -66,6 +67,27 @@ async def handle_user_start(message: Message, state: FSMContext):
 
     if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ): return await message.answer(user_texts.banned_until.replace("Блокировка до 9999-12-31, п", "П").replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}'))
     return await message.answer(user_texts.greetings.replace('full_name', message.from_user.full_name), reply_markup=user_keyboards.main_menu)
+
+@new_user_router.message(user_states.AiStates.activate_code)
+async def handle_activate_code(message: Message, state: FSMContext):
+    code = message.text.strip()
+    async with get_session() as session:
+        used_code = await get_used_code_by_code(session, code)
+    if used_code: await message.answer(f'Код {code} уже использован')
+    else:
+        from src.amocrm.client import amocrm
+        order_sum = await amocrm.get_valid_deal(code)
+        if order_sum:
+            add_amount = round(order_sum/500, 2)
+            async with get_session() as session:
+                user = await get_user(session, 'tg_id', message.from_user.id)
+                user_update = UserUpdate(premium_requests=user.premium_requests+add_amount)
+                user = await update_user(session, message.from_user.id, user_update)
+                used_code_create = UsedCodeCreate(user_id=message.from_user.id, code=code, price=order_sum)
+                used_code = await create_used_code(session, used_code_create)
+            await message.answer(f'Вам успешно начислено {add_amount} запросов, на балансе теперь {user.premium_requests}')
+
+    await handle_user_start(message, state)
 
 @new_user_router.message(user_states.Registration.phone)
 async def handle_user_registration(message: Message, state: FSMContext, professor_bot, professor_client):
@@ -264,6 +286,10 @@ async def handle_user_call(call: CallbackQuery, state: FSMContext):
             await state.update_data(assistant_id=NEW_ASSISTANT_ID)
             await call.message.edit_text(user_texts.pick_premium, reply_markup=user_keyboards.back)
 
+        elif data[1] == "activate_code":
+            await state.set_state(user_states.AiStates.activate_code)
+            await call.message.edit_text('Отправьте код <u>оплаченного</u> заказа, чтобы засчитать его сумму', reply_markup=user_keyboards.back)
+
     elif data[0] == "calculators": await call.message.edit_text(user_texts.calculators_start, reply_markup=user_keyboards.calculators_menu)
     elif data[0] == "clicks":
         if data[1] == "start":
@@ -312,7 +338,7 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
         await state.update_data(assistant_id=assistant_id)
         await _notify_user(message, user_texts.pick_fallback_free, 10)
 
-    elif assistant_id == NEW_ASSISTANT_ID and user.premium_requests <= 0: return await message.answer(user_texts.premium_limit_0, reply_markup=user_keyboards.only_free)
+    elif assistant_id == NEW_ASSISTANT_ID and user.premium_requests < 1: return await message.answer(user_texts.premium_limit_0, reply_markup=user_keyboards.only_free)
 
     response = await professor_client.send_message(message.text, user.thread_id, assistant_id)
     async with get_session() as session:

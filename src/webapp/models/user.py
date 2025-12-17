@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, DateTime
+from sqlalchemy import Column, BigInteger, String, DateTime, Double
 from sqlalchemy.orm import relationship
 
 from src.webapp.database import Base
@@ -17,7 +17,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=True, default=None)
     phone = Column(String, unique=True, nullable=True, default=None)
 
-    premium_requests = Column(BigInteger, nullable=False, default=0)
+    premium_requests = Column(Double, nullable=False, default=0)
     thread_id = Column(String, nullable=True, default=None)
     input_tokens = Column(BigInteger, nullable=False, default=0)
     output_tokens = Column(BigInteger, nullable=False, default=0)

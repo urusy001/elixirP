@@ -11,8 +11,9 @@ from .cart_item import CartItem
 from .cart import Cart
 from .favourite import Favourite
 from .tg_category import TgCategory
+from .used_code import UsedCode
 
-__all__ = ['Category', 'Product', 'Unit', 'Feature', 'User', 'UserTokenUsage', 'BotEnum', 'PVZRequest', 'CartItem', 'Cart', 'Favourite', 'TgCategory']
+__all__ = ['Category', 'Product', 'Unit', 'Feature', 'User', 'UserTokenUsage', 'BotEnum', 'PVZRequest', 'CartItem', 'Cart', 'Favourite', 'TgCategory', 'UsedCode']
 
 class PVZRequest(BaseModel):
     latitude: Optional[float] = Field(None, description="Latitude (if geo_id not provided)")

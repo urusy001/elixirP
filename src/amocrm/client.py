@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
+import re
+
 import httpx
 from datetime import datetime, timedelta, UTC
 from urllib.parse import urlparse, parse_qs
@@ -31,7 +34,6 @@ class AsyncAmoCRM:
     ):
         self.STATUS_IDS = {
             "main": 81419122,
-            "check_sent": 75784938,
             "check_paid": 75784946,
             "packaged": 75784942,
             "package_sent": 76566302,
@@ -376,6 +378,60 @@ class AsyncAmoCRM:
                 result[name] = sid
 
         return result
+
+    async def get_valid_deal(self, code: str | int) -> int | None:
+        """
+        EXACT match rule:
+          - lead name contains '№{code}<SPACE>' (space required right after the code)
+          - lead status_id in COMPLETE_STATUS_IDS
+
+        Returns lead price (int) or None.
+        """
+        code_str = str(code).strip()
+
+        # exact token: №code + space
+        needle = f"№{code_str} "
+        # strict regex: same thing, but robust + explicit whitespace
+        rx = re.compile(rf"№{re.escape(code_str)}\s")
+
+        page = 1
+        limit = 50
+        max_pages = 20  # safety
+
+        while page <= max_pages:
+            data = await self.get(
+                "/api/v4/leads",
+                params={
+                    # use the exact needle to reduce noise,
+                    # but still DO NOT trust it for exactness
+                    "query": needle,
+                    "limit": limit,
+                    "page": page,
+                },
+            )
+
+            leads = (data.get("_embedded") or {}).get("leads") or []
+            if not leads:
+                return None
+
+            for lead in leads:
+                name = lead.get("name") or ""
+                status_id = lead.get("status_id")
+
+                # ✅ exact match on your side (prevents №{code}1121, etc.)
+                print(json.dumps(lead, indent=4, ensure_ascii=False))
+                if status_id in self.COMPLETE_STATUS_IDS and rx.search(name):
+                    price = lead.get("price")
+                    try:
+                        return int(price) if price is not None else None
+                    except (TypeError, ValueError):
+                        return None
+
+            if len(leads) < limit:
+                break
+            page += 1
+
+        return None
 
 # ---------- INSTANCE ----------
 amocrm = AsyncAmoCRM(

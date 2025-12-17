@@ -30,6 +30,7 @@ main_menu = InlineKeyboardMarkup(inline_keyboard=[
 pick_ai = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='✨ИИ-профессор', callback_data="user:ai:premium"),
      InlineKeyboardButton(text='⚡️ИИ-эксперт', callback_data="user:ai:free")],
+    [InlineKeyboardButton(text='# Активировать код заказа', callback_data='user:ai:activate_code')],
     [back_button]
 ])
 
