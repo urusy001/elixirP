@@ -6,7 +6,7 @@ import httpx
 from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import YANDEX_DELIVERY_TOKEN, YANDEX_WAREHOUSE_ADDRESS_FULLNAME
+from config import YANDEX_DELIVERY_TOKEN, YANDEX_WAREHOUSE_ADDRESS_FULLNAME, YANDEX_WAREHOUSE_LAT, YANDEX_WAREHOUSE_LON
 from src.delivery.sdek import client as cdek_client
 from src.helpers import format_order_for_amocrm, normalize_address_for_cf
 from src.webapp.crud import upsert_user, add_or_increment_item, create_cart, update_cart
@@ -155,9 +155,9 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
                         "visit_order": 1,
                         "type": "source",
                         "contact": {
-                            "name": YANDEX_WAREHOUSE_CONTACT_NAME,
-                            "phone": YANDEX_WAREHOUSE_CONTACT_PHONE,
-                            "email": YANDEX_WAREHOUSE_CONTACT_EMAIL,
+                            "name": "Elixir Peptide",
+                            "phone": "+79610387977",
+                            "email": "elixirpeptide@yandex.ru",
                         },
                         "address": {"fullname": wh_fullname, "coordinates": [wh_lon, wh_lat]},
                         "external_order_id": str(order_number),
