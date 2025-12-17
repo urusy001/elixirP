@@ -2,14 +2,16 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
 from src.webapp.database import Base
-from src.webapp.models.tg_category import product_tg_categories  # <-- IMPORTANT
+from src.webapp.models.product_tg_categories import product_tg_categories
 
 
 class Product(Base):
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    onec_id = Column(String, primary_key=True, index=True, unique=True)
+
+    # IMPORTANT: onec_id must NOT be primary_key if you already have id PK
+    onec_id = Column(String, nullable=False, unique=True, index=True)
 
     name = Column(String(96), nullable=False)
     code = Column(String(16), nullable=False)
@@ -42,7 +44,7 @@ class Product(Base):
         cascade="all, delete-orphan",
     )
 
-    # ✅ MANY-TO-MANY with TgCategory
+    # MANY-TO-MANY with TgCategory
     tg_categories = relationship(
         "TgCategory",
         secondary=product_tg_categories,
@@ -52,15 +54,17 @@ class Product(Base):
 
     def __str__(self) -> str:
         expiration_text = f"<b>ИНСТРУКЦИИ К ХРАНЕНИЮ</b>\n{self.expiration or 'Не имеются или <i>указаны выше</i>'}"
-        usage_text = f"<b>ИНСТРУКЦИИ К ПРИМЕНЕНИЮ</b>\n{self.usage or 'Не имеются или <i>указаны выше</i>'}"
+        usage_text = f"<b>ИНСТРУКЦИИ К ПРИММЕНЕНИЮ</b>\n{self.usage or 'Не имеются или <i>указаны выше</i>'}"
         description_text = f"<b>ОПИСАНИЕ</b>\n{self.description or 'Не имеется'}"
-        prices_text = '\n'.join([f'{feature.name} — {feature.price}₽' for feature in self.features])
+        prices_text = "\n".join([f"{feature.name} — {feature.price}₽" for feature in self.features])
 
-        return (f"<b>{self.name}</b>\n"
-                f"Артикул: <i>{self.code}</i>\n"
-                f"\n\n"
-                f"{description_text}\n\n"
-                f"{usage_text}\n\n"
-                f"{expiration_text}\n\n"
-                f"<b>ДОЗИРОВКИ И ЦЕНЫ:</b>\n"
-                f"{prices_text}")
+        return (
+            f"<b>{self.name}</b>\n"
+            f"Артикул: <i>{self.code}</i>\n"
+            f"\n\n"
+            f"{description_text}\n\n"
+            f"{usage_text}\n\n"
+            f"{expiration_text}\n\n"
+            f"<b>ДОЗИРОВКИ И ЦЕНЫ:</b>\n"
+            f"{prices_text}"
+        )

@@ -19,8 +19,8 @@ class TgCategoryUpdate(BaseModel):
 
 class TgCategoryRead(TgCategoryBase):
     id: int
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     class Config:
         from_attributes = True

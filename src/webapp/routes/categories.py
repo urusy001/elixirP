@@ -6,22 +6,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.webapp.database import get_db
 from src.webapp.crud.tg_category import (
     list_tg_categories,
-    list_products_by_tg_category_name,
 )
 from src.webapp.schemas.tg_category import TgCategoryRead
-from src.webapp.schemas.product import ProductRead
 
-router = APIRouter(prefix="/api/v1/public", tags=["public"])
-
-
-@router.get("/tg-categories", response_model=list[TgCategoryRead])
-async def public_list_tg_categories(db: AsyncSession = Depends(get_db)):
-    return await list_tg_categories(db)
+router = APIRouter(prefix="/tg-categories", tags=["public"])
 
 
-@router.get("/tg-categories/products", response_model=list[ProductRead])
-async def public_list_products_by_category_name(
-        name: str = Query(..., min_length=1, description="TG category name (can contain spaces)"),
-        db: AsyncSession = Depends(get_db),
-):
-    return await list_products_by_tg_category_name(db, name)
+@router.get("/", response_model=list[TgCategoryRead])
+async def get_categories(db: AsyncSession = Depends(get_db)):
+    rows = await list_tg_categories(db)
+    out: list[TgCategoryRead] = []
+    for r in rows:
+        cat = r["category"]
+        out.append(
+            TgCategoryRead(
+                id=cat.id,
+                name=cat.name,
+                description=cat.description,
+                product_count=r["product_count"],
+            )
+        )
+    return out

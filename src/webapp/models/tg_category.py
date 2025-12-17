@@ -1,27 +1,10 @@
 from __future__ import annotations
 
-from sqlalchemy import Column, Integer, String, DateTime, func, Table, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, func
 from sqlalchemy.orm import relationship
 
 from src.webapp.database import Base
-
-# Association table: Product(onec_id) <-> TgCategory(id)
-product_tg_categories = Table(
-    "product_tg_categories",
-    Base.metadata,
-    Column(
-        "product_onec_id",
-        String,
-        ForeignKey("products.onec_id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    Column(
-        "tg_category_id",
-        Integer,
-        ForeignKey("tg_categories.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-)
+from src.webapp.models.product_tg_categories import product_tg_categories
 
 
 class TgCategory(Base):
@@ -32,19 +15,8 @@ class TgCategory(Base):
     name = Column(String(255), nullable=False, unique=True, index=True)
     description = Column(String, nullable=True)
 
-    created_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        index=True,
-    )
-    updated_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
-        index=True,
-    )
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), index=True)
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now(), index=True)
 
     products = relationship(
         "Product",

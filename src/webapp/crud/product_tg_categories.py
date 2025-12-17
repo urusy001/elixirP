@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.webapp.models.product import Product
@@ -11,7 +12,13 @@ async def add_tg_category_to_product(
         product_onec_id: str,
         tg_category_id: int,
 ) -> Product:
-    product = (await db.execute(select(Product).where(Product.onec_id == product_onec_id))).scalars().first()
+    product = (
+        await db.execute(
+            select(Product)
+            .options(selectinload(Product.tg_categories))
+            .where(Product.onec_id == product_onec_id)
+        )
+    ).scalars().first()
     if not product:
         raise ValueError("Product not found")
 
@@ -33,7 +40,13 @@ async def remove_tg_category_from_product(
         product_onec_id: str,
         tg_category_id: int,
 ) -> Product:
-    product = (await db.execute(select(Product).where(Product.onec_id == product_onec_id))).scalars().first()
+    product = (
+        await db.execute(
+            select(Product)
+            .options(selectinload(Product.tg_categories))
+            .where(Product.onec_id == product_onec_id)
+        )
+    ).scalars().first()
     if not product:
         raise ValueError("Product not found")
 

@@ -1,8 +1,9 @@
-import {searchProducts} from "../../services/productService.js";
-import {hideLoader, showLoader, withLoader} from "../ui/loader.js";
-import {navigateTo} from "../router.js";
-import {saveCart, state} from "../state.js";
-import {hideBackButton, hideMainButton, showBackButton, showMainButton} from "../ui/telegram.js";
+import { searchProducts } from "../../services/productService.js";
+import { hideLoader, showLoader, withLoader } from "../ui/loader.js";
+import { navigateTo } from "../router.js";
+import { saveCart, state } from "../state.js";
+import { hideBackButton, hideMainButton, showBackButton, showMainButton } from "../ui/telegram.js";
+
 import {
     cartPageEl,
     checkoutPageEl,
@@ -20,176 +21,36 @@ import {
     toolbarEl,
     tosOverlayEl
 } from "./constants.js";
-import {apiPost, apiGet} from "../../services/api.js";
+
+import { apiPost, apiGet } from "../../services/api.js"; // ✅ make sure apiGet exists
 
 let page = 0;
 let loading = false;
 let mode = "home";
 
-// =========================
-// TG Categories (front filter)
-// =========================
-let tgCategoriesCache = null;
-let activeTgCategoryName = null;
-let categoriesUiBound = false;
+/** =========================
+ *  TG CATEGORY FILTER STATE
+ *  ========================= */
+const filters = {
+    tgCategoryIds: new Set(),      // selected ids
+    tgCategoryMode: "any",         // any|all (backend supports both; UI currently uses any)
+};
 
-// Prevent double-binding infinite scroll listener
-let infiniteScrollBound = false;
+let tgCategoriesCache = null;     // [{id,name,description,product_count}]
+let filterModalEl = null;
 
-function ensureCategoriesOverlay() {
-    let overlay = document.getElementById("categories-overlay");
-    if (overlay) return overlay;
-
-    overlay = document.createElement("div");
-    overlay.id = "categories-overlay";
-    overlay.className = "categories-overlay";
-    overlay.innerHTML = `
-      <div class="categories-modal" role="dialog" aria-modal="true">
-        <div class="categories-header">
-          <div class="categories-title">Категории</div>
-          <button class="categories-close" id="categories-close" type="button">✕</button>
-        </div>
-        <div class="categories-list" id="categories-list"></div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) closeCategoriesOverlay();
-    });
-
-    overlay.querySelector("#categories-close")?.addEventListener("click", closeCategoriesOverlay);
-
-    return overlay;
-}
-
-function openCategoriesOverlay() {
-    const overlay = ensureCategoriesOverlay();
-    overlay.classList.add("is-open");
-    document.body.style.overflow = "hidden";
-}
-
-function closeCategoriesOverlay() {
-    const overlay = document.getElementById("categories-overlay");
-    if (!overlay) return;
-    overlay.classList.remove("is-open");
-    document.body.style.overflow = "";
-}
-
-async function fetchTgCategories() {
-    if (Array.isArray(tgCategoriesCache)) return tgCategoriesCache;
-
-    // Adjust these paths if your backend uses different prefix
-    const res = await apiGet("/api/v1/public/tg-categories");
-    const cats = Array.isArray(res) ? res : (res?.data || res?.categories || []);
-    tgCategoriesCache = cats;
-    return cats;
-}
-
-function renderCategoriesChips(categories) {
-    const list = document.getElementById("categories-list");
-    if (!list) return;
-
-    list.innerHTML = "";
-
-    // "All" chip
-    const allBtn = document.createElement("button");
-    allBtn.type = "button";
-    allBtn.className = "categories-chip" + (!activeTgCategoryName ? " is-active" : "");
-    allBtn.textContent = "Все товары";
-    allBtn.addEventListener("click", async () => {
-        activeTgCategoryName = null;
-        closeCategoriesOverlay();
-        await withLoader(openHomePage);
-    });
-    list.appendChild(allBtn);
-
-    categories.forEach((c) => {
-        const name = String(c?.name ?? "").trim();
-        if (!name) return;
-
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "categories-chip" + (activeTgCategoryName === name ? " is-active" : "");
-        btn.textContent = name;
-
-        btn.addEventListener("click", async () => {
-            activeTgCategoryName = name;
-            closeCategoriesOverlay();
-            await withLoader(() => openTgCategoryPage(name));
-        });
-
-        list.appendChild(btn);
-    });
-}
-
-async function openTgCategoryPage(categoryName) {
-    mode = "category";
-
-    hideMainButton();
-    showBackButton(async () => {
-        activeTgCategoryName = null;
-        await withLoader(openHomePage);
-    });
-
-    navBottomEl.style.display = "flex";
-    headerTitle.textContent = categoryName;
-
-    tosOverlayEl.style.display = "none";
-    listEl.style.display = "grid";
-    toolbarEl.style.display = "flex";
-    searchBtnEl.style.display = "flex";
-
-    detailEl.style.display = "none";
-    cartPageEl.style.display = "none";
-    checkoutPageEl.style.display = "none";
-    contactPageEl.style.display = "none";
-    paymentPageEl.style.display = "none";
-    processPaymentEl.style.display = "none";
-    profilePageEl.style.display = "none";
-    ordersPageEl.style.display = "none";
-    orderDetailEl.style.display = "none";
-
-    // Adjust this path if needed
-    const res = await apiGet(`/api/v1/public/tg-categories/products?name=${encodeURIComponent(categoryName)}`);
-    const products = Array.isArray(res) ? res : (res?.data || res?.products || []);
-
-    const html = products.map(productCardHTML).join("");
-    listEl.innerHTML = html;
-    attachProductInteractions(listEl);
-}
-
-async function initTgCategoriesUi() {
-    if (categoriesUiBound) return;
-    categoriesUiBound = true;
-
-    const filterBtn = document.getElementById("filter-btn");
-    if (!filterBtn) return;
-
-    filterBtn.addEventListener("click", async () => {
-        try {
-            openCategoriesOverlay();
-            const cats = await withLoader(fetchTgCategories);
-            renderCategoriesChips(cats);
-        } catch (e) {
-            console.error("[TG Categories] failed:", e);
-            closeCategoriesOverlay();
-        }
-    });
-}
-
-// Helper: Handle image switching logic (Feature -> Product -> Default)
+/** =========================
+ *  CARD IMAGE SWITCH
+ *  ========================= */
 function updateCardImage(selectElement) {
     const card = selectElement.closest(".product-card");
     const img = card?.querySelector(".product-img");
     const selectedOption = selectElement.selectedOptions[0];
-
     if (!img || !selectedOption) return;
 
-    const featureImgSrc = selectedOption.dataset.featureImg; // /static/images/feature_ID.png
-    const productImgSrc = img.dataset.productImg;            // /static/images/ONEC_ID.png
-    const defaultImgSrc = "/static/images/product.png";      // Fallback
+    const featureImgSrc = selectedOption.dataset.featureImg;
+    const productImgSrc = img.dataset.productImg;
+    const defaultImgSrc = "/static/images/product.png";
 
     const setFallbackToProduct = () => {
         img.onerror = () => {
@@ -203,15 +64,14 @@ function updateCardImage(selectElement) {
     img.src = featureImgSrc;
 }
 
+/** =========================
+ *  PRODUCT CARD HTML
+ *  ========================= */
 function productCardHTML(p) {
     const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
     const rawFeatures = Array.isArray(p.features) ? p.features : [];
 
-    const availableFeatures = rawFeatures.filter(f => {
-        const bal = Number(f.balance ?? 0);
-        return bal > 0;
-    });
-
+    const availableFeatures = rawFeatures.filter(f => Number(f.balance ?? 0) > 0);
     const sortedFeatures = availableFeatures.sort((a, b) => b.price - a.price);
 
     if (!sortedFeatures.length) return "";
@@ -220,17 +80,17 @@ function productCardHTML(p) {
     const defaultImgPath = "/static/images/product.png";
 
     const featureSelector = `
-        <select class="feature-select" data-onec-id="${onecId}">
-            ${sortedFeatures.map(
-        f => `<option value="${f.id}"
-                         data-price="${f.price}"
-                         data-balance="${Number(f.balance ?? 0)}"
-                         data-feature-img="/static/images/${f.id}.png">
-                    ${f.name} - ${f.price} ₽
-                 </option>`
-    ).join("")}
-        </select>
-    `;
+    <select class="feature-select" data-onec-id="${onecId}">
+      ${sortedFeatures.map(f => `
+        <option value="${f.id}"
+                data-price="${f.price}"
+                data-balance="${Number(f.balance ?? 0)}"
+                data-feature-img="/static/images/${f.id}.png">
+          ${f.name} - ${f.price} ₽
+        </option>
+      `).join("")}
+    </select>
+  `;
 
     return `
     <div class="product-card">
@@ -239,13 +99,13 @@ function productCardHTML(p) {
           <img src="${productImgPath}"
                data-product-img="${productImgPath}"
                data-default-img="${defaultImgPath}"
-               alt="${p.name}"
+               alt="${escapeHtml(p.name)}"
                class="product-img"
                onerror="this.onerror=null; this.src='${defaultImgPath}';">
         </div>
       </a>
       <div class="product-info">
-        <span class="product-name">${p.name}</span>
+        <span class="product-name">${escapeHtml(p.name)}</span>
         ${featureSelector}
       </div>
       <button class="buy-btn" data-onec-id="${onecId}"></button>
@@ -253,6 +113,9 @@ function productCardHTML(p) {
   `;
 }
 
+/** =========================
+ *  BUY COUNTER
+ *  ========================= */
 function renderBuyCounter(btn, onecId) {
     const card = btn.closest(".product-card");
     const selector = card?.querySelector(".feature-select");
@@ -296,8 +159,8 @@ function renderBuyCounter(btn, onecId) {
         const minus = document.createElement("button");
         minus.textContent = "−";
         minus.onclick = () => {
-            const current = state.cart[key] || 0;
-            const next = current - 1;
+            const cur = state.cart[key] || 0;
+            const next = cur - 1;
             if (next <= 0) delete state.cart[key];
             else state.cart[key] = next;
             saveCart();
@@ -312,9 +175,9 @@ function renderBuyCounter(btn, onecId) {
         plus.textContent = "+";
         plus.onclick = () => {
             const max = getMaxBalance();
-            const current = state.cart[key] || 0;
-            if (current >= max) return;
-            state.cart[key] = current + 1;
+            const cur = state.cart[key] || 0;
+            if (cur >= max) return;
+            state.cart[key] = cur + 1;
             saveCart();
             renderBuyCounter(btn, onecId);
         };
@@ -323,9 +186,7 @@ function renderBuyCounter(btn, onecId) {
     }
 
     if (selector && !selector.dataset.counterBound) {
-        selector.addEventListener("change", () => {
-            renderBuyCounter(btn, onecId);
-        });
+        selector.addEventListener("change", () => renderBuyCounter(btn, onecId));
         selector.dataset.counterBound = "1";
     }
 }
@@ -341,12 +202,8 @@ function attachProductInteractions(container) {
 
     container.querySelectorAll(".feature-select").forEach(select => {
         if (select.dataset.imageBound) return;
-
         updateCardImage(select);
-
-        select.addEventListener("change", () => {
-            updateCardImage(select);
-        });
+        select.addEventListener("change", () => updateCardImage(select));
         select.dataset.imageBound = "1";
     });
 
@@ -357,6 +214,175 @@ function attachProductInteractions(container) {
     });
 }
 
+/** =========================
+ *  CATEGORY FILTER UI
+ *  ========================= */
+async function getTgCategories() {
+    if (tgCategoriesCache) return tgCategoriesCache;
+    const data = await apiGet("/tg-categories/"); // should map to /api/v1/tg_categories/
+    tgCategoriesCache = Array.isArray(data) ? data : (data?.data || []);
+    return tgCategoriesCache;
+}
+
+function ensureFilterModal() {
+    if (filterModalEl) return filterModalEl;
+
+    // minimal modal (no extra CSS required)
+    const el = document.createElement("div");
+    el.id = "tg-filter-modal";
+    el.style.cssText = `
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    display: none;
+    z-index: 9999;
+    padding: 12px;
+    box-sizing: border-box;
+  `;
+
+    el.innerHTML = `
+    <div style="
+      max-width: 520px;
+      margin: 48px auto 0;
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    ">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-bottom:1px solid #eef2f7;">
+        <div style="font-weight:700; color:#111827;">Категории</div>
+        <button id="tg-filter-close" type="button" style="border:none; background:transparent; font-size:18px; cursor:pointer;">✕</button>
+      </div>
+
+      <div style="padding:10px 14px; border-bottom:1px solid #f3f4f6;">
+        <input id="tg-filter-search" type="text" placeholder="Поиск категории..." style="
+          width:100%;
+          padding:10px 12px;
+          border:1px solid #e5e7eb;
+          border-radius:10px;
+          outline:none;
+          font: inherit;
+        ">
+        <div style="margin-top:8px; font-size:12px; color:#6b7280;">
+          Выберите несколько категорий (покажем товары, которые входят хотя бы в одну).
+        </div>
+      </div>
+
+      <div id="tg-filter-list" style="max-height: 52vh; overflow:auto; padding:10px 14px;"></div>
+
+      <div style="display:flex; gap:10px; padding:12px 14px; border-top:1px solid #eef2f7;">
+        <button id="tg-filter-reset" type="button" style="
+          flex: 1;
+          padding:10px 12px;
+          border-radius: 12px;
+          border: 1px solid #e5e7eb;
+          background: #fff;
+          cursor: pointer;
+          font-weight: 600;
+        ">Сбросить</button>
+
+        <button id="tg-filter-apply" type="button" style="
+          flex: 1;
+          padding:10px 12px;
+          border-radius: 12px;
+          border: none;
+          background: #111827;
+          color: #fff;
+          cursor: pointer;
+          font-weight: 700;
+        ">Применить</button>
+      </div>
+    </div>
+  `;
+
+    document.body.appendChild(el);
+    filterModalEl = el;
+
+    // close handlers
+    el.addEventListener("click", (e) => {
+        if (e.target === el) closeFilterModal();
+    });
+    el.querySelector("#tg-filter-close").addEventListener("click", closeFilterModal);
+
+    // apply
+    el.querySelector("#tg-filter-apply").addEventListener("click", async () => {
+        await applyFiltersAndReload();
+        closeFilterModal();
+    });
+
+    // reset
+    el.querySelector("#tg-filter-reset").addEventListener("click", () => {
+        filters.tgCategoryIds.clear();
+        renderFilterList(); // refresh checks
+    });
+
+    // search categories
+    el.querySelector("#tg-filter-search").addEventListener("input", () => renderFilterList());
+
+    return el;
+}
+
+function openFilterModal() {
+    ensureFilterModal();
+    filterModalEl.style.display = "block";
+    renderFilterList();
+}
+
+function closeFilterModal() {
+    if (!filterModalEl) return;
+    filterModalEl.style.display = "none";
+}
+
+async function renderFilterList() {
+    const cats = await getTgCategories();
+    const list = filterModalEl.querySelector("#tg-filter-list");
+    const q = (filterModalEl.querySelector("#tg-filter-search").value || "").trim().toLowerCase();
+
+    const filtered = cats.filter(c => {
+        if (!q) return true;
+        return String(c.name || "").toLowerCase().includes(q);
+    });
+
+    if (!filtered.length) {
+        list.innerHTML = `<div style="padding:8px 2px; color:#6b7280;">Ничего не найдено</div>`;
+        return;
+    }
+
+    list.innerHTML = filtered.map(c => {
+        const id = Number(c.id);
+        const checked = filters.tgCategoryIds.has(id) ? "checked" : "";
+        const count = (c.product_count != null) ? ` <span style="color:#9ca3af;">(${c.product_count})</span>` : "";
+        return `
+      <label style="display:flex; align-items:center; gap:10px; padding:10px 6px; border-bottom:1px solid #f3f4f6; cursor:pointer;">
+        <input type="checkbox" data-cat-id="${id}" ${checked} style="width:16px; height:16px;">
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:700; color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            ${escapeHtml(c.name)}${count}
+          </div>
+          ${c.description ? `<div style="font-size:12px; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(c.description)}</div>` : ""}
+        </div>
+      </label>
+    `;
+    }).join("");
+
+    list.querySelectorAll("input[type=checkbox][data-cat-id]").forEach(cb => {
+        cb.addEventListener("change", () => {
+            const id = Number(cb.dataset.catId);
+            if (cb.checked) filters.tgCategoryIds.add(id);
+            else filters.tgCategoryIds.delete(id);
+        });
+    });
+}
+
+function updateFilterButtonLabel() {
+    const btn = document.getElementById("filter-btn");
+    if (!btn) return;
+    const n = filters.tgCategoryIds.size;
+    btn.textContent = n ? `Категории (${n})` : "Категории";
+}
+
+/** =========================
+ *  LOAD PRODUCTS (with filters)
+ *  ========================= */
 async function loadMore(container, append = false, useLoader = true) {
     if (loading) return;
     loading = true;
@@ -366,10 +392,20 @@ async function loadMore(container, append = false, useLoader = true) {
             const collected = [];
             let localPage = page;
 
-            while (true) {
-                const data = await searchProducts({q: "", page: localPage});
-                const rawResults = Array.isArray(data.results) ? data.results : [];
+            const tgIds = Array.from(filters.tgCategoryIds);
+            const tgCsv = tgIds.length ? tgIds.join(",") : "";
 
+            while (true) {
+                // ✅ IMPORTANT: productService must forward tg_category_ids + tg_category_mode to backend query string
+                const data = await searchProducts({
+                    q: "",
+                    page: localPage,
+                    limit: 24,
+                    tg_category_ids: tgCsv,
+                    tg_category_mode: filters.tgCategoryMode,
+                });
+
+                const rawResults = Array.isArray(data?.results) ? data.results : [];
                 if (!rawResults.length) break;
 
                 for (const p of rawResults) {
@@ -402,11 +438,7 @@ async function loadMore(container, append = false, useLoader = true) {
 }
 
 function setupInfiniteScroll(container) {
-    if (infiniteScrollBound) return;
-    infiniteScrollBound = true;
-
     function onScroll() {
-        // infinite scroll only in home mode
         if (mode !== "home") return;
         if (container.style.display === "none") return;
 
@@ -419,24 +451,39 @@ function setupInfiniteScroll(container) {
     window.addEventListener("scroll", onScroll);
 }
 
+async function applyFiltersAndReload() {
+    updateFilterButtonLabel();
+    page = 0;
+    await loadMore(listEl, false);
+}
+
+/** =========================
+ *  AUTH
+ *  ========================= */
 async function getUser() {
     const initData = state.telegram.initData || "";
-    const payload = {initData};
-    const result = await apiPost('/auth', payload);
+    const payload = { initData };
+    const result = await apiPost("/auth", payload);
     state.user = result.user;
     return result.user;
 }
 
+/** =========================
+ *  HOME PAGE
+ *  ========================= */
 async function openHomePage() {
     mode = "home";
     hideMainButton();
     hideBackButton();
+
     navBottomEl.style.display = "flex";
     headerTitle.textContent = "Магазин ElixirPeptide";
+
     tosOverlayEl.style.display = "none";
     listEl.style.display = "grid";
     toolbarEl.style.display = "flex";
     searchBtnEl.style.display = "flex";
+
     detailEl.style.display = "none";
     cartPageEl.style.display = "none";
     checkoutPageEl.style.display = "none";
@@ -446,123 +493,26 @@ async function openHomePage() {
     profilePageEl.style.display = "none";
     ordersPageEl.style.display = "none";
     orderDetailEl.style.display = "none";
+
+    // bind filter button once
+    const filterBtn = document.getElementById("filter-btn");
+    if (filterBtn && !filterBtn.dataset.bound) {
+        filterBtn.addEventListener("click", openFilterModal);
+        filterBtn.dataset.bound = "1";
+    }
+    updateFilterButtonLabel();
+
+    // preload categories once (so modal opens instantly)
+    try { await getTgCategories(); } catch (e) { console.warn("Failed to load tg categories", e); }
 
     page = 0;
     await loadMore(listEl, false);
     setupInfiniteScroll(listEl);
 }
 
-/**
- * favourites page
- */
-async function openFavouritesPage() {
-    mode = "favourites";
-    hideMainButton();
-    showBackButton(async () => {
-        await withLoader(openHomePage);
-    });
-
-    navBottomEl.style.display = "flex";
-    headerTitle.textContent = "";
-    tosOverlayEl.style.display = "none";
-    listEl.style.display = "grid";
-    toolbarEl.style.display = "none";
-    searchBtnEl.style.display = "none";
-    detailEl.style.display = "none";
-    cartPageEl.style.display = "none";
-    checkoutPageEl.style.display = "none";
-    contactPageEl.style.display = "none";
-    paymentPageEl.style.display = "none";
-    processPaymentEl.style.display = "none";
-    profilePageEl.style.display = "none";
-    ordersPageEl.style.display = "none";
-    orderDetailEl.style.display = "none";
-
-    const favIds = state?.user?.favourites || [];
-    if (!favIds.length) {
-        listEl.innerHTML = `
-            <div style="grid-column:1 / -1; text-align:center; padding:24px 12px;">
-                <h2 style="margin-bottom:8px; font-size:18px;">У вас пока нет избранных товаров</h2>
-                <p style="margin:0; font-size:14px; color:#6b7280;">
-                    Нажимайте на сердечко на странице товара, чтобы добавить его в избранное.
-                </p>
-                <div
-                    id="empty-fav-lottie"
-                    style="
-                        margin-top:16px;
-                        max-width:220px;
-                        width:100%;
-                        height:220px;
-                        display:block;
-                        margin-left:auto;
-                        margin-right:auto;
-                        border-radius:12px;
-                        overflow:hidden;
-                    "
-                ></div>
-            </div>
-        `;
-
-        const animContainer = document.getElementById("empty-fav-lottie");
-        if (animContainer && window.lottie) {
-            window.lottie.loadAnimation({
-                container: animContainer,
-                renderer: "svg",
-                loop: true,
-                autoplay: true,
-                path: "/static/stickers/utya-fav.json",
-                rendererSettings: { preserveAspectRatio: "xMidYMid meet" },
-            });
-        }
-        return;
-    }
-
-    const favSet = new Set(favIds.map(String));
-
-    const fetchFn = async () => {
-        const data = await searchProducts({q: "", page: 0, limit: 500});
-        const all = Array.isArray(data?.results) ? data.results : [];
-        return all.filter((p) => {
-            const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
-
-            const features = Array.isArray(p.features) ? p.features : [];
-            const hasStock = features.some(f => Number(f.balance ?? 0) > 0);
-            if (!hasStock) return false;
-
-            return favSet.has(String(onecId));
-        });
-    };
-
-    try {
-        const results = await withLoader(fetchFn);
-        if (!results.length) {
-            listEl.innerHTML = `
-                <div style="grid-column:1 / -1; text-align:center; padding:24px 12px;">
-                    <h2 style="margin-bottom:8px; font-size:18px;">Не удалось загрузить избранные</h2>
-                    <p style="margin:0; font-size:14px; color:#6b7280;">
-                        Попробуйте позже.
-                    </p>
-                </div>
-            `;
-            return;
-        }
-
-        listEl.innerHTML = results.map(productCardHTML).join("");
-        attachProductInteractions(listEl);
-    } catch (err) {
-        console.error("[Favourites] load failed:", err);
-        listEl.innerHTML = `
-            <div style="grid-column:1 / -1; text-align:center; padding:24px 12px;">
-                <h2 style="margin-bottom:8px; font-size:18px;">Ошибка загрузки избранных</h2>
-                <p style="margin:0; font-size:14px; color:#6b7280;">
-                    Пожалуйста, попробуйте позже.
-                </p>
-            </div>
-        `;
-    }
-}
-
-// TOS overlay close only after accept
+/** =========================
+ *  TOS OVERLAY (unchanged logic)
+ *  ========================= */
 function closeTosOverlay() {
     if (!tosOverlayEl) return;
     tosOverlayEl.classList.add("hidden");
@@ -573,7 +523,6 @@ function closeTosOverlay() {
 
 async function openTosOverlay(user) {
     if (!tosOverlayEl) return;
-
     const tosBodyEl = document.getElementById("tos-body");
 
     if (tosBodyEl && !tosBodyEl.dataset.loaded) {
@@ -603,12 +552,12 @@ async function openTosOverlay(user) {
                 is_active: true,
                 user_id: user.tg_id,
                 name: "Начальная",
-                sum: 0.00,
-                delivery_sum: 0.00,
+                sum: 0.0,
+                delivery_sum: 0.0,
                 delivery_string: "Начальная",
                 commentary: "Начальная"
             };
-            await apiPost('/cart/create', payload);
+            await apiPost("/cart/create", payload);
 
             const currentUser = state.user || user;
             if (currentUser) {
@@ -643,44 +592,29 @@ export async function renderHomePage() {
     showLoader();
     const user = state.user || await getUser();
 
-    // bind категории button once
-    await initTgCategoriesUi();
-
     if (!user) {
         await openHomePage();
     } else {
         document.getElementById("bottom-nav-avatar").src =
-            user.photo_url ||
-            `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
+            user.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
+
         state.user = user;
 
-        if (!user.accepted_terms) {
-            openTosOverlay(user);
-        } else {
-            await openHomePage();
-        }
+        if (!user.accepted_terms) openTosOverlay(user);
+        else await openHomePage();
     }
+
     hideLoader();
 }
 
-export async function renderFavouritesPage() {
-    const user = state.user || await getUser();
-
-    // bind категории button once (no harm)
-    await initTgCategoriesUi();
-
-    if (!user) {
-        console.warn("[Favourites] invalid user (auth failed)");
-    } else {
-        document.getElementById("bottom-nav-avatar").src =
-            user.photo_url ||
-            `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
-        state.user = user;
-
-        if (!user.accepted_terms) {
-            openTosOverlay(user);
-        } else {
-            await openFavouritesPage();
-        }
-    }
+/** =========================
+ *  HELPERS
+ *  ========================= */
+function escapeHtml(s) {
+    return String(s ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 }

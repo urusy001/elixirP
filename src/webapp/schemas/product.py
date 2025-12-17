@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from src.webapp.schemas.tg_category import TgCategoryRead
 
 
+# Shared fields
 class ProductBase(BaseModel):
     onec_id: str
     category_onec_id: str
@@ -14,9 +15,12 @@ class ProductBase(BaseModel):
     expiration: str | None = None
 
 
-class ProductCreate(ProductBase): pass
+# For creating a new product
+class ProductCreate(ProductBase):
+    pass
 
 
+# For updating a product
 class ProductUpdate(BaseModel):
     onec_id: str | None = None
     category_onec_id: str | None = None
@@ -26,7 +30,11 @@ class ProductUpdate(BaseModel):
     usage: str | None = None
     expiration: str | None = None
 
+    # ✅ added (optional) for bulk set/replace on backend if you want
+    tg_category_ids: list[int] | None = None
 
+
+# For reading from DB (includes ID)
 class ProductRead(ProductBase):
     id: int
 
