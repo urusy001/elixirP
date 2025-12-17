@@ -24,66 +24,8 @@ let loading = false;
 let mode = "home";
 
 /* =========================
-   SORTING (СОРТИРОВКА)
-   =========================
-   Backend:
-   - /search supports sort_by=default|alpha|price
-   - sort_dir=asc|desc
-*/
-let sortUiBound = false;
-
-const SORT_MODES = [
-    { sort_by: "default", sort_dir: "asc", label: "Сортировка" },
-    { sort_by: "alpha",   sort_dir: "asc", label: "А → Я" },
-    { sort_by: "alpha",   sort_dir: "desc", label: "Я → А" },
-    { sort_by: "price",   sort_dir: "asc", label: "Цена ↑" },
-    { sort_by: "price",   sort_dir: "desc", label: "Цена ↓" },
-];
-
-let sortModeIndex = 0; // default
-
-function getSortParams() {
-    const m = SORT_MODES[sortModeIndex] || SORT_MODES[0];
-    return { sort_by: m.sort_by, sort_dir: m.sort_dir };
-}
-
-function setSortBtnLabel() {
-    const btn = document.getElementById("sort-btn");
-    if (!btn) return;
-    const m = SORT_MODES[sortModeIndex] || SORT_MODES[0];
-    // Keep button compact; still shows state
-    btn.textContent = m.label === "Сортировка" ? "Сортировка" : `Сортировка: ${m.label}`;
-}
-
-function bindSortUIOnce() {
-    if (sortUiBound) return;
-    const sortBtn = document.getElementById("sort-btn");
-    if (sortBtn) {
-        sortBtn.addEventListener("click", async () => {
-            sortModeIndex = (sortModeIndex + 1) % SORT_MODES.length;
-            setSortBtnLabel();
-
-            // reload products (DO NOT TOUCH OTHER MECHANICS)
-            if (mode === "favourites") {
-                await withLoader(openFavouritesPage);
-            } else {
-                page = 0;
-                await withLoader(async () => {
-                    await loadMore(listEl, false, false);
-                });
-            }
-        });
-    }
-    sortUiBound = true;
-}
-
-/* =========================
    TG CATEGORIES (FILTERS)
-   =========================
-   Requires backend:
-   - GET /tg-categories -> [{id, name, description?}]
-   - /search endpoint accepts tg_category_ids (repeatable) or csv
-*/
+   ========================= */
 let tgCategoriesCache = null;             // [{id,name,description}]
 let selectedTgCategoryIds = new Set();    // Set<number>
 let filterUiBound = false;
@@ -93,9 +35,8 @@ function getSelectedCategoryIdsArray() {
 }
 
 async function fetchTgCategories() {
-    // If your route path is different, change here.
-    // Expected response: array OR {data:[...]}
-    const res = await apiGet("/tg-categories");
+    // MUST exist on backend: GET /tg-categories/
+    const res = await apiGet("/tg-categories/");
     const items = Array.isArray(res) ? res : (res?.data || res?.categories || []);
     return items
         .map(c => ({ id: Number(c.id), name: String(c.name ?? ""), description: c.description ?? null }))
@@ -214,9 +155,7 @@ async function openCategoryFilterOverlay() {
     document.body.style.overflow = "hidden";
 
     try {
-        if (!tgCategoriesCache) {
-            tgCategoriesCache = await fetchTgCategories();
-        }
+        if (!tgCategoriesCache) tgCategoriesCache = await fetchTgCategories();
         renderCategoriesChecklist(tgCategoriesCache);
     } catch (e) {
         console.error("[TG Categories] load failed:", e);
@@ -232,6 +171,116 @@ function closeCategoryFilterOverlay() {
     document.body.style.overflow = "";
 }
 
+/* =========================
+   SORT (A-Z / Z-A / PRICE)
+   ========================= */
+let sortUiBound = false;
+let sortBy = "name";   // "name" | "price"
+let sortDir = "asc";   // "asc" | "desc"
+
+function setSortBtnLabel() {
+    const btn = document.getElementById("sort-btn");
+    if (!btn) return;
+
+    if (sortBy === "price") {
+        btn.textContent = sortDir === "asc" ? "Сортировка: Цена ↑" : "Сортировка: Цена ↓";
+    } else {
+        btn.textContent = sortDir === "asc" ? "Сортировка: A→Z" : "Сортировка: Z→A";
+    }
+}
+
+function ensureSortOverlay() {
+    let overlay = document.getElementById("sort-overlay");
+    if (overlay) return overlay;
+
+    overlay = document.createElement("div");
+    overlay.id = "sort-overlay";
+    overlay.style.cssText = `
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: flex-end;
+        justify-content: center;
+        background: rgba(0,0,0,0.35);
+        z-index: 9999;
+        padding: 12px;
+    `;
+
+    overlay.innerHTML = `
+        <div
+            id="sort-modal"
+            style="
+                width: 100%;
+                max-width: 520px;
+                background: #fff;
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+                display: flex;
+                flex-direction: column;
+                max-height: 70vh;
+            "
+        >
+            <div style="padding: 12px 14px; border-bottom: 1px solid #eef2f7; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <div style="font-weight:700; font-size: 15px; color:#111827;">Сортировка</div>
+                <button id="sort-close" type="button" style="border:none; background:transparent; font-size:18px; line-height:1; cursor:pointer;">✕</button>
+            </div>
+
+            <div style="padding: 10px 14px; overflow:auto;" id="sort-list">
+                <!-- injected -->
+            </div>
+
+            <div style="padding: 12px 14px; border-top: 1px solid #eef2f7; display:flex; gap:10px; justify-content:flex-end;">
+                <button id="sort-apply" type="button" style="border:none; background:#111827; color:#fff; padding:10px 12px; border-radius: 12px; cursor:pointer; font-weight:700;">
+                    Применить
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    return overlay;
+}
+
+function renderSortOptions() {
+    const list = document.getElementById("sort-list");
+    if (!list) return;
+
+    const options = [
+        { id: "name_asc", label: "По алфавиту A→Z", by: "name", dir: "asc" },
+        { id: "name_desc", label: "По алфавиту Z→A", by: "name", dir: "desc" },
+        { id: "price_asc", label: "По цене (дешевле → дороже)", by: "price", dir: "asc" },
+        { id: "price_desc", label: "По цене (дороже → дешевле)", by: "price", dir: "desc" },
+    ];
+
+    list.innerHTML = options.map(o => {
+        const checked = (sortBy === o.by && sortDir === o.dir) ? "checked" : "";
+        return `
+            <label style="display:flex; gap:10px; padding:10px 8px; border:1px solid #eef2f7; border-radius:12px; margin-bottom:8px; cursor:pointer;">
+                <input type="radio" name="sortmode" value="${o.id}" ${checked} />
+                <div style="font-weight:700; font-size:14px; color:#111827;">${o.label}</div>
+            </label>
+        `;
+    }).join("");
+}
+
+async function openSortOverlay() {
+    const overlay = ensureSortOverlay();
+    renderSortOptions();
+    overlay.style.display = "flex";
+    document.body.style.overflow = "hidden";
+}
+
+function closeSortOverlay() {
+    const overlay = document.getElementById("sort-overlay");
+    if (!overlay) return;
+    overlay.style.display = "none";
+    document.body.style.overflow = "";
+}
+
+/* =========================
+   Bind UI once
+   ========================= */
 function bindCategoryFilterUIOnce() {
     if (filterUiBound) return;
 
@@ -242,31 +291,26 @@ function bindCategoryFilterUIOnce() {
         });
     }
 
-    // Overlay events (created lazily)
     document.addEventListener("click", async (e) => {
         const overlay = document.getElementById("tgcat-overlay");
         if (!overlay || overlay.style.display === "none") return;
 
         const t = e.target;
 
-        // click outside modal closes
         if (t === overlay) {
             closeCategoryFilterOverlay();
             return;
         }
-
         if (t && t.id === "tgcat-close") {
             closeCategoryFilterOverlay();
             return;
         }
-
         if (t && t.id === "tgcat-reset") {
             selectedTgCategoryIds.clear();
             if (tgCategoriesCache) renderCategoriesChecklist(tgCategoriesCache);
             setFilterBtnBadge();
             return;
         }
-
         if (t && t.id === "tgcat-apply") {
             const checkboxes = Array.from(document.querySelectorAll(".tgcat-checkbox"));
             const next = new Set();
@@ -277,7 +321,6 @@ function bindCategoryFilterUIOnce() {
             setFilterBtnBadge();
             closeCategoryFilterOverlay();
 
-            // reload products (DO NOT TOUCH OTHER MECHANICS)
             if (mode === "favourites") {
                 await withLoader(openFavouritesPage);
             } else {
@@ -292,6 +335,54 @@ function bindCategoryFilterUIOnce() {
     filterUiBound = true;
 }
 
+function bindSortUIOnce() {
+    if (sortUiBound) return;
+
+    const sortBtn = document.getElementById("sort-btn");
+    if (sortBtn) {
+        sortBtn.addEventListener("click", async () => {
+            await openSortOverlay();
+        });
+    }
+
+    document.addEventListener("click", async (e) => {
+        const overlay = document.getElementById("sort-overlay");
+        if (!overlay || overlay.style.display === "none") return;
+
+        const t = e.target;
+
+        if (t === overlay) {
+            closeSortOverlay();
+            return;
+        }
+        if (t && t.id === "sort-close") {
+            closeSortOverlay();
+            return;
+        }
+        if (t && t.id === "sort-apply") {
+            const picked = document.querySelector('input[name="sortmode"]:checked')?.value;
+            if (picked === "price_asc") { sortBy = "price"; sortDir = "asc"; }
+            else if (picked === "price_desc") { sortBy = "price"; sortDir = "desc"; }
+            else if (picked === "name_desc") { sortBy = "name"; sortDir = "desc"; }
+            else { sortBy = "name"; sortDir = "asc"; }
+
+            setSortBtnLabel();
+            closeSortOverlay();
+
+            if (mode === "favourites") {
+                await withLoader(openFavouritesPage);
+            } else {
+                page = 0;
+                await withLoader(async () => {
+                    await loadMore(listEl, false, false);
+                });
+            }
+        }
+    }, { passive: true });
+
+    sortUiBound = true;
+}
+
 /* =========================
    EXISTING MECHANICS (UNCHANGED)
    ========================= */
@@ -304,9 +395,9 @@ function updateCardImage(selectElement) {
 
     if (!img || !selectedOption) return;
 
-    const featureImgSrc = selectedOption.dataset.featureImg; // /static/images/feature_ID.png
-    const productImgSrc = img.dataset.productImg;            // /static/images/ONEC_ID.png
-    const defaultImgSrc = "/static/images/product.png";      // Fallback
+    const featureImgSrc = selectedOption.dataset.featureImg;
+    const productImgSrc = img.dataset.productImg;
+    const defaultImgSrc = "/static/images/product.png";
 
     const setFallbackToProduct = () => {
         img.onerror = () => {
@@ -338,17 +429,14 @@ function productCardHTML(p) {
 
     const featureSelector = `
         <select class="feature-select" data-onec-id="${onecId}">
-            ${sortedFeatures
-        .map(
-            f =>
-                `<option value="${f.id}"
-                         data-price="${f.price}"
-                         data-balance="${Number(f.balance ?? 0)}"
-                         data-feature-img="/static/images/${f.id}.png">
+            ${sortedFeatures.map(f => `
+                <option value="${f.id}"
+                        data-price="${f.price}"
+                        data-balance="${Number(f.balance ?? 0)}"
+                        data-feature-img="/static/images/${f.id}.png">
                     ${f.name} - ${f.price} ₽
-                 </option>`
-        )
-        .join("")}
+                </option>
+            `).join("")}
         </select>
     `;
 
@@ -359,7 +447,7 @@ function productCardHTML(p) {
           <img src="${productImgPath}"
                data-product-img="${productImgPath}"
                data-default-img="${defaultImgPath}"
-               alt="${p.name}" 
+               alt="${p.name}"
                class="product-img"
                onerror="this.onerror=null; this.src='${defaultImgPath}';">
         </div>
@@ -461,12 +549,8 @@ function attachProductInteractions(container) {
 
     container.querySelectorAll(".feature-select").forEach(select => {
         if (select.dataset.imageBound) return;
-
         updateCardImage(select);
-
-        select.addEventListener("change", () => {
-            updateCardImage(select);
-        });
+        select.addEventListener("change", () => updateCardImage(select));
         select.dataset.imageBound = "1";
     });
 
@@ -487,16 +571,15 @@ async function loadMore(container, append = false, useLoader = true) {
             let localPage = page;
 
             const tg_category_ids = getSelectedCategoryIdsArray();
-            const { sort_by, sort_dir } = getSortParams();
 
             while (true) {
                 const data = await searchProducts({
                     q: "",
                     page: localPage,
-                    tg_category_ids,
-                    tg_category_mode: "all",
-                    sort_by,
-                    sort_dir,
+                    tgCategoryIds: tg_category_ids,
+                    tgCategoryMode: "all",
+                    sortBy,
+                    sortDir,
                 });
 
                 const rawResults = Array.isArray(data.results) ? data.results : [];
@@ -541,7 +624,6 @@ function setupInfiniteScroll(container) {
         const ch = document.documentElement.clientHeight;
         if (st + ch >= sh - 200) loadMore(container, true);
     }
-
     window.addEventListener("scroll", onScroll);
 }
 
@@ -573,7 +655,6 @@ async function openHomePage() {
     ordersPageEl.style.display = "none";
     orderDetailEl.style.display = "none";
 
-    // ✅ bind UI once (sorting + categories) WITHOUT changing other logic
     bindCategoryFilterUIOnce();
     bindSortUIOnce();
     setFilterBtnBadge();
@@ -589,7 +670,7 @@ async function openFavouritesPage() {
     hideMainButton();
     showBackButton();
     navBottomEl.style.display = "flex";
-    headerTitle.textContent = "";
+    headerTitle.textContent = "Избранное";
     tosOverlayEl.style.display = "none";
     listEl.style.display = "grid";
     toolbarEl.style.display = "flex";
@@ -604,7 +685,6 @@ async function openFavouritesPage() {
     ordersPageEl.style.display = "none";
     orderDetailEl.style.display = "none";
 
-    // ✅ keep UI state consistent
     bindCategoryFilterUIOnce();
     bindSortUIOnce();
     setFilterBtnBadge();
@@ -618,20 +698,7 @@ async function openFavouritesPage() {
                 <p style="margin:0; font-size:14px; color:#6b7280;">
                     Нажимайте на сердечко на странице товара, чтобы добавить его в избранное.
                 </p>
-                <div
-                    id="empty-fav-lottie"
-                    style="
-                        margin-top:16px;
-                        max-width:220px;
-                        width:100%;
-                        height:220px;
-                        display:block;
-                        margin-left:auto;
-                        margin-right:auto;
-                        border-radius:12px;
-                        overflow:hidden;
-                    "
-                ></div>
+                <div id="empty-fav-lottie" style="margin-top:16px; max-width:220px; width:100%; height:220px; display:block; margin-left:auto; margin-right:auto; border-radius:12px; overflow:hidden;"></div>
             </div>
         `;
 
@@ -643,28 +710,24 @@ async function openFavouritesPage() {
                 loop: true,
                 autoplay: true,
                 path: "/static/stickers/utya-fav.json",
-                rendererSettings: {
-                    preserveAspectRatio: "xMidYMid meet",
-                },
+                rendererSettings: { preserveAspectRatio: "xMidYMid meet" },
             });
         }
-
         return;
     }
 
     const favSet = new Set(favIds.map(String));
     const tg_category_ids = getSelectedCategoryIdsArray();
-    const { sort_by, sort_dir } = getSortParams();
 
     const fetchFn = async () => {
         const data = await searchProducts({
             q: "",
             page: 0,
             limit: 500,
-            tg_category_ids,
-            tg_category_mode: "all",
-            sort_by,
-            sort_dir,
+            tgCategoryIds: tg_category_ids,
+            tgCategoryMode: "all",
+            sortBy,
+            sortDir,
         });
 
         const all = Array.isArray(data?.results) ? data.results : [];
@@ -683,9 +746,7 @@ async function openFavouritesPage() {
             listEl.innerHTML = `
                 <div style="grid-column:1 / -1; text-align:center; padding:24px 12px;">
                     <h2 style="margin-bottom:8px; font-size:18px;">Не удалось загрузить избранные</h2>
-                    <p style="margin:0; font-size:14px; color:#6b7280;">
-                        Попробуйте позже.
-                    </p>
+                    <p style="margin:0; font-size:14px; color:#6b7280;">Попробуйте позже.</p>
                 </div>
             `;
             return;
@@ -698,9 +759,7 @@ async function openFavouritesPage() {
         listEl.innerHTML = `
             <div style="grid-column:1 / -1; text-align:center; padding:24px 12px;">
                 <h2 style="margin-bottom:8px; font-size:18px;">Ошибка загрузки избранных</h2>
-                <p style="margin:0; font-size:14px; color:#6b7280;">
-                    Пожалуйста, попробуйте позже.
-                </p>
+                <p style="margin:0; font-size:14px; color:#6b7280;">Пожалуйста, попробуйте позже.</p>
             </div>
         `;
     }
@@ -767,8 +826,7 @@ async function openTosOverlay(user) {
 
     if (tosBodyEl && !tosBodyEl.dataset.scrollBound) {
         tosBodyEl.addEventListener("scroll", () => {
-            const el = tosBodyEl;
-            const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 10;
+            const atBottom = tosBodyEl.scrollTop + tosBodyEl.clientHeight >= tosBodyEl.scrollHeight - 10;
             if (!acceptMode && atBottom) setAcceptButton();
         });
         tosBodyEl.dataset.scrollBound = "1";
@@ -776,9 +834,7 @@ async function openTosOverlay(user) {
 
     showMainButton("Прокрутить вниз", () => {
         const body = document.getElementById("tos-body");
-        if (body) {
-            body.scrollTo({ top: body.scrollHeight, behavior: "smooth" });
-        }
+        if (body) body.scrollTo({ top: body.scrollHeight, behavior: "smooth" });
         setAcceptButton();
     });
 }
@@ -792,9 +848,8 @@ export async function renderHomePage() {
         document.getElementById("bottom-nav-avatar").src =
             user.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
         state.user = user;
-        if (!user.accepted_terms) {
-            openTosOverlay(user);
-        } else await openHomePage();
+        if (!user.accepted_terms) openTosOverlay(user);
+        else await openHomePage();
     }
     hideLoader();
 }
@@ -807,17 +862,11 @@ export async function renderFavouritesPage() {
         document.getElementById("bottom-nav-avatar").src =
             user.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
         state.user = user;
-        if (!user.accepted_terms) {
-            openTosOverlay(user);
-        } else {
-            await openFavouritesPage();
-        }
+        if (!user.accepted_terms) openTosOverlay(user);
+        else await openFavouritesPage();
     }
 }
 
-/* =========================
-   Helpers
-   ========================= */
 function escapeHtml(s) {
     return String(s ?? "")
         .replaceAll("&", "&amp;")

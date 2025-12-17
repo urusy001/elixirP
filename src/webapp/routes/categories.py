@@ -1,28 +1,18 @@
-from __future__ import annotations
-
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.webapp.database import get_db
-from src.webapp.crud.tg_category import (
-    list_tg_categories,
-)
-from src.webapp.schemas.tg_category import TgCategoryRead
+from src.webapp.models import TgCategory
 
-router = APIRouter(prefix="/tg-categories", tags=["public"])
+router = APIRouter(prefix="/tg-categories", tags=["tg-categories"])
 
 
-@router.get("/", response_model=list[TgCategoryRead])
-async def get_categories(db: AsyncSession = Depends(get_db)):
-    rows = await list_tg_categories(db)
-    out: list[TgCategoryRead] = []
-    for r in rows:
-        out.append(
-            TgCategoryRead(
-                id=r.id,
-                name=r.name,
-                description=r.description,
-                product_count=len(r.products),
-            )
-        )
-    return out
+@router.get("")
+@router.get("/")
+async def list_categories(db: AsyncSession = Depends(get_db)):
+    rows = (await db.execute(select(TgCategory).order_by(TgCategory.name.asc()))).scalars().all()
+    return [
+        {"id": c.id, "name": c.name, "description": c.description}
+        for c in rows
+    ]
