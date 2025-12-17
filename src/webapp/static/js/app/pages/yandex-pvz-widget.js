@@ -329,7 +329,6 @@ export class YandexPvzWidget {
       <div style="font-size:13px;line-height:1.35;max-width:260px">
         <div style="font-weight:600;margin-bottom:4px">Доставка курьером</div>
         <div style="margin-bottom:6px">${this._escape(address)}</div>
-        <div style="opacity:.75;margin-bottom:6px">Координаты: ${lat.toFixed(6)}, ${lon.toFixed(6)}</div>
         <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
           <button class="ydw-choose-door"
             style="padding:6px 10px;border:0;border-radius:8px;background:#ef4444;color:#fff;cursor:pointer;">

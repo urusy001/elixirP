@@ -25,7 +25,7 @@ from typing import Any
 from sqlalchemy import BigInteger, Integer, String, DateTime, Numeric, Boolean
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from config import YOOKASSA_SECRET_KEY, ELIXIR_CHAT_ID, NEW_BOT_TOKEN
+from config import ELIXIR_CHAT_ID, NEW_BOT_TOKEN
 from src.webapp.models.user import User
 
 MAX_TG_MSG_LEN = 4096
@@ -91,11 +91,6 @@ async def split_text(text: str, limit: int = MAX_TG_MSG_LEN) -> list[str]:
         text = text[split_idx:].strip()
     if text: chunks.append(text)
     return chunks
-async def verify_signature(raw_body: bytes, signature_header: Optional[str]) -> bool:
-    if not YOOKASSA_SECRET_KEY: return True
-    if not signature_header: return False
-    expected = hmac.new(YOOKASSA_SECRET_KEY.encode(), raw_body, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(expected, signature_header)
 async def normalize(text: str) -> str:
     try: return translit(text, "ru", reversed=True).lower()
     except Exception: return text.lower()
