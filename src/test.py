@@ -68,8 +68,8 @@ if __name__ == "__main__":
 
     data = test_yandex_offers_calculate(
         oauth_token=token,
-        src_lon=YANDEX_WAREHOUSE_LAT,
-        src_lat=YANDEX_WAREHOUSE_LON,
+        src_lon=YANDEX_WAREHOUSE_LON,
+        src_lat=YANDEX_WAREHOUSE_LAT,
         src_fullname="ул. Революционная, 80, Уфа, Респ. Башкортостан, Россия",
         dst_lon=56.12276822021486,
         dst_lat=54.78583031190476,
