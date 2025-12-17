@@ -18,6 +18,8 @@ class User(Base):
     phone = Column(String, unique=True, nullable=True, default=None)
 
     premium_requests = Column(Double, nullable=False, default=0)
+    premium_until = Column(DateTime(timezone=True), nullable=True, default=None)
+
     thread_id = Column(String, nullable=True, default=None)
     input_tokens = Column(BigInteger, nullable=False, default=0)
     output_tokens = Column(BigInteger, nullable=False, default=0)

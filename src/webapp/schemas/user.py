@@ -41,6 +41,7 @@ class UserBase(BaseModel):
         ge=0,
         description="How many premium model requests the user has",
     )
+    premium_until: datetime | None = Field(None, description="Updated premium until")
     input_tokens: int = Field(
         0,
         ge=0,
@@ -79,6 +80,7 @@ class UserUpdate(BaseModel):
         None,
         description="Updated premium requests counter",
     )
+    premium_until: datetime | None = Field(None, description="Updated premium until")
     input_tokens: int | None = None
     output_tokens: int | None = None
     blocked_until: datetime | None = None

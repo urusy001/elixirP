@@ -1,15 +1,12 @@
 import json
 import logging
+from decimal import Decimal
 
 import httpx
 from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import (
-    YANDEX_DELIVERY_BASE_URL,
-    YANDEX_DELIVERY_TOKEN,
-    YANDEX_DELIVERY_WAREHOUSE_ID
-)
+from config import YANDEX_DELIVERY_TOKEN, YANDEX_WAREHOUSE_ADDRESS_FULLNAME
 from src.delivery.sdek import client as cdek_client
 from src.helpers import format_order_for_amocrm, normalize_address_for_cf
 from src.webapp.crud import upsert_user, add_or_increment_item, create_cart, update_cart
@@ -51,36 +48,151 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     log.info("Create payment payload: %s", ())
     order_number = cart.id
     if delivery_service == "yandex":
-        url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/pricing-calculator"
-        addr = delivery_data["address"]
-        if tariff == "time_interval": destination = {"address": addr["address"]}
-        else: destination = {"platform_station_id": addr["code"]}
+        base = "https://b2b.taxi.yandex.net"
+        offers_url = f"{base}/b2b/cargo/integration/v2/offers/calculate"
+        claims_url = f"{base}/b2b/cargo/integration/v2/claims/create"
 
-        body = {
-            "source": {"platform_station_id": YANDEX_DELIVERY_WAREHOUSE_ID},
-            "destination": destination,
-            "tariff": tariff,
-            "total_weight": 100,
-            "payment_method": "already_paid",
-            "client_price": 200000,
-            "total_assessed_price": 200000,
-            "places": [
-                {"physical_dims": {"dx": 25, "dy": 15, "dz": 10, "weight_gross": 100}}
-            ],
-        }
-        params = {"is_oversized": False}
         headers = {
             "Authorization": f"Bearer {YANDEX_DELIVERY_TOKEN}",
             "Accept": "application/json",
             "Content-Type": "application/json",
+            "Accept-Language": "ru",
         }
 
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.post(url, params=params, json=body, headers=headers)
-            try: resp.raise_for_status()
-            except httpx.HTTPError as e:
-                log.exception("Yandex Delivery error: %s", resp.text)
-                raise HTTPException(status_code=502, detail="Yandex Delivery API error")
+        addr = delivery_data["address"]
+        dest_fullname = addr.get("address") or addr.get("fullname") or address_str
+
+        if "coordinates" in addr and isinstance(addr["coordinates"], (list, tuple)) and len(addr["coordinates"]) == 2:
+            dest_lon, dest_lat = float(addr["coordinates"][0]), float(addr["coordinates"][1])
+        else:
+            dest_lon = addr.get("lon") or addr.get("longitude")
+            dest_lat = addr.get("lat") or addr.get("latitude")
+            if dest_lon is None or dest_lat is None:
+                raise HTTPException(status_code=400, detail="Yandex delivery: destination coordinates missing")
+            dest_lon, dest_lat = float(dest_lon), float(dest_lat)
+
+
+        wh_fullname = YANDEX_WAREHOUSE_ADDRESS_FULLNAME
+        wh_lon = float(YANDEX_WAREHOUSE_LON)
+        wh_lat = float(YANDEX_WAREHOUSE_LAT)
+
+        dx_cm, dy_cm, dz_cm = 25, 15, 10
+        weight_g = 100
+
+        dx_m = float(Decimal(dx_cm) / Decimal("100"))
+        dy_m = float(Decimal(dy_cm) / Decimal("100"))
+        dz_m = float(Decimal(dz_cm) / Decimal("100"))
+        weight_kg = float(Decimal(weight_g) / Decimal("1000"))
+
+        offers_body = {
+            "items": [{
+                "quantity": 1,
+                "pickup_point": 1,
+                "dropoff_point": 2,
+                "size": {"length": dx_m, "width": dy_m, "height": dz_m},
+                "weight": weight_kg,
+            }],
+            "route_points": [
+                {"id": 1, "coordinates": [wh_lon, wh_lat], "fullname": wh_fullname},
+                {"id": 2, "coordinates": [dest_lon, dest_lat], "fullname": dest_fullname},
+            ],
+            "requirements": {
+                "taxi_classes": ["express"],
+                "pro_courier": False,
+                "skip_door_to_door": False,
+            },
+        }
+
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            offers_resp = await client.post(offers_url, json=offers_body, headers=headers)
+            try:
+                offers_resp.raise_for_status()
+            except httpx.HTTPError:
+                log.exception("Yandex offers/calculate error: %s", offers_resp.text)
+                raise HTTPException(status_code=502, detail="Yandex Delivery offers/calculate error")
+
+            offers_data = offers_resp.json()
+            offers = offers_data.get("offers") or []
+            if not offers:
+                log.exception("Yandex: no offers returned: %s", offers_data)
+                raise HTTPException(status_code=502, detail="Yandex Delivery: no delivery offers returned")
+
+            chosen_offer = min(
+                offers,
+                key=lambda o: Decimal(
+                    str(
+                        (o.get("price") or {}).get("total_price_with_vat")
+                        or (o.get("price") or {}).get("total_price")
+                        or "999999999"
+                    )
+                ),
+            )
+
+            offer_payload = chosen_offer["payload"]
+            price_obj = chosen_offer.get("price") or {}
+            delivery_price = price_obj.get("total_price_with_vat") or price_obj.get("total_price")
+
+            if delivery_price is not None:
+                await update_cart(db, cart.id, CartUpdate(delivery_sum=float(Decimal(str(delivery_price)))))
+
+            request_id = f"order-{order_number}"
+
+            claim_body = {
+                "items": [{
+                    "extra_id": str(order_number),
+                    "pickup_point": 1,
+                    "dropoff_point": 2,
+                    "title": f"Order #{order_number}",
+                    "size": {"length": dx_m, "width": dy_m, "height": dz_m},
+                    "weight": weight_kg,
+                    "cost_value": str(total),
+                    "cost_currency": "RUB",
+                    "quantity": 1,
+                }],
+                "route_points": [
+                    {
+                        "point_id": 1,
+                        "visit_order": 1,
+                        "type": "source",
+                        "contact": {
+                            "name": YANDEX_WAREHOUSE_CONTACT_NAME,
+                            "phone": YANDEX_WAREHOUSE_CONTACT_PHONE,
+                            "email": YANDEX_WAREHOUSE_CONTACT_EMAIL,
+                        },
+                        "address": {"fullname": wh_fullname, "coordinates": [wh_lon, wh_lat]},
+                        "external_order_id": str(order_number),
+                    },
+                    {
+                        "point_id": 2,
+                        "visit_order": 2,
+                        "type": "destination",
+                        "contact": {
+                            "name": f"{contact_info.name} {contact_info.surname}".strip(),
+                            "phone": contact_info.phone,
+                            "email": contact_info.email,
+                        },
+                        "address": {"fullname": dest_fullname, "coordinates": [dest_lon, dest_lat]},
+                        "external_order_id": str(order_number),
+                    },
+                ],
+                "comment": f"{commentary_text} | promo: {promocode}",
+                "offer_payload": offer_payload,
+            }
+
+            claim_resp = await client.post(
+                claims_url,
+                params={"request_id": request_id},
+                json=claim_body,
+                headers=headers,
+            )
+            try:
+                claim_resp.raise_for_status()
+            except httpx.HTTPError:
+                log.exception("Yandex claims/create error: %s", claim_resp.text)
+                raise HTTPException(status_code=502, detail="Yandex Delivery claims/create error")
+
+            claim_data = claim_resp.json()
+            # Optional: store claim_data.get("id") / status in DB if you want tracking
 
         delivery_status = "ok"
 
