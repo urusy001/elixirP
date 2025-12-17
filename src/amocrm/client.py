@@ -422,7 +422,6 @@ class AsyncAmoCRM:
                 status_id = lead.get("status_id")
 
                 # ✅ exact match on your side (prevents №{code}1121, etc.)
-                print(json.dumps(lead, indent=4, ensure_ascii=False))
                 if status_id in self.COMPLETE_STATUS_IDS and rx.search(name):
                     if 'на сайте ElixirPeptide' not in name:
                         price = lead.get("price")
@@ -478,6 +477,7 @@ class AsyncAmoCRM:
             for note in notes:
                 text = (note.get("params") or {}).get("text")
                 if text and str(text).strip():
+                    print(text)
                     total = sum_prices(str(text))
                     return total if total > 0 else None
 
