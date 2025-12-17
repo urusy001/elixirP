@@ -474,6 +474,7 @@ class AsyncAmoCRM:
             if not notes:
                 return None
 
+            [print(note.get("params") or {}).get("text") for note in notes]
             for note in notes:
                 text = (note.get("params") or {}).get("text")
                 if text and 'Cостав заказа' in str(text).strip():
