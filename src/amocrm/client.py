@@ -68,7 +68,9 @@ class AsyncAmoCRM:
     # ---------- TOKEN MANAGEMENT ----------
     @property
     def COMPLETE_STATUS_IDS(self):
-        return list(self.STATUS_IDS.values())
+        x = list(self.STATUS_IDS.values())
+        x.remove(self.STATUS_IDS["main"])
+        return x
 
     async def __request_token(self, grant_type: str, code: str | None = None):
         """Request new tokens (either via refresh_token or authorization_code)."""

@@ -247,9 +247,9 @@ async function initCDEKWidget(coords = [55.75, 37.61]) {
                 createProceedButton("Продолжить оформление");
             },
             tariffs: {
-                door: [482],
-                pickup: [486],
-                office: [483],
+                door: [137],
+                pickup: [368],
+                office: [136],
             },
             onCalculate: async () => {
                 const pvzCode = getSelectedPVZCode();
