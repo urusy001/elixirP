@@ -424,7 +424,7 @@ class AsyncAmoCRM:
                 # ✅ exact match on your side (prevents №{code}1121, etc.)
                 if status_id in self.COMPLETE_STATUS_IDS and rx.search(name):
                     price = lead.get("price", None)
-                    if 'ElixirPeptide' in name: return "old"
+                    if 'ElixirPeptide' in name and not price: return "old"
                     else: return int(price) if price else None
 
 # ---------- INSTANCE ----------
