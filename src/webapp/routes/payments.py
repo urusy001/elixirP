@@ -83,11 +83,6 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
                 {"id": 1, "coordinates": [YANDEX_WAREHOUSE_LON, YANDEX_WAREHOUSE_LAT], "fullname": YANDEX_WAREHOUSE_ADDRESS_FULLNAME},
                 {"id": 2, "coordinates": [dest_lon, dest_lat], "fullname": dest_fullname},
             ],
-            "requirements": {
-                "taxi_classes": ["express"],
-                "pro_courier": False,
-                "skip_door_to_door": False,
-            },
         }
         print(dest_lon, dest_lat)
         print(json.dumps(offers_body, indent=4, ensure_ascii=False))
