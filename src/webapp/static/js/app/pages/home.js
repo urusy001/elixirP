@@ -24,12 +24,65 @@ let loading = false;
 let mode = "home";
 
 /* =========================
+   SORTING (СОРТИРОВКА)
+   =========================
+   Backend:
+   - /search supports sort_by=default|alpha|price
+   - sort_dir=asc|desc
+*/
+let sortUiBound = false;
+
+const SORT_MODES = [
+    { sort_by: "default", sort_dir: "asc", label: "Сортировка" },
+    { sort_by: "alpha",   sort_dir: "asc", label: "А → Я" },
+    { sort_by: "alpha",   sort_dir: "desc", label: "Я → А" },
+    { sort_by: "price",   sort_dir: "asc", label: "Цена ↑" },
+    { sort_by: "price",   sort_dir: "desc", label: "Цена ↓" },
+];
+
+let sortModeIndex = 0; // default
+
+function getSortParams() {
+    const m = SORT_MODES[sortModeIndex] || SORT_MODES[0];
+    return { sort_by: m.sort_by, sort_dir: m.sort_dir };
+}
+
+function setSortBtnLabel() {
+    const btn = document.getElementById("sort-btn");
+    if (!btn) return;
+    const m = SORT_MODES[sortModeIndex] || SORT_MODES[0];
+    // Keep button compact; still shows state
+    btn.textContent = m.label === "Сортировка" ? "Сортировка" : `Сортировка: ${m.label}`;
+}
+
+function bindSortUIOnce() {
+    if (sortUiBound) return;
+    const sortBtn = document.getElementById("sort-btn");
+    if (sortBtn) {
+        sortBtn.addEventListener("click", async () => {
+            sortModeIndex = (sortModeIndex + 1) % SORT_MODES.length;
+            setSortBtnLabel();
+
+            // reload products (DO NOT TOUCH OTHER MECHANICS)
+            if (mode === "favourites") {
+                await withLoader(openFavouritesPage);
+            } else {
+                page = 0;
+                await withLoader(async () => {
+                    await loadMore(listEl, false, false);
+                });
+            }
+        });
+    }
+    sortUiBound = true;
+}
+
+/* =========================
    TG CATEGORIES (FILTERS)
    =========================
    Requires backend:
    - GET /tg-categories -> [{id, name, description?}]
-   - /search endpoint accepts tg_category_ids (repeatable) or comma string
-   This file uses: searchProducts({ q, page, limit, tg_category_ids })
+   - /search endpoint accepts tg_category_ids (repeatable) or csv
 */
 let tgCategoriesCache = null;             // [{id,name,description}]
 let selectedTgCategoryIds = new Set();    // Set<number>
@@ -209,14 +262,12 @@ function bindCategoryFilterUIOnce() {
 
         if (t && t.id === "tgcat-reset") {
             selectedTgCategoryIds.clear();
-            // re-render keeping cache
             if (tgCategoriesCache) renderCategoriesChecklist(tgCategoriesCache);
             setFilterBtnBadge();
             return;
         }
 
         if (t && t.id === "tgcat-apply") {
-            // read current checkboxes
             const checkboxes = Array.from(document.querySelectorAll(".tgcat-checkbox"));
             const next = new Set();
             for (const cb of checkboxes) {
@@ -257,16 +308,14 @@ function updateCardImage(selectElement) {
     const productImgSrc = img.dataset.productImg;            // /static/images/ONEC_ID.png
     const defaultImgSrc = "/static/images/product.png";      // Fallback
 
-    // Define the error handler chain
     const setFallbackToProduct = () => {
         img.onerror = () => {
-            img.onerror = null; // Prevent infinite loop
+            img.onerror = null;
             img.src = defaultImgSrc;
         };
         img.src = productImgSrc;
     };
 
-    // 1. Try loading the Feature Image
     img.onerror = setFallbackToProduct;
     img.src = featureImgSrc;
 }
@@ -282,12 +331,8 @@ function productCardHTML(p) {
 
     const sortedFeatures = availableFeatures.sort((a, b) => b.price - a.price);
 
-    // Если нет ни одной фичи с положительным остатком — вообще НЕ рисуем карточку
-    if (!sortedFeatures.length) {
-        return "";
-    }
+    if (!sortedFeatures.length) return "";
 
-    // Prepare paths
     const productImgPath = `/static/images/${onecId}.png`;
     const defaultImgPath = "/static/images/product.png";
 
@@ -296,7 +341,6 @@ function productCardHTML(p) {
             ${sortedFeatures
         .map(
             f =>
-                // Store the specific feature image path in data attribute
                 `<option value="${f.id}"
                          data-price="${f.price}"
                          data-balance="${Number(f.balance ?? 0)}"
@@ -443,10 +487,17 @@ async function loadMore(container, append = false, useLoader = true) {
             let localPage = page;
 
             const tg_category_ids = getSelectedCategoryIdsArray();
+            const { sort_by, sort_dir } = getSortParams();
 
             while (true) {
-                // ✅ categories applied here (does NOT affect other mechanics)
-                const data = await searchProducts({ q: "", page: localPage, tgCategoryIds: tg_category_ids, tgCategoryMode: "all"});
+                const data = await searchProducts({
+                    q: "",
+                    page: localPage,
+                    tg_category_ids,
+                    tg_category_mode: "all",
+                    sort_by,
+                    sort_dir,
+                });
 
                 const rawResults = Array.isArray(data.results) ? data.results : [];
                 if (!rawResults.length) break;
@@ -459,7 +510,6 @@ async function loadMore(container, append = false, useLoader = true) {
                 }
 
                 localPage += 1;
-
                 if (collected.length >= 6) break;
             }
 
@@ -523,9 +573,11 @@ async function openHomePage() {
     ordersPageEl.style.display = "none";
     orderDetailEl.style.display = "none";
 
-    // ✅ bind filter UI once, keep everything else intact
+    // ✅ bind UI once (sorting + categories) WITHOUT changing other logic
     bindCategoryFilterUIOnce();
+    bindSortUIOnce();
     setFilterBtnBadge();
+    setSortBtnLabel();
 
     page = 0;
     await loadMore(listEl, false);
@@ -537,7 +589,7 @@ async function openFavouritesPage() {
     hideMainButton();
     showBackButton();
     navBottomEl.style.display = "flex";
-    headerTitle.textContent = "Избранное";
+    headerTitle.textContent = "";
     tosOverlayEl.style.display = "none";
     listEl.style.display = "grid";
     toolbarEl.style.display = "flex";
@@ -552,9 +604,11 @@ async function openFavouritesPage() {
     ordersPageEl.style.display = "none";
     orderDetailEl.style.display = "none";
 
-    // ✅ keep badge consistent even in favourites mode
+    // ✅ keep UI state consistent
     bindCategoryFilterUIOnce();
+    bindSortUIOnce();
     setFilterBtnBadge();
+    setSortBtnLabel();
 
     const favIds = state?.user?.favourites || [];
     if (!favIds.length) {
@@ -600,19 +654,25 @@ async function openFavouritesPage() {
 
     const favSet = new Set(favIds.map(String));
     const tg_category_ids = getSelectedCategoryIdsArray();
+    const { sort_by, sort_dir } = getSortParams();
 
     const fetchFn = async () => {
-        // ✅ categories filter also affects favourites (only if selected)
-        const data = await searchProducts({ q: "", page: 0, limit: 500, tgCategoryIds: tg_category_ids, tgCategoryMode: "all" });
-        const all = Array.isArray(data?.results) ? data.results : [];
+        const data = await searchProducts({
+            q: "",
+            page: 0,
+            limit: 500,
+            tg_category_ids,
+            tg_category_mode: "all",
+            sort_by,
+            sort_dir,
+        });
 
+        const all = Array.isArray(data?.results) ? data.results : [];
         return all.filter((p) => {
             const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
-
             const features = Array.isArray(p.features) ? p.features : [];
             const hasStock = features.some(f => Number(f.balance ?? 0) > 0);
             if (!hasStock) return false;
-
             return favSet.has(String(onecId));
         });
     };
@@ -663,15 +723,12 @@ async function openTosOverlay(user) {
     if (tosBodyEl && !tosBodyEl.dataset.loaded) {
         try {
             const res = await fetch("/static/offer.html", { cache: "no-cache" });
-            if (!res.ok) {
-                throw new Error("Failed to load offer.html");
-            }
+            if (!res.ok) throw new Error("Failed to load offer.html");
             tosBodyEl.innerHTML = await res.text();
             tosBodyEl.dataset.loaded = "1";
         } catch (err) {
             console.error("Не удалось загрузить offer.html:", err);
-            tosBodyEl.innerHTML =
-                "<p>Не удалось загрузить текст публичной оферты. Попробуйте позже.</p>";
+            tosBodyEl.innerHTML = "<p>Не удалось загрузить текст публичной оферты. Попробуйте позже.</p>";
         }
     }
 
@@ -704,7 +761,6 @@ async function openTosOverlay(user) {
             }
 
             await withLoader(openHomePage);
-
             closeTosOverlay();
         });
     };
@@ -712,12 +768,8 @@ async function openTosOverlay(user) {
     if (tosBodyEl && !tosBodyEl.dataset.scrollBound) {
         tosBodyEl.addEventListener("scroll", () => {
             const el = tosBodyEl;
-            const atBottom =
-                el.scrollTop + el.clientHeight >= el.scrollHeight - 10;
-
-            if (!acceptMode && atBottom) {
-                setAcceptButton();
-            }
+            const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 10;
+            if (!acceptMode && atBottom) setAcceptButton();
         });
         tosBodyEl.dataset.scrollBound = "1";
     }
@@ -725,10 +777,7 @@ async function openTosOverlay(user) {
     showMainButton("Прокрутить вниз", () => {
         const body = document.getElementById("tos-body");
         if (body) {
-            body.scrollTo({
-                top: body.scrollHeight,
-                behavior: "smooth",
-            });
+            body.scrollTo({ top: body.scrollHeight, behavior: "smooth" });
         }
         setAcceptButton();
     });
@@ -741,8 +790,7 @@ export async function renderHomePage() {
         await openHomePage();
     } else {
         document.getElementById("bottom-nav-avatar").src =
-            user.photo_url ||
-            `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
+            user.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
         state.user = user;
         if (!user.accepted_terms) {
             openTosOverlay(user);
@@ -757,8 +805,7 @@ export async function renderFavouritesPage() {
         console.warn("[Favourites] invalid user (auth failed)");
     } else {
         document.getElementById("bottom-nav-avatar").src =
-            user.photo_url ||
-            `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
+            user.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=user${user.tg_id}`;
         state.user = user;
         if (!user.accepted_terms) {
             openTosOverlay(user);
@@ -771,7 +818,6 @@ export async function renderFavouritesPage() {
 /* =========================
    Helpers
    ========================= */
-
 function escapeHtml(s) {
     return String(s ?? "")
         .replaceAll("&", "&amp;")

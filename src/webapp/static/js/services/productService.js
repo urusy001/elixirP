@@ -1,13 +1,20 @@
 import { apiGet } from "./api.js";
 
-// tgCategoryIds: array of numbers/strings OR csv string "1,2,3"
-// tgCategoryMode: "any" | "all"
+// Supports:
+// - tg_category_ids as array [1,2] OR csv "1,2"
+// - tg_category_mode: "any" | "all"
+// - sort_by: "default" | "alpha" | "price"
+// - sort_dir: "asc" | "desc"
 export async function searchProducts({
                                          q = "",
                                          page = 0,
                                          limit,
-                                         tgCategoryIds,
-                                         tgCategoryMode = "any",
+
+                                         tg_category_ids,
+                                         tg_category_mode = "any",
+
+                                         sort_by = "default",
+                                         sort_dir = "asc",
                                      } = {}) {
     const url = new URL("/search", location.origin);
 
@@ -15,17 +22,34 @@ export async function searchProducts({
     url.searchParams.set("page", String(page ?? 0));
     if (limit != null) url.searchParams.set("limit", String(limit));
 
-    // ✅ categories filter
-    if (tgCategoryIds != null) {
-        const csv = Array.isArray(tgCategoryIds)
-            ? tgCategoryIds.map((x) => String(x).trim()).filter(Boolean).join(",")
-            : String(tgCategoryIds).trim();
+    // ✅ categories: send as repeatable params (FastAPI List[int] friendly)
+    if (tg_category_ids != null) {
+        let ids = [];
+        if (Array.isArray(tg_category_ids)) {
+            ids = tg_category_ids;
+        } else {
+            // allow "1,2,3" or "1 2 3"
+            ids = String(tg_category_ids)
+                .split(/[, ]+/g)
+                .map(s => s.trim())
+                .filter(Boolean);
+        }
 
-        if (csv) url.searchParams.set("tg_category_ids", csv);
+        for (const id of ids) {
+            url.searchParams.append("tg_category_ids", String(id));
+        }
     }
 
-    if (tgCategoryMode === "all" || tgCategoryMode === "any") {
-        url.searchParams.set("tg_category_mode", tgCategoryMode);
+    if (tg_category_mode === "all" || tg_category_mode === "any") {
+        url.searchParams.set("tg_category_mode", tg_category_mode);
+    }
+
+    if (sort_by === "default" || sort_by === "alpha" || sort_by === "price") {
+        url.searchParams.set("sort_by", sort_by);
+    }
+
+    if (sort_dir === "asc" || sort_dir === "desc") {
+        url.searchParams.set("sort_dir", sort_dir);
     }
 
     return apiGet(url.toString());
