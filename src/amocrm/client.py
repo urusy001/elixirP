@@ -470,14 +470,13 @@ class AsyncAmoCRM:
                     # "filter[note_type]": "common",
                 },
             )
-
+            print(json.dumps(data, indent=4, ensure_ascii=False))
             notes: list[dict[str, Any]] = (data.get("_embedded") or {}).get("notes") or []
             if not notes:
                 return None
 
             for note in notes:
                 text = (note.get("params") or {}).get("text")
-                print(text or 'no text')
                 if text and 'Cостав заказа' in str(text).strip():
                     total = sum_prices(str(text))
 
