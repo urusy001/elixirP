@@ -117,7 +117,7 @@ async def handle_desired_dosage_clicks(message: Message, state: FSMContext):
                      f"Количество вводимого вещества на 1 щелчок: ({_fmt(cartridge_amount_mg)}мг ÷ {_fmt(cartridge_volume)}мл) • 0.01мл = {_fmt(mg_per_click)}мг\n\n"
                      f"<b>ИТОГО КОЛИЧЕСТВО ЩЕЛЧКОВ: {_fmt(dosage_mg)}мг ÷ {_fmt(mg_per_click)}мг = {_fmt(click_amount_exact)}</b>")
 
-    await message.answer(response_text, reply_markup=user_keyboards.main_menu)
+    await message.answer(response_text, reply_markup=user_keyboards.backk)
     return await state.clear()
 
 
@@ -173,7 +173,7 @@ async def handle_desired_dosage_divisions(message: Message, state: FSMContext):
         f"<b>ИТОГО НУЖНО НАБРАТЬ ЕДИНИЦ: {_fmt(desired_dosage_mg)}мг ÷ {_fmt((vial_amount_mg / water_volume) * 0.01)}мг = {round(divisions, 0)}</b>\n"
     )
 
-    await message.answer(response_text, reply_markup=user_keyboards.main_menu)
+    await message.answer(response_text, reply_markup=user_keyboards.backk)
     return await state.clear()
 
 
