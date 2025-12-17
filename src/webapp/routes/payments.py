@@ -49,7 +49,6 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     log.info("Create payment payload: %s", ())
     order_number = cart.id
     if delivery_service == "yandex":
-        offers_url = f"{YANDEX_DELIVERY_BASE_URL}/b2b/cargo/integration/v2/offers/calculate"
         claims_url = f"{YANDEX_DELIVERY_BASE_URL}/b2b/cargo/integration/v2/claims/create"
 
         headers = {
@@ -58,10 +57,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
             "Content-Type": "application/json",
             "Accept-Language": "ru",
         }
-
-        addr = delivery_data["address"]
         dest_fullname = address_str
-        dest_lat, dest_lon = float(addr["coords"][0]), float(addr["coords"][1])
 
         dx_cm, dy_cm, dz_cm = 25, 15, 10
         weight_g = 100
@@ -71,53 +67,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
         dz_m = float(Decimal(dz_cm) / Decimal("100"))
         weight_kg = float(Decimal(weight_g) / Decimal("1000"))
 
-        offers_body = {
-            "items": [{
-                "quantity": 1,
-                "pickup_point": 1,
-                "dropoff_point": 2,
-                "size": {"length": dx_m, "width": dy_m, "height": dz_m},
-                "weight": weight_kg,
-            }],
-            "route_points": [
-                {"id": 1, "coordinates": [YANDEX_WAREHOUSE_LON, YANDEX_WAREHOUSE_LAT], "fullname": YANDEX_WAREHOUSE_ADDRESS_FULLNAME},
-                {"id": 2, "coordinates": [dest_lon, dest_lat], "fullname": dest_fullname},
-            ],
-        }
-        print(dest_lon, dest_lat)
-        print(json.dumps(offers_body, indent=4, ensure_ascii=False))
         async with httpx.AsyncClient(timeout=20.0) as client:
-            offers_resp = await client.post(offers_url, json=offers_body, headers=headers)
-            try: offers_resp.raise_for_status()
-            except httpx.HTTPError:
-                log.exception("Yandex offers/calculate error: %s", offers_resp.text)
-                raise HTTPException(status_code=502, detail="Yandex Delivery offers/calculate error")
-
-            offers_data = offers_resp.json()
-            print(json.dumps(offers_data, indent=4, ensure_ascii=False))
-            offers = offers_data.get("offers") or []
-            if not offers:
-                log.exception("Yandex: no offers returned: %s", offers_data)
-                raise HTTPException(status_code=502, detail="Yandex Delivery: no delivery offers returned")
-
-            chosen_offer = min(
-                offers,
-                key=lambda o: Decimal(
-                    str(
-                        (o.get("price") or {}).get("total_price_with_vat")
-                        or (o.get("price") or {}).get("total_price")
-                        or "999999999"
-                    )
-                ),
-            )
-
-            offer_payload = chosen_offer["payload"]
-            price_obj = chosen_offer.get("price") or {}
-            delivery_price = price_obj.get("total_price_with_vat") or price_obj.get("total_price")
-
-            if delivery_price is not None:
-                await update_cart(db, cart.id, CartUpdate(delivery_sum=float(Decimal(str(delivery_price)))))
-
             request_id = f"order-{order_number}"
 
             claim_body = {
@@ -142,7 +92,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
                             "phone": "+79610387977",
                             "email": "elixirpeptide@yandex.ru",
                         },
-                        "address": {"fullname": YANDEX_WAREHOUSE_ADDRESS_FULLNAME, "coordinates": [YANDEX_WAREHOUSE_LON, YANDEX_WAREHOUSE_LAT]},
+                        "address": {"fullname": YANDEX_WAREHOUSE_ADDRESS_FULLNAME},
                         "external_order_id": str(order_number),
                     },
                     {
@@ -154,12 +104,14 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
                             "phone": contact_info.phone,
                             "email": contact_info.email,
                         },
-                        "address": {"fullname": dest_fullname, "coordinates": [dest_lon, dest_lat]},
+                        "address": {"fullname": dest_fullname},
                         "external_order_id": str(order_number),
                     },
                 ],
                 "comment": f"{commentary_text} | promo: {promocode}",
-                "offer_payload": offer_payload,
+                "client_requirements": {
+                    "taxi_class": "courier"
+                }
             }
 
             claim_resp = await client.post(
@@ -174,6 +126,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
                 raise HTTPException(status_code=502, detail="Yandex Delivery claims/create error")
 
             claim_data = claim_resp.json()
+            print(json.dumps(claim_data, indent=4, ensure_ascii=False))
 
 
         delivery_status = "ok"
