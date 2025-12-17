@@ -419,6 +419,7 @@ class AsyncAmoCRM:
 
             for lead in leads:
                 name = lead.get("name") or ""
+                print(name)
                 status_id = lead.get("status_id")
 
                 # ✅ exact match on your side (prevents №{code}1121, etc.)
