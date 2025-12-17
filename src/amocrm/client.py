@@ -423,13 +423,64 @@ class AsyncAmoCRM:
                 # ✅ exact match on your side (prevents №{code}1121, etc.)
                 print(json.dumps(lead, indent=4, ensure_ascii=False))
                 if status_id in self.COMPLETE_STATUS_IDS and rx.search(name):
-                    price = lead.get("price")
-                    try:
-                        return int(price) if price is not None else None
-                    except (TypeError, ValueError):
-                        return None
+                    if 'на сайте ElixirPeptide' not in name:
+                        price = lead.get("price")
+                        try: return int(price) if price is not None else None
+                        except (TypeError, ValueError): return None
+
+                    else: return await self.get_first_note_total_price(lead.get("id"))
 
             if len(leads) < limit:
+                break
+            page += 1
+
+        return None
+
+    async def get_first_note_total_price(self, lead_id: int) -> int | None:
+        """
+        Get the first (oldest) lead note with params.text and sum all позиционные prices inside it.
+        Returns total price in rubles (int) or None if not found.
+        """
+
+        price_re = re.compile(
+            r"[—\-]\s*([0-9][0-9\s]*)\s*(?:руб\.?|₽)\b",
+            flags=re.IGNORECASE,
+        )
+
+        def sum_prices(text: str) -> int:
+            total = 0
+            for m in price_re.finditer(text):
+                raw = m.group(1)  # e.g. "10 780"
+                total += int(raw.replace(" ", ""))
+            return total
+
+        page = 1
+        limit = 50
+        max_pages = 10  # safety
+
+        while page <= max_pages:
+            data = await self.get(
+                f"/api/v4/leads/{lead_id}/notes",
+                params={
+                    "limit": limit,
+                    "page": page,
+                    "order[id]": "asc",  # oldest first
+                    # optionally restrict to your text notes:
+                    # "filter[note_type]": "common",
+                },
+            )
+
+            notes: list[dict[str, Any]] = (data.get("_embedded") or {}).get("notes") or []
+            if not notes:
+                return None
+
+            for note in notes:
+                text = (note.get("params") or {}).get("text")
+                if text and str(text).strip():
+                    total = sum_prices(str(text))
+                    return total if total > 0 else None
+
+            if len(notes) < limit:
                 break
             page += 1
 
