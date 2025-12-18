@@ -93,8 +93,9 @@ async def handle_activate_code(message: Message, state: FSMContext):
     except httpx.HTTPStatusError as e:
         await message.answer("Не удалось проверить заказ (ошибка сервера). Попробуйте позже.")
         return await handle_user_start(message, state)
-    except Exception:
+    except Exception as e:
         await message.answer("Не удалось проверить заказ (ошибка сети). Попробуйте позже.")
+        print(e)
         return await handle_user_start(message, state)
 
     order_sum = data.get("order_sum")
