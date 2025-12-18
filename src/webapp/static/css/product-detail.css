@@ -268,3 +268,19 @@
         color: #5f0f0f;
     }
 }
+
+.stock-badge{
+    display:inline-flex;
+    align-items:center;
+    padding:4px 10px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:600;
+    line-height:1;
+    border:1px solid transparent;
+    white-space:nowrap;
+}
+
+.stock-badge--oos{ background:#fef2f2; color:#991b1b; border-color:#fecaca; }
+.stock-badge--low{ background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
+.stock-badge--ok { background:#ecfdf5; color:#065f46; border-color:#a7f3d0; }

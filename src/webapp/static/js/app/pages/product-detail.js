@@ -239,9 +239,22 @@ export async function renderProductDetailPage(onec_id) {
             tdPrice.textContent = `${Number(f.price).toLocaleString("ru-RU")} ₽`;
 
             const tdBal = document.createElement("td");
-            tdBal.innerHTML = isOOS
-                ? `<span class="oos-badge" title="Ожидается поставка">Нет на складе</span>`
-                : String(balNum);
+
+            let stockLabel = "";
+            let stockClass = "";
+
+            if (balNum <= 0) {
+                stockLabel = "Нет на складе";
+                stockClass = "stock-badge stock-badge--oos";
+            } else if (balNum < 10) {
+                stockLabel = "Мало";
+                stockClass = "stock-badge stock-badge--low";
+            } else {
+                stockLabel = "Много";
+                stockClass = "stock-badge stock-badge--ok";
+            }
+
+            tdBal.innerHTML = `<span class="${stockClass}">${stockLabel}</span>`;
 
             const tdQty = document.createElement("td");
             if (isOOS) {
