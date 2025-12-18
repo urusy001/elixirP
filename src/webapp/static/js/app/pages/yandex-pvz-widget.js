@@ -8,10 +8,7 @@ const DEFAULT_ZOOM = 4;
 export class YandexPvzWidget {
     constructor(containerId, options = {}) {
         this.root = document.getElementById(containerId);
-        if (!this.root) {
-            console.error(`YandexPvzWidget: #${containerId} not found`);
-            return;
-        }
+        if (!this.root) { console.error(`YandexPvzWidget: #${containerId} not found`); return; }
 
         this.options = {
             dataUrl: "/delivery/yandex/get-pvz-all",
@@ -23,7 +20,7 @@ export class YandexPvzWidget {
             //   total_assessed_price: number,
             //   client_price: number,
             //   payment_method: "already_paid" | "card_on_receipt",
-            //   places: [ { physical_dims: { dx, dy, dz, weight_gross, predefined_volume? } } ],
+            //   places: [ { physical_dims: { dx, dy, dz, weight_gross, predefined_volume? }, barcode?, description? } ],
             //   is_oversized?: boolean,
             //   send_unix?: boolean
             // }
@@ -43,10 +40,12 @@ export class YandexPvzWidget {
         this._pointsById = new Map();
         this._selectedId = null;
 
+        // Courier (to-door) placemark
         this._doorPlacemark = null;
         this._doorAddress = "";
         this._doorSeq = 0;
 
+        // Geocode suggest cache
         this._geocodeCache = new Map();
         this._geocodeCacheMax = 50;
 
@@ -58,42 +57,18 @@ export class YandexPvzWidget {
 
     _renderLayout() {
         this.root.innerHTML = `
-      <div class="ydw-toolbar" style="display:flex;flex-direction:column;gap:8px;margin-bottom:.5rem;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <input id="ydw-query" type="text" inputmode="search" placeholder="Введите населённый пункт"
-                 style="flex:1;padding:.5rem .6rem;border:1px solid #ddd;border-radius:8px;">
-        </div>
-
-        <div id="ydw-suggest"
-             style="display:none;height:${SUGGEST_ROW_HEIGHT * 5}px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;background:#fff;"></div>
-
-        <div id="ydw-delivery"
-             style="display:none;border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:10px 12px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-            <div style="font-weight:600;font-size:13px;">Доставка</div>
-            <button id="ydw-delivery-close"
-                    style="border:0;background:transparent;cursor:pointer;font-size:16px;line-height:1;">✕</button>
-          </div>
-          <div id="ydw-delivery-body" style="margin-top:6px;font-size:13px;line-height:1.35;"></div>
-        </div>
-      </div>
-
-      <div id="ydw-map" style="width:100%;height:100%;min-height:400px;border-radius:8px;"></div>
-    `;
+            <div class="ydw-toolbar" style="display:flex;flex-direction:column;gap:8px;margin-bottom:.5rem;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <input id="ydw-query" type="text" inputmode="search" placeholder="Введите населённый пункт"
+                           style="flex:1;padding:.5rem .6rem;border:1px solid #ddd;border-radius:8px;">
+                </div>
+                <div id="ydw-suggest" style="display:none;height:${SUGGEST_ROW_HEIGHT * 5}px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;background:#fff;"></div>
+            </div>
+            <div id="ydw-map" style="width:100%;height:100%;min-height:400px;border-radius:8px;"></div>`;
 
         this.mapEl = this.root.querySelector("#ydw-map");
         this.queryEl = this.root.querySelector("#ydw-query");
         this.suggestEl = this.root.querySelector("#ydw-suggest");
-
-        this.deliveryEl = this.root.querySelector("#ydw-delivery");
-        this.deliveryBodyEl = this.root.querySelector("#ydw-delivery-body");
-        this.deliveryCloseEl = this.root.querySelector("#ydw-delivery-close");
-
-        this.deliveryCloseEl?.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this._hideDelivery();
-        });
 
         // Handle "Выбрать" clicks inside PVZ balloons
         this.root.addEventListener("click", (e) => {
@@ -129,12 +104,14 @@ export class YandexPvzWidget {
         this.manager.clusters.options.set("preset", "islands#invertedBlueClusterIcons");
         this.map.geoObjects.add(this.manager);
 
+        // Click on a PVZ => choose pickup (and remove door pin if any)
         this.manager.objects.events.add("click", (e) => {
             const id = e.get("objectId");
             this._removeDoorPlacemark();
             this._select(id, true);
         });
 
+        // Click on map (empty) => set courier pin and clear PVZ selection
         this.map.events.add("click", (e) => {
             if (e.get("target") !== this.map) return;
             const coords = e.get("coords");
@@ -142,6 +119,7 @@ export class YandexPvzWidget {
             this._setDoorPlacemark(coords);
         });
 
+        // Load and render PVZ points
         const all = await withLoader(async () => {
             try {
                 const data = await apiGet(this.options.dataUrl);
@@ -151,13 +129,13 @@ export class YandexPvzWidget {
             }
         });
 
-        const src = Array.isArray(all?.points) ? all.points : Array.isArray(all) ? all : [];
+        const src = Array.isArray(all?.points) ? all.points : (Array.isArray(all) ? all : []);
         const points = src.map((p) => this._normalizePoint(p));
         this._drawPoints(points);
 
         if (points.length) {
             try {
-                const coords = points.map((p) => p.coords);
+                const coords = points.map(p => p.coords);
                 const bounds = ymaps.util.bounds.fromPoints(coords);
                 this.map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 32 });
             } catch {}
@@ -182,32 +160,18 @@ export class YandexPvzWidget {
     /* ------------------------ Search (locality suggest) ----------------------- */
 
     _bindSearchUI() {
-        const debounce = (fn, delay = 300) => {
-            let t;
-            return (...a) => {
-                clearTimeout(t);
-                t = setTimeout(() => fn(...a), delay);
-            };
-        };
-
+        const debounce = (fn, delay = 300) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), delay); }; };
         this._searchVariants = [];
         this._suggestActive = -1;
 
-        this.queryEl?.addEventListener(
-            "input",
-            debounce(async (e) => {
-                const q = e.target.value.trim();
-                if (!q) {
-                    this._searchVariants = [];
-                    this._renderSuggest([]);
-                    return;
-                }
-                const variants = await this._geocodeLocality(q);
-                this._searchVariants = Array.isArray(variants) ? variants : [];
-                this._renderSuggest(this._searchVariants);
-                this._suggestActive = -1;
-            }, 250)
-        );
+        this.queryEl?.addEventListener("input", debounce(async (e) => {
+            const q = e.target.value.trim();
+            if (!q) { this._searchVariants = []; this._renderSuggest([]); return; }
+            const variants = await this._geocodeLocality(q);
+            this._searchVariants = Array.isArray(variants) ? variants : [];
+            this._renderSuggest(this._searchVariants);
+            this._suggestActive = -1;
+        }, 250));
 
         this.suggestEl?.addEventListener("click", (e) => {
             const row = e.target.closest(".ydw-suggest-row");
@@ -221,12 +185,11 @@ export class YandexPvzWidget {
 
         this.queryEl?.addEventListener("keydown", (e) => {
             if (!this._searchVariants.length) return;
-
             if (e.key === "ArrowDown" || e.key === "ArrowUp") {
                 e.preventDefault();
                 const max = this._searchVariants.length - 1;
                 if (e.key === "ArrowDown") this._suggestActive = Math.min(max, this._suggestActive + 1);
-                else this._suggestActive = Math.max(0, this._suggestActive < 0 ? 0 : this._suggestActive - 1);
+                else this._suggestActive = Math.max(0, (this._suggestActive < 0 ? 0 : this._suggestActive - 1));
                 this._highlightSuggest(this._suggestActive);
             } else if (e.key === "Enter") {
                 e.preventDefault();
@@ -247,7 +210,7 @@ export class YandexPvzWidget {
 
     _highlightSuggest(activeIdx) {
         if (!this.suggestEl) return;
-        [...this.suggestEl.children].forEach((el, i) => (el.style.background = i === activeIdx ? "#eef2ff" : ""));
+        [...this.suggestEl.children].forEach((el, i) => { el.style.background = (i === activeIdx) ? "#eef2ff" : ""; });
         const target = this.suggestEl.children[activeIdx];
         if (target) target.scrollIntoView({ block: "nearest" });
     }
@@ -266,9 +229,9 @@ export class YandexPvzWidget {
             row.className = "ydw-suggest-row";
             row.setAttribute("data-index", String(i));
             row.style.cssText = `
-        display:flex;align-items:center;height:${SUGGEST_ROW_HEIGHT}px;padding:0 10px;
-        cursor:pointer;border-bottom:1px solid #f0f0f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:none;
-      `;
+              display:flex;align-items:center;height:${SUGGEST_ROW_HEIGHT}px;padding:0 10px;
+              cursor:pointer;border-bottom:1px solid #f0f0f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:none;
+            `;
             row.addEventListener("mouseenter", () => (row.style.background = "#f8fafc"));
             row.addEventListener("mouseleave", () => (row.style.background = ""));
 
@@ -276,11 +239,11 @@ export class YandexPvzWidget {
             const kind = (v.kind || "").toString();
 
             row.innerHTML = `
-        <div style="font-size:13px;flex:1;min-width:0;">
-          ${this._escape(name)}
-          ${kind ? `<span style="opacity:.65;font-size:12px;margin-left:6px;">(${this._escape(kind)})</span>` : ""}
-        </div>
-      `;
+              <div style="font-size:13px;flex:1;min-width:0;">
+                ${this._escape(name)}
+                ${kind ? `<span style="opacity:.65;font-size:12px;margin-left:6px;">(${this._escape(kind)})</span>` : ""}
+              </div>
+            `;
             frag.appendChild(row);
         });
 
@@ -295,10 +258,7 @@ export class YandexPvzWidget {
         try {
             const res = await ymaps.geocode(query, { results: 50 });
             const gos = res.geoObjects;
-            if (!gos || gos.getLength() === 0) {
-                this._rememberGeocode(query, []);
-                return [];
-            }
+            if (!gos || gos.getLength() === 0) { this._rememberGeocode(query, []); return []; }
             const variants = [];
             for (let i = 0; i < gos.getLength(); i++) {
                 const g = gos.get(i);
@@ -343,9 +303,7 @@ export class YandexPvzWidget {
             { hintContent: address, balloonContent: html },
             { preset: "islands#redIcon", draggable: true }
         );
-        try {
-            fresh.properties.set("ydwDoor", true);
-        } catch {}
+        try { fresh.properties.set("ydwDoor", true); } catch {}
 
         fresh.events.add("dragend", async () => {
             const newCoords = fresh.geometry.getCoordinates();
@@ -354,20 +312,13 @@ export class YandexPvzWidget {
 
         this.map.geoObjects.add(fresh);
         this._doorPlacemark = fresh;
-        try {
-            fresh.balloon.open();
-        } catch {}
+        try { fresh.balloon.open(); } catch {}
         this._wireDoorChooseOnce(coords);
 
         if (prev && prev !== fresh) {
-            try {
-                prev.balloon?.close?.();
-            } catch {}
-            try {
-                this.map.geoObjects.remove(prev);
-            } catch {}
+            try { prev.balloon?.close?.(); } catch {}
+            try { this.map.geoObjects.remove(prev); } catch {}
         }
-
         this._purgeOldDoorPlacemarks(fresh);
         this.map?.panTo(coords, { duration: 300 });
     }
@@ -397,47 +348,42 @@ export class YandexPvzWidget {
 
     async _resolveAddress(coords) {
         const [lat, lon] = coords;
-
-        // apiGet у тебя возвращает JSON, поэтому читаем как JSON.
         try {
-            const info = await apiGet(`/delivery/yandex/reverse-geocode?lat=${lat}&lon=${lon}`);
-            if (info?.formatted) return info.formatted;
+            const r = await apiGet(`/delivery/yandex/reverse-geocode?lat=${lat}&lon=${lon}`);
+            if (r.ok) {
+                const info = await r.json();
+                if (info?.formatted) return info.formatted;
+            }
         } catch {}
-
-        // fallback geocode from ymaps
         try {
             const g = await ymaps.geocode(coords, { results: 1 });
             const first = g.geoObjects.get(0);
             return first?.getAddressLine?.() || "";
         } catch {}
-
         return "";
     }
 
     _doorBalloonHtml(address) {
         return `
-      <div style="font-size:13px;line-height:1.35;max-width:260px">
-        <div style="font-weight:600;margin-bottom:4px">Доставка курьером</div>
-        <div style="margin-bottom:6px">${this._escape(address)}</div>
-        <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
-          <button class="ydw-choose-door"
-                  style="padding:6px 10px;border:0;border-radius:8px;background:#ef4444;color:#fff;cursor:pointer;">
-            Выбрать этот адрес
-          </button>
+        <div style="font-size:13px;line-height:1.35;max-width:260px">
+            <div style="font-weight:600;margin-bottom:4px">Доставка курьером</div>
+            <div style="margin-bottom:6px">${this._escape(address)}</div>
+            <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
+                <button class="ydw-choose-door"
+                        style="padding:6px 10px;border:0;border-radius:8px;background:#ef4444;color:#fff;cursor:pointer;">
+                    Выбрать этот адрес
+                </button>
+            </div>
         </div>
-      </div>
-    `;
+        `;
     }
 
     _removeDoorPlacemark() {
         if (this._doorPlacemark) {
-            try {
-                this.map.geoObjects.remove(this._doorPlacemark);
-            } catch {}
+            try { this.map.geoObjects.remove(this._doorPlacemark); } catch {}
             this._doorPlacemark = null;
             this._doorAddress = "";
         }
-        this._hideDelivery();
     }
 
     _purgeOldDoorPlacemarks(keep) {
@@ -445,12 +391,8 @@ export class YandexPvzWidget {
         try {
             this.map.geoObjects.each((obj) => {
                 if (obj && obj.properties && obj.properties.get("ydwDoor") && obj !== keep) {
-                    try {
-                        obj.balloon?.close?.();
-                    } catch {}
-                    try {
-                        this.map.geoObjects.remove(obj);
-                    } catch {}
+                    try { obj.balloon?.close?.(); } catch {}
+                    try { this.map.geoObjects.remove(obj); } catch {}
                 }
             });
         } catch {}
@@ -487,28 +429,27 @@ export class YandexPvzWidget {
                 properties: { hintContent: p.name, balloonContent: this._balloonHtml(p) },
             };
         });
-
         this.manager.add({ type: "FeatureCollection", features });
     }
 
     _balloonHtml(p) {
         return `
-      <div style="font-size:13px;line-height:1.35;max-width:260px">
-        <div style="font-weight:600;margin-bottom:4px">${this._escape(p.name)}</div>
-        <div style="margin-bottom:6px">${this._escape(p.address)}</div>
+            <div style="font-size:13px;line-height:1.35;max-width:260px">
+              <div style="font-weight:600;margin-bottom:4px">${this._escape(p.name)}</div>
+              <div style="margin-bottom:6px">${this._escape(p.address)}</div>
 
-        ${p.phone ? `<div style="margin-bottom:4px">☎ ${this._escape(p.phone)}</div>` : ""}
-        ${p.schedule ? `<div style="margin-bottom:4px">🕒 ${this._escape(p.schedule)}</div>` : ""}
-        ${p.dayoffs ? `<div style="margin-bottom:4px">❌ ${this._escape(p.dayoffs)}</div>` : ""}
+              ${p.phone ? `<div style="margin-bottom:4px">☎ ${this._escape(p.phone)}</div>` : ""}
+              ${p.schedule ? `<div style="margin-bottom:4px">🕒 ${this._escape(p.schedule)}</div>` : ""}
+              ${p.dayoffs ? `<div style="margin-bottom:4px">❌ ${this._escape(p.dayoffs)}</div>` : ""}
 
-        <div style="margin-top:8px;display:flex;justify-content:flex-end">
-          <button class="ydw-choose-btn" data-id="${this._escape(p.id)}"
-                  style="padding:6px 10px;border:0;border-radius:8px;background:#10b981;color:#fff;cursor:pointer;">
-            Выбрать
-          </button>
-        </div>
-      </div>
-    `;
+              <div style="margin-top:8px;display:flex;justify-content:flex-end">
+                <button class="ydw-choose-btn" data-id="${this._escape(p.id)}"
+                        style="padding:6px 10px;border:0;border-radius:8px;background:#10b981;color:#fff;cursor:pointer;">
+                  Выбрать
+                </button>
+              </div>
+            </div>
+          `;
     }
 
     _select(id, openBalloon = false) {
@@ -518,33 +459,27 @@ export class YandexPvzWidget {
         const prev = this._selectedId;
         if (prev === id) return;
 
+        // Clear any courier pin when selecting PVZ
         this._removeDoorPlacemark();
 
         if (this.manager) {
             if (prev) this.manager.objects.setObjectOptions(prev, { preset: this.preset.default });
             this.manager.objects.setObjectOptions(id, { preset: this.preset.active });
         }
-
         const p = this._pointsById.get(id);
         this.map?.panTo(p.coords, { duration: 300 });
         this._selectedId = id;
-
         if (openBalloon) {
-            try {
-                this.manager.objects.balloon.close();
-            } catch {}
+            try { this.manager.objects.balloon.close(); } catch {}
             setTimeout(() => this.manager.objects.balloon.open(id), 0);
         }
     }
 
     _clearSelection() {
-        this._hideDelivery();
         const prev = this._selectedId;
         if (prev && this.manager) this.manager.objects.setObjectOptions(prev, { preset: this.preset.default });
         this._selectedId = null;
-        try {
-            this.manager?.objects?.balloon?.close();
-        } catch {}
+        try { this.manager?.objects?.balloon?.close(); } catch {}
     }
 
     async _emitChoosePVZ() {
@@ -566,36 +501,38 @@ export class YandexPvzWidget {
         this.options.onChoose?.(p, enriched);
     }
 
+    _emitChooseDoor(coords, address) {
+        const payload = { deliveryMode: "time_interval", coords, address: address || "" };
+        this.options.onChoose?.(null, payload);
+    }
+
     /* -------------------------- CALCULATE интеграция -------------------------- */
 
     async _calcDelivery(destinationPayload) {
         const order = (typeof this.options.getOrderData === "function" ? this.options.getOrderData() : null) || null;
-
         const body = {
-            delivery_mode: destinationPayload.deliveryMode,
+            delivery_mode: destinationPayload.deliveryMode, // "self_pickup" | "time_interval"
 
-            destination:
-                destinationPayload.deliveryMode === "self_pickup"
-                    ? { platform_station_id: String(destinationPayload.code ?? "") }
-                    : { address: String(destinationPayload.address ?? "") },
+            destination: destinationPayload.deliveryMode === "self_pickup"
+                ? { platform_station_id: String(destinationPayload.code ?? "") }
+                : { address: String(destinationPayload.address ?? "") },
 
             total_weight: Math.max(1, Number(order?.total_weight ?? 0) | 0),
+
             total_assessed_price: Math.max(0, Number(order?.total_assessed_price ?? 0) | 0),
             client_price: Math.max(0, Number(order?.client_price ?? 0) | 0),
 
             payment_method: order?.payment_method === "card_on_receipt" ? "card_on_receipt" : "already_paid",
 
             places: Array.isArray(order?.places)
-                ? order.places.map((p) => ({
+                ? order.places.map(p => ({
                     physical_dims: {
                         dx: Math.max(1, Number(p?.physical_dims?.dx ?? 0) | 0),
                         dy: Math.max(1, Number(p?.physical_dims?.dy ?? 0) | 0),
                         dz: Math.max(1, Number(p?.physical_dims?.dz ?? 0) | 0),
                         weight_gross: Math.max(1, Number(p?.physical_dims?.weight_gross ?? 0) | 0),
-                        ...(p?.physical_dims?.predefined_volume
-                            ? { predefined_volume: Math.max(1, Number(p.physical_dims.predefined_volume) | 0) }
-                            : {}),
-                    },
+                        ...(p?.physical_dims?.predefined_volume ? { predefined_volume: Math.max(1, Number(p.physical_dims.predefined_volume) | 0) } : {}),
+                    }
                 }))
                 : [],
 
@@ -605,28 +542,16 @@ export class YandexPvzWidget {
 
         const calc = await withLoader(async () => {
             try {
-                const res = await apiPost(this.options.calculateUrl, body);
-
-                // apiPost может возвращать либо JSON, либо fetch Response — поддержим оба.
-                if (res && typeof res === "object" && typeof res.json === "function") {
-                    const data = await res.json().catch(() => ({}));
-                    if (!res.ok) throw new Error(data?.detail || "calculate failed");
-                    if (!data?.ok) throw new Error(data?.detail || "calculate failed");
-                    return data;
-                }
-
-                // JSON already
-                const data = res ?? {};
-                if (!data?.ok) throw new Error(data?.detail || "calculate failed");
+                const r = await apiPost(this.options.calculateUrl, body);
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(data?.detail || "calculate failed");
                 return data;
             } catch (e) {
                 return { ok: false, error: String(e?.message || e) };
             }
         });
 
-        const enriched = { ...destinationPayload, calc };
-        this._showDelivery(enriched);
-        return enriched;
+        return { ...destinationPayload, calc };
     }
 
     /* ------------------------------ Formatting ------------------------------- */
@@ -636,23 +561,19 @@ export class YandexPvzWidget {
         const dayNames = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
         const pad = (n) => String(n).padStart(2, "0");
         const fmt = (t) => `${pad(t?.hours ?? 0)}:${pad(t?.minutes ?? 0)}`;
-        return schedule.restrictions
-            .map((r) => {
-                const days = (r.days ?? []).map((d) => dayNames[d - 1]).join(", ");
-                return `${days || "—"}: ${fmt(r.time_from)}–${fmt(r.time_to)}`;
-            })
-            .join(" · ");
+        return schedule.restrictions.map((r) => {
+            const days = (r.days ?? []).map((d) => dayNames[d - 1]).join(", ");
+            return `${days || "—"}: ${fmt(r.time_from)}–${fmt(r.time_to)}`;
+        }).join(" · ");
     }
 
     _formatDayoffs(dayoffs) {
         if (!Array.isArray(dayoffs) || !dayoffs.length) return "";
         const opts = { day: "2-digit", month: "2-digit" };
-        const formatted = dayoffs
-            .map((d) => {
-                const dt = d.date_utc ? new Date(d.date_utc) : new Date((d.date ?? 0) * 1000);
-                return isNaN(dt) ? "" : dt.toLocaleDateString("ru-RU", opts);
-            })
-            .filter(Boolean);
+        const formatted = dayoffs.map((d) => {
+            const dt = d.date_utc ? new Date(d.date_utc) : new Date((d.date ?? 0) * 1000);
+            return isNaN(dt) ? "" : dt.toLocaleDateString("ru-RU", opts);
+        }).filter(Boolean);
         return formatted.length ? `Выходные: ${formatted.join(", ")}` : "";
     }
 
@@ -660,83 +581,12 @@ export class YandexPvzWidget {
         return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    _toast(msg) {
-        console.info(msg);
-    }
-
-    /* ----------------------- Delivery panel UI helpers ----------------------- */
-
-    _parsePriceRub(pricingTotal) {
-        // backend может вернуть "240 RUB" (строка) или число/копейки в будущем
-        if (pricingTotal == null) return 0;
-
-        if (typeof pricingTotal === "number") {
-            // если вдруг это копейки — будет слишком большое; но у тебя сейчас строка, так что ок.
-            // считаем, что это уже RUB.
-            return Math.round(pricingTotal);
-        }
-
-        const s = String(pricingTotal).trim();
-        // "240 RUB", "240", "240.5 RUB"
-        const m = s.match(/(\d+(?:[.,]\d+)?)/);
-        if (!m) return 0;
-        const v = Number(m[1].replace(",", "."));
-        return Number.isFinite(v) ? Math.round(v) : 0;
-    }
-
-    _showDelivery(enriched) {
-        if (!this.deliveryEl || !this.deliveryBodyEl) return;
-
-        const calc = enriched?.calc;
-
-        if (!calc?.ok) {
-            const err = calc?.error || calc?.detail || "Не удалось рассчитать доставку";
-            this.deliveryBodyEl.innerHTML = `❌ ${this._escape(err)}`;
-            this.deliveryEl.style.display = "block";
-            return;
-        }
-
-        const priceRub = this._parsePriceRub(calc?.price?.pricing_total);
-        const days = calc?.delivery_days;
-
-        const daysText =
-            Array.isArray(days) && days.length === 2
-                ? `${days[0]}–${days[1]} дн.`
-                : typeof days === "number"
-                    ? `~${days} дн.`
-                    : "";
-
-        const modeTitle = enriched?.deliveryMode === "self_pickup" ? "Самовывоз (ПВЗ)" : "Курьер";
-        const pointLine =
-            enriched?.deliveryMode === "self_pickup" && enriched?.name
-                ? `<div style="opacity:.85">${this._escape(enriched.name)}</div>`
-                : "";
-
-        this.deliveryBodyEl.innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <div><b>${this._escape(modeTitle)}</b></div>
-        ${pointLine}
-        <div>💰 Цена: <b>${priceRub} ₽</b></div>
-        ${daysText ? `<div>📦 Срок: ${this._escape(daysText)}</div>` : ""}
-      </div>
-    `;
-        this.deliveryEl.style.display = "block";
-    }
-
-    _hideDelivery() {
-        if (!this.deliveryEl) return;
-        this.deliveryEl.style.display = "none";
-        if (this.deliveryBodyEl) this.deliveryBodyEl.innerHTML = "";
-    }
+    _toast(msg) { console.info(msg); }
 
     destroy() {
         this._removeDoorPlacemark();
-        try {
-            this.manager?.removeAll();
-        } catch {}
-        try {
-            this.map?.destroy?.();
-        } catch {}
+        try { this.manager?.removeAll(); } catch {}
+        try { this.map?.destroy?.(); } catch {}
         this.map = null;
         this.manager = null;
         this.root.innerHTML = "";
