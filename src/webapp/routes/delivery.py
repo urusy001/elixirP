@@ -284,7 +284,7 @@ async def yandex_availability(req: AvailabilityRequest):
         "forbid_unboxing": False,
     }
 
-    url = f"{YANDEX_DELIVERY_BASE_URL}/offers/create"
+    url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/offers/create"
     headers = {
         "Authorization": f"Bearer {YANDEX_DELIVERY_TOKEN}",
         "Accept": "application/json",
