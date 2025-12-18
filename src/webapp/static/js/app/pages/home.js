@@ -1,8 +1,13 @@
-import {searchProducts} from "../../services/productService.js";
-import {hideLoader, showLoader, withLoader} from "../ui/loader.js";
-import {navigateTo} from "../router.js";
-import {saveCart, state} from "../state.js";
-import {hideBackButton, hideMainButton, showBackButton, showMainButton} from "../ui/telegram.js";
+import { searchProducts } from "../../services/productService.js";
+import { hideLoader, showLoader, withLoader } from "../ui/loader.js";
+import { navigateTo } from "../router.js";
+import { saveCart, state } from "../state.js";
+import {
+    hideBackButton,
+    hideMainButton,
+    showBackButton,
+    showMainButton,
+} from "../ui/telegram.js";
 import {
     cartPageEl,
     checkoutPageEl,
@@ -10,14 +15,17 @@ import {
     detailEl,
     headerTitle,
     listEl,
-    navBottomEl, orderDetailEl, ordersPageEl,
+    navBottomEl,
+    orderDetailEl,
+    ordersPageEl,
     paymentPageEl,
-    processPaymentEl, profilePageEl,
+    processPaymentEl,
+    profilePageEl,
     searchBtnEl,
     toolbarEl,
-    tosOverlayEl
+    tosOverlayEl,
 } from "./constants.js";
-import {apiPost, apiGet} from "../../services/api.js";
+import { apiPost, apiGet } from "../../services/api.js";
 
 let page = 0;
 let loading = false;
@@ -26,8 +34,8 @@ let mode = "home";
 /* =========================
    TG CATEGORIES (FILTERS)
    ========================= */
-let tgCategoriesCache = null;             // [{id,name,description}]
-let selectedTgCategoryIds = new Set();    // Set<number>
+let tgCategoriesCache = null; // [{id,name,description}]
+let selectedTgCategoryIds = new Set(); // Set<number>
 let filterUiBound = false;
 
 function getSelectedCategoryIdsArray() {
@@ -35,12 +43,15 @@ function getSelectedCategoryIdsArray() {
 }
 
 async function fetchTgCategories() {
-    // MUST exist on backend: GET /tg-categories/
     const res = await apiGet("/tg-categories/");
-    const items = Array.isArray(res) ? res : (res?.data || res?.categories || []);
+    const items = Array.isArray(res) ? res : res?.data || res?.categories || [];
     return items
-        .map(c => ({ id: Number(c.id), name: String(c.name ?? ""), description: c.description ?? null }))
-        .filter(c => Number.isFinite(c.id) && c.name.trim().length > 0);
+        .map((c) => ({
+            id: Number(c.id),
+            name: String(c.name ?? ""),
+            description: c.description ?? null,
+        }))
+        .filter((c) => Number.isFinite(c.id) && c.name.trim().length > 0);
 }
 
 function ensureCategoryFilterOverlay() {
@@ -50,50 +61,47 @@ function ensureCategoryFilterOverlay() {
     overlay = document.createElement("div");
     overlay.id = "tgcat-overlay";
     overlay.style.cssText = `
-        position: fixed;
-        inset: 0;
-        display: none;
-        align-items: flex-end;
-        justify-content: center;
-        background: rgba(0,0,0,0.35);
-        z-index: 9999;
-        padding: 12px;
-    `;
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgba(0,0,0,0.35);
+    z-index: 9999;
+    padding: 12px;
+  `;
 
     overlay.innerHTML = `
-        <div
-            id="tgcat-modal"
-            style="
-                width: 100%;
-                max-width: 520px;
-                background: #fff;
-                border-radius: 16px;
-                overflow: hidden;
-                box-shadow: 0 12px 40px rgba(0,0,0,0.18);
-                display: flex;
-                flex-direction: column;
-                max-height: 78vh;
-            "
-        >
-            <div style="padding: 12px 14px; border-bottom: 1px solid #eef2f7; display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                <div style="font-weight:700; font-size: 15px; color:#111827;">Категории</div>
-                <button id="tgcat-close" type="button" style="border:none; background:transparent; font-size:18px; line-height:1; cursor:pointer;">✕</button>
-            </div>
+    <div
+      id="tgcat-modal"
+      style="
+        width: 100%;
+        max-width: 520px;
+        background: #fff;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+        display: flex;
+        flex-direction: column;
+        max-height: 78vh;
+      "
+    >
+      <div style="padding: 12px 14px; border-bottom: 1px solid #eef2f7; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div style="font-weight:700; font-size: 15px; color:#111827;">Категории</div>
+        <button id="tgcat-close" type="button" style="border:none; background:transparent; font-size:18px; line-height:1; cursor:pointer;">✕</button>
+      </div>
 
-            <div id="tgcat-list" style="padding: 10px 14px; overflow:auto;">
-                <div style="color:#6b7280; font-size: 13px;">Загрузка…</div>
-            </div>
+      <div id="tgcat-list" style="padding: 10px 14px; overflow:auto;">
+        <div style="color:#6b7280; font-size: 13px;">Загрузка…</div>
+      </div>
 
-            <div style="padding: 12px 14px; border-top: 1px solid #eef2f7; display:flex; gap:10px; justify-content:flex-end;">
-                <button id="tgcat-reset" type="button" style="border:1px solid #e5e7eb; background:#fff; padding:10px 12px; border-radius: 12px; cursor:pointer; font-weight:600;">
-                    Сбросить
-                </button>
-                <button id="tgcat-apply" type="button" style="border:none; background:#111827; color:#fff; padding:10px 12px; border-radius: 12px; cursor:pointer; font-weight:700;">
-                    Применить
-                </button>
-            </div>
-        </div>
-    `;
+      <div style="padding: 12px 14px; border-top: 1px solid #eef2f7; display:flex; gap:10px; justify-content:flex-end;">
+        <button id="tgcat-reset" type="button" style="border:1px solid #e5e7eb; background:#fff; padding:10px 12px; border-radius: 12px; cursor:pointer; font-weight:600;">
+          Сбросить
+        </button>
+      </div>
+    </div>
+  `;
 
     document.body.appendChild(overlay);
     return overlay;
@@ -115,44 +123,56 @@ function renderCategoriesChecklist(categories) {
         return;
     }
 
-    const rows = categories.map(c => {
-        const checked = selectedTgCategoryIds.has(Number(c.id)) ? "checked" : "";
-        const desc = c.description ? `<div style="color:#6b7280; font-size:12px; margin-top:2px;">${escapeHtml(c.description)}</div>` : "";
-        return `
-            <label
-                style="
-                    display:flex;
-                    gap:10px;
-                    padding:10px 8px;
-                    border:1px solid #eef2f7;
-                    border-radius:12px;
-                    margin-bottom:8px;
-                    cursor:pointer;
-                    align-items:flex-start;
-                "
-            >
-                <input
-                    type="checkbox"
-                    class="tgcat-checkbox"
-                    data-id="${c.id}"
-                    ${checked}
-                    style="margin-top: 2px;"
-                />
-                <div style="min-width:0;">
-                    <div style="font-weight:700; font-size: 14px; color:#111827;">${escapeHtml(c.name)}</div>
-                    ${desc}
-                </div>
-            </label>
-        `;
-    }).join("");
-
-    list.innerHTML = rows;
+    list.innerHTML = categories
+        .map((c) => {
+            const checked = selectedTgCategoryIds.has(Number(c.id)) ? "checked" : "";
+            const desc = c.description
+                ? `<div style="color:#6b7280; font-size:12px; margin-top:2px;">${escapeHtml(
+                    c.description
+                )}</div>`
+                : "";
+            return `
+        <label
+          style="
+            display:flex;
+            gap:10px;
+            padding:10px 8px;
+            border:1px solid #eef2f7;
+            border-radius:12px;
+            margin-bottom:8px;
+            cursor:pointer;
+            align-items:flex-start;
+          "
+        >
+          <input
+            type="checkbox"
+            class="tgcat-checkbox"
+            data-id="${c.id}"
+            ${checked}
+            style="margin-top: 2px;"
+          />
+          <div style="min-width:0;">
+            <div style="font-weight:700; font-size: 14px; color:#111827;">${escapeHtml(
+                c.name
+            )}</div>
+            ${desc}
+          </div>
+        </label>
+      `;
+        })
+        .join("");
 }
 
 async function openCategoryFilterOverlay() {
     const overlay = ensureCategoryFilterOverlay();
     overlay.style.display = "flex";
     document.body.style.overflow = "hidden";
+
+    // ✅ MainButton = APPLY
+    showMainButton("Применить", async () => {
+        await applyCategoryFilterFromOverlay();
+        hideMainButton();
+    });
 
     try {
         if (!tgCategoriesCache) tgCategoriesCache = await fetchTgCategories();
@@ -169,14 +189,35 @@ function closeCategoryFilterOverlay() {
     if (!overlay) return;
     overlay.style.display = "none";
     document.body.style.overflow = "";
+    hideMainButton(); // ✅ hide Apply button
+}
+
+async function applyCategoryFilterFromOverlay() {
+    const checkboxes = Array.from(document.querySelectorAll(".tgcat-checkbox"));
+    const next = new Set();
+    for (const cb of checkboxes) {
+        if (cb.checked) next.add(Number(cb.dataset.id));
+    }
+    selectedTgCategoryIds = next;
+    setFilterBtnBadge();
+    closeCategoryFilterOverlay();
+
+    if (mode === "favourites") {
+        await withLoader(openFavouritesPage);
+    } else {
+        page = 0;
+        await withLoader(async () => {
+            await loadMore(listEl, false, false);
+        });
+    }
 }
 
 /* =========================
    SORT (A-Z / Z-A / PRICE)
    ========================= */
 let sortUiBound = false;
-let sortBy = "name";   // "name" | "price"
-let sortDir = "asc";   // "asc" | "desc"
+let sortBy = "name"; // "name" | "price"
+let sortDir = "asc"; // "asc" | "desc"
 
 function setSortBtnLabel() {
     const btn = document.getElementById("sort-btn");
@@ -196,47 +237,39 @@ function ensureSortOverlay() {
     overlay = document.createElement("div");
     overlay.id = "sort-overlay";
     overlay.style.cssText = `
-        position: fixed;
-        inset: 0;
-        display: none;
-        align-items: flex-end;
-        justify-content: center;
-        background: rgba(0,0,0,0.35);
-        z-index: 9999;
-        padding: 12px;
-    `;
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgba(0,0,0,0.35);
+    z-index: 9999;
+    padding: 12px;
+  `;
 
     overlay.innerHTML = `
-        <div
-            id="sort-modal"
-            style="
-                width: 100%;
-                max-width: 520px;
-                background: #fff;
-                border-radius: 16px;
-                overflow: hidden;
-                box-shadow: 0 12px 40px rgba(0,0,0,0.18);
-                display: flex;
-                flex-direction: column;
-                max-height: 70vh;
-            "
-        >
-            <div style="padding: 12px 14px; border-bottom: 1px solid #eef2f7; display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                <div style="font-weight:700; font-size: 15px; color:#111827;">Сортировка</div>
-                <button id="sort-close" type="button" style="border:none; background:transparent; font-size:18px; line-height:1; cursor:pointer;">✕</button>
-            </div>
+    <div
+      id="sort-modal"
+      style="
+        width: 100%;
+        max-width: 520px;
+        background: #fff;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+        display: flex;
+        flex-direction: column;
+        max-height: 70vh;
+      "
+    >
+      <div style="padding: 12px 14px; border-bottom: 1px solid #eef2f7; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div style="font-weight:700; font-size: 15px; color:#111827;">Сортировка</div>
+        <button id="sort-close" type="button" style="border:none; background:transparent; font-size:18px; line-height:1; cursor:pointer;">✕</button>
+      </div>
 
-            <div style="padding: 10px 14px; overflow:auto;" id="sort-list">
-                <!-- injected -->
-            </div>
-
-            <div style="padding: 12px 14px; border-top: 1px solid #eef2f7; display:flex; gap:10px; justify-content:flex-end;">
-                <button id="sort-apply" type="button" style="border:none; background:#111827; color:#fff; padding:10px 12px; border-radius: 12px; cursor:pointer; font-weight:700;">
-                    Применить
-                </button>
-            </div>
-        </div>
-    `;
+      <div style="padding: 10px 14px; overflow:auto;" id="sort-list"></div>
+    </div>
+  `;
 
     document.body.appendChild(overlay);
     return overlay;
@@ -253,15 +286,17 @@ function renderSortOptions() {
         { id: "price_desc", label: "По цене (дороже → дешевле)", by: "price", dir: "desc" },
     ];
 
-    list.innerHTML = options.map(o => {
-        const checked = (sortBy === o.by && sortDir === o.dir) ? "checked" : "";
-        return `
-            <label style="display:flex; gap:10px; padding:10px 8px; border:1px solid #eef2f7; border-radius:12px; margin-bottom:8px; cursor:pointer;">
-                <input type="radio" name="sortmode" value="${o.id}" ${checked} />
-                <div style="font-weight:700; font-size:14px; color:#111827;">${o.label}</div>
-            </label>
-        `;
-    }).join("");
+    list.innerHTML = options
+        .map((o) => {
+            const checked = sortBy === o.by && sortDir === o.dir ? "checked" : "";
+            return `
+        <label style="display:flex; gap:10px; padding:10px 8px; border:1px solid #eef2f7; border-radius:12px; margin-bottom:8px; cursor:pointer;">
+          <input type="radio" name="sortmode" value="${o.id}" ${checked} />
+          <div style="font-weight:700; font-size:14px; color:#111827;">${o.label}</div>
+        </label>
+      `;
+        })
+        .join("");
 }
 
 async function openSortOverlay() {
@@ -269,6 +304,12 @@ async function openSortOverlay() {
     renderSortOptions();
     overlay.style.display = "flex";
     document.body.style.overflow = "hidden";
+
+    // ✅ MainButton = APPLY
+    showMainButton("Применить", async () => {
+        await applySortFromOverlay();
+        hideMainButton();
+    });
 }
 
 function closeSortOverlay() {
@@ -276,6 +317,36 @@ function closeSortOverlay() {
     if (!overlay) return;
     overlay.style.display = "none";
     document.body.style.overflow = "";
+    hideMainButton(); // ✅ hide Apply button
+}
+
+async function applySortFromOverlay() {
+    const picked = document.querySelector('input[name="sortmode"]:checked')?.value;
+    if (picked === "price_asc") {
+        sortBy = "price";
+        sortDir = "asc";
+    } else if (picked === "price_desc") {
+        sortBy = "price";
+        sortDir = "desc";
+    } else if (picked === "name_desc") {
+        sortBy = "name";
+        sortDir = "desc";
+    } else {
+        sortBy = "name";
+        sortDir = "asc";
+    }
+
+    setSortBtnLabel();
+    closeSortOverlay();
+
+    if (mode === "favourites") {
+        await withLoader(openFavouritesPage);
+    } else {
+        page = 0;
+        await withLoader(async () => {
+            await loadMore(listEl, false, false);
+        });
+    }
 }
 
 /* =========================
@@ -291,46 +362,31 @@ function bindCategoryFilterUIOnce() {
         });
     }
 
-    document.addEventListener("click", async (e) => {
-        const overlay = document.getElementById("tgcat-overlay");
-        if (!overlay || overlay.style.display === "none") return;
+    document.addEventListener(
+        "click",
+        (e) => {
+            const overlay = document.getElementById("tgcat-overlay");
+            if (!overlay || overlay.style.display === "none") return;
 
-        const t = e.target;
+            const t = e.target;
 
-        if (t === overlay) {
-            closeCategoryFilterOverlay();
-            return;
-        }
-        if (t && t.id === "tgcat-close") {
-            closeCategoryFilterOverlay();
-            return;
-        }
-        if (t && t.id === "tgcat-reset") {
-            selectedTgCategoryIds.clear();
-            if (tgCategoriesCache) renderCategoriesChecklist(tgCategoriesCache);
-            setFilterBtnBadge();
-            return;
-        }
-        if (t && t.id === "tgcat-apply") {
-            const checkboxes = Array.from(document.querySelectorAll(".tgcat-checkbox"));
-            const next = new Set();
-            for (const cb of checkboxes) {
-                if (cb.checked) next.add(Number(cb.dataset.id));
+            if (t === overlay) {
+                closeCategoryFilterOverlay();
+                return;
             }
-            selectedTgCategoryIds = next;
-            setFilterBtnBadge();
-            closeCategoryFilterOverlay();
-
-            if (mode === "favourites") {
-                await withLoader(openFavouritesPage);
-            } else {
-                page = 0;
-                await withLoader(async () => {
-                    await loadMore(listEl, false, false);
-                });
+            if (t && t.id === "tgcat-close") {
+                closeCategoryFilterOverlay();
+                return;
             }
-        }
-    }, { passive: true });
+            if (t && t.id === "tgcat-reset") {
+                selectedTgCategoryIds.clear();
+                if (tgCategoriesCache) renderCategoriesChecklist(tgCategoriesCache);
+                setFilterBtnBadge();
+                return;
+            }
+        },
+        { passive: true }
+    );
 
     filterUiBound = true;
 }
@@ -345,40 +401,25 @@ function bindSortUIOnce() {
         });
     }
 
-    document.addEventListener("click", async (e) => {
-        const overlay = document.getElementById("sort-overlay");
-        if (!overlay || overlay.style.display === "none") return;
+    document.addEventListener(
+        "click",
+        (e) => {
+            const overlay = document.getElementById("sort-overlay");
+            if (!overlay || overlay.style.display === "none") return;
 
-        const t = e.target;
+            const t = e.target;
 
-        if (t === overlay) {
-            closeSortOverlay();
-            return;
-        }
-        if (t && t.id === "sort-close") {
-            closeSortOverlay();
-            return;
-        }
-        if (t && t.id === "sort-apply") {
-            const picked = document.querySelector('input[name="sortmode"]:checked')?.value;
-            if (picked === "price_asc") { sortBy = "price"; sortDir = "asc"; }
-            else if (picked === "price_desc") { sortBy = "price"; sortDir = "desc"; }
-            else if (picked === "name_desc") { sortBy = "name"; sortDir = "desc"; }
-            else { sortBy = "name"; sortDir = "asc"; }
-
-            setSortBtnLabel();
-            closeSortOverlay();
-
-            if (mode === "favourites") {
-                await withLoader(openFavouritesPage);
-            } else {
-                page = 0;
-                await withLoader(async () => {
-                    await loadMore(listEl, false, false);
-                });
+            if (t === overlay) {
+                closeSortOverlay();
+                return;
             }
-        }
-    }, { passive: true });
+            if (t && t.id === "sort-close") {
+                closeSortOverlay();
+                return;
+            }
+        },
+        { passive: true }
+    );
 
     sortUiBound = true;
 }
@@ -415,7 +456,7 @@ function productCardHTML(p) {
     const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
     const rawFeatures = Array.isArray(p.features) ? p.features : [];
 
-    const availableFeatures = rawFeatures.filter(f => {
+    const availableFeatures = rawFeatures.filter((f) => {
         const bal = Number(f.balance ?? 0);
         return bal > 0;
     });
@@ -428,17 +469,21 @@ function productCardHTML(p) {
     const defaultImgPath = "/static/images/product.png";
 
     const featureSelector = `
-        <select class="feature-select" data-onec-id="${onecId}">
-            ${sortedFeatures.map(f => `
-                <option value="${f.id}"
-                        data-price="${f.price}"
-                        data-balance="${Number(f.balance ?? 0)}"
-                        data-feature-img="/static/images/${f.id}.png">
-                    ${f.name} - ${f.price} ₽
-                </option>
-            `).join("")}
-        </select>
-    `;
+    <select class="feature-select" data-onec-id="${onecId}">
+      ${sortedFeatures
+        .map(
+            (f) => `
+        <option value="${f.id}"
+                data-price="${f.price}"
+                data-balance="${Number(f.balance ?? 0)}"
+                data-feature-img="/static/images/${f.id}.png">
+          ${f.name} - ${f.price} ₽
+        </option>
+      `
+        )
+        .join("")}
+    </select>
+  `;
 
     return `
     <div class="product-card">
@@ -447,13 +492,13 @@ function productCardHTML(p) {
           <img src="${productImgPath}"
                data-product-img="${productImgPath}"
                data-default-img="${defaultImgPath}"
-               alt="${p.name}"
+               alt="${escapeHtml(p.name)}"
                class="product-img"
                onerror="this.onerror=null; this.src='${defaultImgPath}';">
         </div>
       </a>
       <div class="product-info">
-        <span class="product-name">${p.name}</span>
+        <span class="product-name">${escapeHtml(p.name)}</span>
         ${featureSelector}
       </div>
       <button class="buy-btn" data-onec-id="${onecId}"></button>
@@ -504,8 +549,8 @@ function renderBuyCounter(btn, onecId) {
         const minus = document.createElement("button");
         minus.textContent = "−";
         minus.onclick = () => {
-            const current = state.cart[key] || 0;
-            const next = current - 1;
+            const cur = state.cart[key] || 0;
+            const next = cur - 1;
             if (next <= 0) delete state.cart[key];
             else state.cart[key] = next;
             saveCart();
@@ -520,9 +565,9 @@ function renderBuyCounter(btn, onecId) {
         plus.textContent = "+";
         plus.onclick = () => {
             const max = getMaxBalance();
-            const current = state.cart[key] || 0;
-            if (current >= max) return;
-            state.cart[key] = current + 1;
+            const cur = state.cart[key] || 0;
+            if (cur >= max) return;
+            state.cart[key] = cur + 1;
             saveCart();
             renderBuyCounter(btn, onecId);
         };
@@ -539,22 +584,22 @@ function renderBuyCounter(btn, onecId) {
 }
 
 function attachProductInteractions(container) {
-    container.querySelectorAll(".product-link").forEach(link => {
-        link.addEventListener("click", e => {
+    container.querySelectorAll(".product-link").forEach((link) => {
+        link.addEventListener("click", (e) => {
             e.preventDefault();
             const id = link.dataset.onecId;
             navigateTo(`/product/${id}`);
         });
     });
 
-    container.querySelectorAll(".feature-select").forEach(select => {
+    container.querySelectorAll(".feature-select").forEach((select) => {
         if (select.dataset.imageBound) return;
         updateCardImage(select);
         select.addEventListener("change", () => updateCardImage(select));
         select.dataset.imageBound = "1";
     });
 
-    container.querySelectorAll(".buy-btn").forEach(btn => {
+    container.querySelectorAll(".buy-btn").forEach((btn) => {
         if (btn.dataset.initialized) return;
         renderBuyCounter(btn, btn.dataset.onecId);
         btn.dataset.initialized = "1";
@@ -587,7 +632,7 @@ async function loadMore(container, append = false, useLoader = true) {
 
                 for (const p of rawResults) {
                     const features = Array.isArray(p.features) ? p.features : [];
-                    const hasStock = features.some(f => Number(f.balance ?? 0) > 0);
+                    const hasStock = features.some((f) => Number(f.balance ?? 0) > 0);
                     if (!hasStock) continue;
                     collected.push(p);
                 }
@@ -629,8 +674,8 @@ function setupInfiniteScroll(container) {
 
 async function getUser() {
     const initData = state.telegram.initData || "";
-    const payload = {initData};
-    const result = await apiPost('/auth', payload);
+    const payload = { initData };
+    const result = await apiPost("/auth", payload);
     state.user = result.user;
     return result.user;
 }
@@ -639,6 +684,7 @@ async function openHomePage() {
     mode = "home";
     hideMainButton();
     hideBackButton();
+
     navBottomEl.style.display = "flex";
     headerTitle.textContent = "Магазин ElixirPeptide";
     tosOverlayEl.style.display = "none";
@@ -669,6 +715,7 @@ async function openFavouritesPage() {
     mode = "favourites";
     hideMainButton();
     showBackButton();
+
     navBottomEl.style.display = "flex";
     headerTitle.textContent = "Избранное";
     tosOverlayEl.style.display = "none";
@@ -693,14 +740,14 @@ async function openFavouritesPage() {
     const favIds = state?.user?.favourites || [];
     if (!favIds.length) {
         listEl.innerHTML = `
-            <div style="grid-column:1 / -1; text-align:center; padding:24px 12px;">
-                <h2 style="margin-bottom:8px; font-size:18px;">У вас пока нет избранных товаров</h2>
-                <p style="margin:0; font-size:14px; color:#6b7280;">
-                    Нажимайте на сердечко на странице товара, чтобы добавить его в избранное.
-                </p>
-                <div id="empty-fav-lottie" style="margin-top:16px; max-width:220px; width:100%; height:220px; display:block; margin-left:auto; margin-right:auto; border-radius:12px; overflow:hidden;"></div>
-            </div>
-        `;
+      <div style="grid-column:1 / -1; text-align:center; padding:24px 12px;">
+        <h2 style="margin-bottom:8px; font-size:18px;">У вас пока нет избранных товаров</h2>
+        <p style="margin:0; font-size:14px; color:#6b7280;">
+          Нажимайте на сердечко на странице товара, чтобы добавить его в избранное.
+        </p>
+        <div id="empty-fav-lottie" style="margin-top:16px; max-width:220px; width:100%; height:220px; display:block; margin-left:auto; margin-right:auto; border-radius:12px; overflow:hidden;"></div>
+      </div>
+    `;
 
         const animContainer = document.getElementById("empty-fav-lottie");
         if (animContainer && window.lottie) {
@@ -734,7 +781,7 @@ async function openFavouritesPage() {
         return all.filter((p) => {
             const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
             const features = Array.isArray(p.features) ? p.features : [];
-            const hasStock = features.some(f => Number(f.balance ?? 0) > 0);
+            const hasStock = features.some((f) => Number(f.balance ?? 0) > 0);
             if (!hasStock) return false;
             return favSet.has(String(onecId));
         });
@@ -744,11 +791,11 @@ async function openFavouritesPage() {
         const results = await withLoader(fetchFn);
         if (!results.length) {
             listEl.innerHTML = `
-                <div style="grid-column:1 / -1; text-align:center; padding:24px 12px;">
-                    <h2 style="margin-bottom:8px; font-size:18px;">Не удалось загрузить избранные</h2>
-                    <p style="margin:0; font-size:14px; color:#6b7280;">Попробуйте позже.</p>
-                </div>
-            `;
+        <div style="grid-column:1 / -1; text-align:center; padding:24px 12px;">
+          <h2 style="margin-bottom:8px; font-size:18px;">Не удалось загрузить избранные</h2>
+          <p style="margin:0; font-size:14px; color:#6b7280;">Попробуйте позже.</p>
+        </div>
+      `;
             return;
         }
 
@@ -757,11 +804,11 @@ async function openFavouritesPage() {
     } catch (err) {
         console.error("[Favourites] load failed:", err);
         listEl.innerHTML = `
-            <div style="grid-column:1 / -1; text-align:center; padding:24px 12px;">
-                <h2 style="margin-bottom:8px; font-size:18px;">Ошибка загрузки избранных</h2>
-                <p style="margin:0; font-size:14px; color:#6b7280;">Пожалуйста, попробуйте позже.</p>
-            </div>
-        `;
+      <div style="grid-column:1 / -1; text-align:center; padding:24px 12px;">
+        <h2 style="margin-bottom:8px; font-size:18px;">Ошибка загрузки избранных</h2>
+        <p style="margin:0; font-size:14px; color:#6b7280;">Пожалуйста, попробуйте позже.</p>
+      </div>
+    `;
     }
 }
 
@@ -806,12 +853,12 @@ async function openTosOverlay(user) {
                 is_active: true,
                 user_id: user.tg_id,
                 name: "Начальная",
-                sum: 0.00,
-                delivery_sum: 0.00,
+                sum: 0.0,
+                delivery_sum: 0.0,
                 delivery_string: "Начальная",
-                commentary: "Начальная"
+                commentary: "Начальная",
             };
-            await apiPost('/cart/create', payload);
+            await apiPost("/cart/create", payload);
 
             const currentUser = state.user || user;
             if (currentUser) {
@@ -826,7 +873,8 @@ async function openTosOverlay(user) {
 
     if (tosBodyEl && !tosBodyEl.dataset.scrollBound) {
         tosBodyEl.addEventListener("scroll", () => {
-            const atBottom = tosBodyEl.scrollTop + tosBodyEl.clientHeight >= tosBodyEl.scrollHeight - 10;
+            const atBottom =
+                tosBodyEl.scrollTop + tosBodyEl.clientHeight >= tosBodyEl.scrollHeight - 10;
             if (!acceptMode && atBottom) setAcceptButton();
         });
         tosBodyEl.dataset.scrollBound = "1";
@@ -841,7 +889,7 @@ async function openTosOverlay(user) {
 
 export async function renderHomePage() {
     showLoader();
-    const user = state.user || await getUser();
+    const user = state.user || (await getUser());
     if (!user) {
         await openHomePage();
     } else {
@@ -855,7 +903,7 @@ export async function renderHomePage() {
 }
 
 export async function renderFavouritesPage() {
-    const user = state.user || await getUser();
+    const user = state.user || (await getUser());
     if (!user) {
         console.warn("[Favourites] invalid user (auth failed)");
     } else {
