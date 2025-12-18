@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 
@@ -16,7 +17,7 @@ from config import (
     NEW_BOT_TOKEN,
     NEW_ASSISTANT_ID,
     LOGS_DIR,
-    BOT_NAMES, NEW_OPENAI_API, PROFESSOR_OPENAI_API, PROFESSOR_ASSISTANT_ID,
+    BOT_NAMES, NEW_OPENAI_API, PROFESSOR_OPENAI_API, PROFESSOR_ASSISTANT_ID, MOSCOW_TZ,
 )
 from src.ai.bot.handlers import *
 from src.ai.bot.keyboards import user_keyboards
@@ -24,7 +25,7 @@ from src.ai.bot.middleware import ContextMiddleware
 from src.ai.client import ProfessorClient
 from src.helpers import split_text, MAX_TG_MSG_LEN
 from src.webapp import get_session
-from src.webapp.crud import get_users, create_user, update_user
+from src.webapp.crud import get_users, create_user, update_user, update_premium_requests
 from src.webapp.schemas import UserUpdate, UserCreate
 
 
@@ -243,5 +244,15 @@ async def run_dose_bot():
 
 
 async def run_new_bot():
+    async def _premium_worker():
+        while True:
+            async with get_session() as session: await update_premium_requests(session)
+            now = datetime.now(tz=MOSCOW_TZ)
+            if now.month == 12: next_month = datetime(now.year + 1, 1, 1, tzinfo=MOSCOW_TZ)
+            else: next_month = datetime(now.year, now.month + 1, 1, tzinfo=MOSCOW_TZ)
+            delay = (next_month - now).total_seconds()
+            await asyncio.sleep(delay)
+
+    asyncio.create_task(_premium_worker())
     await new_bot.delete_webhook(drop_pending_updates=False)
     await new_dp.start_polling(new_bot)

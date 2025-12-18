@@ -147,3 +147,12 @@ async def delete_user(db: AsyncSession, tg_id: int) -> bool:
     await db.delete(user)
     await db.commit()
     return True
+
+async def update_premium_requests(db: AsyncSession, value: int = 2) -> int:
+    result = await db.execute(
+        update(User)
+        .values(premium_requests=value)
+        .execution_options(synchronize_session=False)
+    )
+    await db.commit()
+    print(f"Updated {result.rowcount or 0} to add requests with {value}")
