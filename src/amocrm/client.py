@@ -490,7 +490,7 @@ class AsyncAmoCRM:
 
         await aiosmtplib.send(
             msg,
-            hostname="smtp.gmail.com",
+            hostname="smtp.timeweb.ru",
             port=465,
             start_tls=True,
             username=self.GMAIL_SMTP_USER,
