@@ -128,7 +128,12 @@ export class YandexPvzWidget {
         });
 
         const src = Array.isArray(all?.points) ? all.points : Array.isArray(all) ? all : [];
-        const points = src.map((p) => this._normalizePoint(p));
+
+        // --- FIX: Filter invalid points here ---
+        const points = src
+            .map((p) => this._normalizePoint(p))
+            .filter((p) => p !== null); // Remove failed normalizations
+
         this._drawPoints(points);
 
         if (points.length) {
@@ -430,20 +435,36 @@ export class YandexPvzWidget {
     /* ------------------------------- PVZ logic ------------------------------- */
 
     _normalizePoint(p) {
-        const safeId = `pvz_${p.id}`;
-        const addr = p.address ?? {};
+        // --- FIX: Ensure ID exists ---
+        const rawId = p.id || p.ID || `unknown_${Math.random().toString(36).slice(2)}`;
+        const safeId = `pvz_${rawId}`;
+
+        // --- FIX: Handle address polymorphism (string vs object) ---
+        let addressStr = "";
+        if (typeof p.address === 'string') {
+            addressStr = p.address;
+        } else if (p.address && typeof p.address === 'object') {
+            const addr = p.address;
+            addressStr = addr.full_address ||
+                [addr.region, addr.locality, addr.street, addr.house].filter(Boolean).join(", ");
+        }
+
+        // --- FIX: Validate Coords ---
         const lat = Number(p?.position?.latitude);
         const lon = Number(p?.position?.longitude);
 
+        // If coordinates are invalid, return null to be filtered out
+        if (isNaN(lat) || isNaN(lon)) return null;
+
         return {
             id: safeId,
-            rawId: p.id,
+            rawId: rawId,
             coords: [lat, lon], // [lat, lon] for map
             name: p.name ?? "Пункт выдачи заказов",
             phone: p.contact?.phone ?? "",
             schedule: this._formatSchedule(p.schedule),
             dayoffs: this._formatDayoffs(p.dayoffs),
-            address: addr.full_address || [addr.region, addr.locality, addr.street, addr.house].filter(Boolean).join(", "),
+            address: addressStr,
             type: p.type || "",
         };
     }
@@ -453,20 +474,27 @@ export class YandexPvzWidget {
         this.manager.removeAll();
         if (!Array.isArray(points) || !points.length) return;
 
-        const features = points.map((p) => {
+        const features = [];
+        const usedIds = new Set();
+
+        for (const p of points) {
+            // --- FIX: Deduplicate IDs to prevent ObjectManager crash ---
+            if (usedIds.has(p.id)) continue;
+            usedIds.add(p.id);
+
             this._pointsById.set(p.id, p);
 
             // IMPORTANT: GeoJSON coords for ObjectManager are [lon, lat]
             const [lat, lon] = p.coords;
             const geojsonCoords = [lon, lat];
 
-            return {
+            features.push({
                 type: "Feature",
                 id: p.id,
                 geometry: { type: "Point", coordinates: geojsonCoords },
                 properties: { hintContent: p.name, balloonContent: this._balloonHtml(p) },
-            };
-        });
+            });
+        }
 
         this.manager.add({ type: "FeatureCollection", features });
     }
