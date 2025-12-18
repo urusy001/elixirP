@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from aiogram import Router
 from aiogram.enums import ChatType
 from aiogram.filters import Command, CommandStart
@@ -68,27 +68,57 @@ async def handle_user_start(message: Message, state: FSMContext):
     if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ): return await message.answer(user_texts.banned_until.replace("Блокировка до 9999-12-31, п", "П").replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}'))
     return await message.answer(user_texts.greetings.replace('full_name', message.from_user.full_name), reply_markup=user_keyboards.main_menu)
 
-@new_user_router.message(user_states.AiStates.activate_code)
+@new_user_router.message(user_states.Ai.activate_code)
 async def handle_activate_code(message: Message, state: FSMContext):
     code = message.text.strip()
-    async with get_session() as session:
-        used_code = await get_used_code_by_code(session, code)
+    async with get_session() as session: used_code = await get_used_code_by_code(session, code)
     if used_code: await message.answer(f'Код {code} уже использован')
     else:
         from src.amocrm.client import amocrm
-        order_sum = await amocrm.get_valid_deal_email_for_ai(code)
+        order_sum, email, verif_code = await amocrm.get_valid_deal_price_and_email_verification_code_for_ai(code)
         if order_sum == "old": await message.answer('Для активации котов со старого сайта, пожалуйста, обратитесь к администрации')
-        elif isinstance(order_sum, (float, int)):
-            add_amount = round(order_sum/500, 2)
-            async with get_session() as session:
-                user = await get_user(session, 'tg_id', message.from_user.id)
-                user_update = UserUpdate(premium_requests=user.premium_requests+add_amount)
-                user = await update_user(session, message.from_user.id, user_update)
-                used_code_create = UsedCodeCreate(user_id=message.from_user.id, code=code, price=order_sum)
-                used_code = await create_used_code(session, used_code_create)
-            await message.answer(f'Вам успешно начислено {add_amount} запросов, на балансе теперь {user.premium_requests}')
+        elif order_sum == "not_found": await message.answer(f"Заказ не был найден по коду {code}")
+        elif isinstance(order_sum, (float, int)) and verif_code and email:
+            add_months = order_sum // 5000
+            if add_months > 0:
+                await state.update_data(verif_code=verif_code, add_months=add_months, failed=0, order_code=code, order_sum=order_sum)
+                await state.set_state(user_states.Ai.verif_code)
+                return await message.answer(f"На вашу почту {email} был отправлен код подтверждения. У вас есть 3 попытки чтобы ввести его правильно, иначе вы будете заблокированы на один день за попытку отгадать чужой код")
 
-    await handle_user_start(message, state)
+            else: await message.answer(f"Сожалеем, считываются заказы от 5000р. Каждые 5000р = 1 месяц")
+
+    return await handle_user_start(message, state)
+
+@new_user_router.message(user_states.Ai.verif_code)
+async def handle_verif_code(message: Message, state: FSMContext):
+    state_data = await state.get_data()
+    entered_code = message.text.strip()
+    verif_code = state_data.get("verif_code", None)
+    add_months = state_data.get("add_months", None)
+    order_code = state_data.get("order_code", None)
+    order_sum = state_data.get("order_sum", None)
+    failed = state_data.get("failed", 0)
+    if not (verif_code and add_months and order_code and order_sum):
+        await message.answer("Ошибка, начните заново")
+        await handle_user_start(message, state)
+
+    elif entered_code == f"{verif_code}":
+        async with get_session() as session:
+            user = await get_user(session, 'tg_id', message.from_user.id)
+            premium_until = user.premium_until
+            if user.premium_until <= datetime.now(tz=MOSCOW_TZ): premium_until = datetime.now(tz=MOSCOW_TZ) + timedelta(days=add_months)
+            else: premium_until += timedelta(days=add_months)
+            user_update = UserUpdate(premium_until=premium_until)
+            user = await update_user(session, message.from_user.id, user_update)
+            used_code_create = UsedCodeCreate(user_id=message.from_user.id, code=order_code, price=order_sum)
+            used_code = await create_used_code(session, used_code_create)
+        await message.answer(f'Вам успешно начислено {add_months} месяцев безлимита, он теперь действителен до {premium_until.date()}')
+        await handle_user_start(message, state)
+
+    else:
+        await message.answer(f"Код некорректный, осталось {3-failed} попыток")
+        await state.update_data(failed=failed + 1)
+
 
 @new_user_router.message(user_states.Registration.phone)
 async def handle_user_registration(message: Message, state: FSMContext, professor_bot, professor_client):
@@ -288,7 +318,7 @@ async def handle_user_call(call: CallbackQuery, state: FSMContext):
             await call.message.edit_text(user_texts.pick_premium, reply_markup=user_keyboards.back)
 
         elif data[1] == "activate_code":
-            await state.set_state(user_states.AiStates.activate_code)
+            await state.set_state(user_states.Ai.activate_code)
             await call.message.edit_text('Отправьте код <u>оплаченного</u> заказа, чтобы засчитать его сумму', reply_markup=user_keyboards.back)
 
     elif data[0] == "calculators": await call.message.edit_text(user_texts.calculators_start, reply_markup=user_keyboards.calculators_menu)
@@ -339,13 +369,13 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
         await state.update_data(assistant_id=assistant_id)
         await _notify_user(message, user_texts.pick_fallback_free, 10)
 
-    elif assistant_id == NEW_ASSISTANT_ID and user.premium_requests < 1: return await message.answer(user_texts.premium_limit_0, reply_markup=user_keyboards.only_free)
+    elif assistant_id == NEW_ASSISTANT_ID and user.premium_until < datetime.now(tz=MOSCOW_TZ) and user.premium_requests < 1: return await message.answer(user_texts.premium_limit_0, reply_markup=user_keyboards.only_free)
 
     response = await professor_client.send_message(message.text, user.thread_id, assistant_id)
     async with get_session() as session:
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens']),
         await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
-        if assistant_id == NEW_ASSISTANT_ID:
+        if assistant_id == NEW_ASSISTANT_ID and user.premium_until < datetime.now(tz=MOSCOW_TZ):
             user_update = UserUpdate(premium_requests=user.premium_requests-1)
             user = await update_user(session, message.from_user.id, user_update)
 

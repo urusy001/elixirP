@@ -424,8 +424,7 @@ class AsyncAmoCRM:
             )
 
             leads = (data.get("_embedded") or {}).get("leads") or []
-            if not leads:
-                return (None, None, None)
+            if not leads: return ("not_found", None, None)
 
             for lead in leads:
                 name = lead.get("name") or ""
@@ -433,18 +432,13 @@ class AsyncAmoCRM:
 
                 if status_id in self.COMPLETE_STATUS_IDS and rx.search(name):
                     raw_price = lead.get("price", None)
-                    if "ElixirPeptide" in name and not raw_price:
-                        price: PriceT = "old"
-                    else:
-                        price = int(raw_price) if raw_price else None
+                    if "ElixirPeptide" in name and not raw_price: price: PriceT = "old"
+                    else: price = int(raw_price) if raw_price else None
 
                     email = await self._extract_lead_email(lead)
-                    if not email:
-                        return (price, None, None)
+                    if not email: return (price, None, None)
 
                     verification_code = self._generate_6_digit_code()
-
-                    # send email (SMTP Gmail)
                     await self._send_verification_code_email(
                         to_email=email,
                         code=verification_code,
@@ -456,7 +450,7 @@ class AsyncAmoCRM:
 
             page += 1
 
-        return (None, None, None)
+        return ("not_found", None, None)
 
 
     def _generate_6_digit_code(self) -> str:

@@ -18,5 +18,6 @@ class Graph(StatesGroup):
     course_length_weeks = State()
     course_interval_days = State()
 
-class AiStates(StatesGroup):
+class Ai(StatesGroup):
     activate_code = State()
+    verif_code = State()
