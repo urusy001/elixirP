@@ -161,7 +161,7 @@ async def handle_verification_code(message: Message, state: FSMContext):
         async with get_session() as session:
             user = await get_user(session, 'tg_id', message.from_user.id)
             premium_until = user.premium_until
-            if user.premium_until <= datetime.now(tz=MOSCOW_TZ): premium_until = datetime.now(tz=MOSCOW_TZ) + timedelta(days=add_months)
+            if not user.premium_until or user.premium_until <= datetime.now(tz=MOSCOW_TZ): premium_until = datetime.now(tz=MOSCOW_TZ) + timedelta(days=add_months)
             else: premium_until += timedelta(days=add_months)
             user_update = UserUpdate(premium_until=premium_until)
             user = await update_user(session, message.from_user.id, user_update)
@@ -432,13 +432,12 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
         await state.update_data(assistant_id=assistant_id)
         await _notify_user(message, user_texts.pick_fallback_free, 10)
 
-    elif assistant_id == NEW_ASSISTANT_ID and user.premium_until < datetime.now(tz=MOSCOW_TZ) and user.premium_requests < 1: return await message.answer(user_texts.premium_limit_0, reply_markup=user_keyboards.only_free)
-
+    elif assistant_id == NEW_ASSISTANT_ID and (not user.premium_until or user.premium_until < datetime.now(tz=MOSCOW_TZ)) and user.premium_requests < 1: return await message.answer(user_texts.premium_limit_0, reply_markup=user_keyboards.only_free)
     response = await professor_client.send_message(message.text, user.thread_id, assistant_id)
     async with get_session() as session:
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens']),
         await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
-        if assistant_id == NEW_ASSISTANT_ID and user.premium_until < datetime.now(tz=MOSCOW_TZ):
+        if assistant_id == NEW_ASSISTANT_ID and (not user.premium_until or user.premium_until < datetime.now(tz=MOSCOW_TZ)):
             user_update = UserUpdate(premium_requests=user.premium_requests-1)
             user = await update_user(session, message.from_user.id, user_update)
 
