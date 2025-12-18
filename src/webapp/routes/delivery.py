@@ -61,6 +61,7 @@ async def reverse_geocode(
         lat: float = Query(...),
         lon: float = Query(...)
 ):
+    print('getocode')
     """
     1) Yandex Geocoder 1.x -> extract city name from coords
     2) Yandex B2B /location/detect -> return up to 2 variants as
@@ -212,14 +213,10 @@ async def get_pvz_all(
     }
 
     common_body: dict[str, Any] = {}
-    if geo_id is not None:
-        common_body["geo_id"] = geo_id
-    if lat_from is not None and lat_to is not None:
-        common_body["latitude"] = {"from": lat_from, "to": lat_to}
-    if lon_from is not None and lon_to is not None:
-        common_body["longitude"] = {"from": lon_from, "to": lon_to}
+    if geo_id is not None: common_body["geo_id"] = geo_id
+    if lat_from is not None and lat_to is not None: common_body["latitude"] = {"from": lat_from, "to": lat_to}
+    if lon_from is not None and lon_to is not None: common_body["longitude"] = {"from": lon_from, "to": lon_to}
 
-    # Нам нужны конечные точки выдачи: pickup_point (ПВЗ) + terminal (постаматы)
     async with httpx.AsyncClient(timeout=20.0) as client:
         points: list[dict[str, Any]] = []
         seen: set[str] = set()
@@ -227,17 +224,15 @@ async def get_pvz_all(
         for t in ("pickup_point", "terminal"):
             body = {**common_body, "type": t}
             r = await client.post(url, headers=headers, json=body)
-            if r.status_code >= 400:
-                raise HTTPException(status_code=502, detail=f"Yandex pickup-points/list error: {r.text}")
+            if r.status_code >= 400: raise HTTPException(status_code=502, detail=f"Yandex pickup-points/list error: {r.text}")
             data = r.json()
             for p in (data.get("points") or []):
                 pid = str(p.get("id") or p.get("ID") or "")
                 key = pid if pid else f'{t}:{p.get("operator_station_id")}'
-                if key in seen:
-                    continue
+                if key in seen: continue
                 seen.add(key)
 
-                # Нормализуем под твой фронт: p.id должен быть platform_station_id
+
                 p_out = {
                     "id": pid or p.get("ID"),  # ВАЖНО: это то, что пойдёт в destination.platform_station_id
                     "type": p.get("type") or t,
@@ -252,6 +247,8 @@ async def get_pvz_all(
                 }
                 points.append(p_out)
 
+    with open('points.json', 'w') as f:
+        json.dump({"points": points}, f, indent=4, ensure_ascii=False)
     return {"points": points}
 
 
