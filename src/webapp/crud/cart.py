@@ -14,6 +14,13 @@ async def get_cart_by_id(db: AsyncSession, cart_id: int) -> Optional[Cart]:
     )
     return result.scalar_one_or_none()
 
+async def get_carts(db: AsyncSession) -> Optional[list[Cart]]:
+    """Get a single cart by its ID."""
+    result = await db.execute(
+        select(Cart)
+    )
+    return result.all()
+
 
 async def get_user_carts(db: AsyncSession, user_id: int, is_active: Optional[bool] = None) -> Sequence[Cart]:
     """

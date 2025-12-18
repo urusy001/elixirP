@@ -13,6 +13,10 @@ from datetime import datetime, timedelta, UTC
 from urllib.parse import urlparse, parse_qs
 from playwright.async_api import async_playwright
 
+from src.webapp import get_session
+from src.webapp.crud import update_cart, get_carts
+from src.webapp.schemas import CartUpdate
+
 PriceT = Union[int, None, Literal["old"]]
 
 from config import (
@@ -570,6 +574,18 @@ class AsyncAmoCRM:
                     if isinstance(val, str) and "@" in val: return val.strip()
 
         return None
+
+    async def update_lead_status(self, cart_id: str | int):
+        status, is_active = await self.get_lead_status(cart_id)
+        cart_update = CartUpdate(status=status, is_active=is_active)
+        async with get_session() as session: await update_cart(session, cart_id, cart_update)
+        self.logger.info(f"Change {cart_id} to {status}")
+
+    async def update_carts(self):
+        self.logger.info("Updating carts")
+        async with get_session() as session: carts = await get_carts(session)
+        for cart in carts: await self.update_lead_status(cart.id)
+        self.logger.info(f"Finished updating {len(carts)} carts")
 
 # ---------- INSTANCE ----------
 amocrm = AsyncAmoCRM(

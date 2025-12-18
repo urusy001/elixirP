@@ -21,19 +21,12 @@ class CartBase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     is_active: bool = True
-
-    # DB: nullable=True, but your after_insert sets it.
-    # Keep it optional on input side; don't force user to send it.
+    status: str | None = None
     name: str | None = None
-
-    # DB: Numeric(8,2) NOT NULL default 0
     sum: Decimal = Field(default=ZERO_MONEY)
     delivery_sum: Decimal = Field(default=ZERO_MONEY)
     yandex_request_id: str | None = None
-    # DB: NOT NULL default "Не указан"
     delivery_string: str = "Не указан"
-
-    # DB: nullable
     commentary: str | None = None
 
 
@@ -45,9 +38,7 @@ class CartCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     user_id: int
-
-    # Optional because DB has defaults.
-    # If your API requires them, make them required by removing defaults.
+    status: str | None = None
     name: str | None = None
     is_active: bool = True
     sum: Decimal = Field(default=ZERO_MONEY)
@@ -65,7 +56,7 @@ class CartUpdate(BaseModel):
 
     is_active: bool | None = None
     name: str | None = None
-
+    status: str | None = None
     sum: Decimal | None = None
     delivery_sum: Decimal | None = None
     delivery_string: str | None = None
@@ -78,14 +69,10 @@ class CartRead(BaseModel):
     What API returns.
     """
     model_config = ConfigDict(from_attributes=True, extra="forbid")
-
-    # DB: BigInteger
     id: int
     user_id: int
-
-    # DB: nullable, but after_insert sets it — still safest to allow None
     name: str | None = None
-
+    status: str | None = None
     sum: Decimal
     delivery_sum: Decimal
     delivery_string: str
