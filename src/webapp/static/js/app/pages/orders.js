@@ -1,3 +1,7 @@
+/* =========================
+   orders.js (FULL)
+   ========================= */
+
 import {
     cartPageEl, checkoutPageEl, contactPageEl,
     detailEl,
@@ -11,6 +15,32 @@ import {
 
 import { state } from "../state.js";
 import { apiGet } from "../../services/api.js";
+
+/* =========================
+   Status badge mapping (TEXT ONLY)
+   ========================= */
+
+function getStatusText(cart) {
+    const s = (cart?.status ?? "").toString().trim();
+    if (s) return s;
+    return cart?.is_active ? "В обработке" : "Обработан";
+}
+
+function getStatusBadgeClass(statusText) {
+    const t = (statusText ?? "").toLowerCase().trim();
+
+    if (t === "создан") return "order-card-status--created";
+    if (t === "оплачен") return "order-card-status--paid";
+    if (t === "укомплектован") return "order-card-status--packed";
+    if (t === "отправлен") return "order-card-status--sent";
+    if (t === "доставлен") return "order-card-status--delivered";
+    if (t === "закрыт" || t === "обработан") return "order-card-status--closed";
+    if (t === "не найден") return "order-card-status--notfound";
+
+    if (t === "в обработке") return "order-card-status--inprogress";
+
+    return "order-card-status--default";
+}
 
 /**
  * Public
@@ -187,17 +217,21 @@ function renderOrderCard(cart) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "order-card";
-    const statusClass = cart.is_active ? "order-card-status--active" : "order-card-status--processed";
-    const statusText = cart.status;
+
+    const statusText = getStatusText(cart);
+    const statusClass = getStatusBadgeClass(statusText);
+
     const dateText = cart.created_at ? formatDateTime(cart.created_at) : "—";
     const totalText = formatMoney(cart.sum);
-    const deliveryText = (cart.delivery_string && String(cart.delivery_string).trim()) ? cart.delivery_string : "Доставка не указана";
+    const deliveryText = (cart.delivery_string && String(cart.delivery_string).trim())
+        ? cart.delivery_string
+        : "Доставка не указана";
 
     btn.innerHTML = `
     <div class="order-card-top">
       <div class="order-card-id-row">
         <div class="order-card-id">${escapeHtml(cart.name || `Заказ #${cart.id}`)}</div>
-        <span class="order-card-status ${statusClass}">${statusText}</span>
+        <span class="order-card-status ${statusClass}">${escapeHtml(statusText)}</span>
       </div>
 
       <div class="order-card-meta">
@@ -235,7 +269,7 @@ function normalizeCart(raw) {
         name: raw.name,
         user_id: raw.user_id ?? raw.userId,
 
-        status: raw.status ?? null,          // ✅ ADD THIS
+        status: raw.status ?? null,
 
         sum: toNumber(raw.sum),
         delivery_sum: toNumber(raw.delivery_sum),
@@ -280,7 +314,6 @@ function toNumber(v) {
 
 function formatMoney(v) {
     const n = toNumber(v);
-    // ₽ formatting: keep it simple
     const rounded = Math.round(n * 100) / 100;
     const parts = rounded.toFixed(2).split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -288,7 +321,6 @@ function formatMoney(v) {
 }
 
 function formatDateTime(iso) {
-    // iso like "2025-12-16T12:34:56.123Z" or without Z
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return String(iso);
 
