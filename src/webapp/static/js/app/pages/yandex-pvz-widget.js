@@ -511,20 +511,34 @@ export class YandexPvzWidget {
 
     async _calcDelivery(destinationPayload) {
         const order = (typeof this.options.getOrderData === "function" ? this.options.getOrderData() : null) || null;
-
         const body = {
-            delivery_mode: destinationPayload.deliveryMode,
-            destination: {
-                platform_station_id: destinationPayload.deliveryMode === "self_pickup" ? String(destinationPayload.code ?? "") : null,
-                address: destinationPayload.deliveryMode === "time_interval" ? String(destinationPayload.address ?? "") : null,
-            },
-            total_weight: Number(order?.total_weight || 0),
-            total_assessed_price: Number(order?.total_assessed_price || 0),
-            client_price: Number(order?.client_price || 0),
-            payment_method: order?.payment_method || "already_paid",
-            places: Array.isArray(order?.places) ? order.places : [],
-            is_oversized: Boolean(order?.is_oversized || false),
-            send_unix: order?.send_unix !== undefined ? Boolean(order.send_unix) : true,
+            delivery_mode: destinationPayload.deliveryMode, // "self_pickup" | "time_interval"
+
+            destination: destinationPayload.deliveryMode === "self_pickup"
+                ? { platform_station_id: String(destinationPayload.code ?? "") }
+                : { address: String(destinationPayload.address ?? "") },
+
+            total_weight: Math.max(1, Number(order?.total_weight ?? 0) | 0),
+
+            total_assessed_price: Math.max(0, Number(order?.total_assessed_price ?? 0) | 0),
+            client_price: Math.max(0, Number(order?.client_price ?? 0) | 0),
+
+            payment_method: order?.payment_method === "card_on_receipt" ? "card_on_receipt" : "already_paid",
+
+            places: Array.isArray(order?.places)
+                ? order.places.map(p => ({
+                    physical_dims: {
+                        dx: Math.max(1, Number(p?.physical_dims?.dx ?? 0) | 0),
+                        dy: Math.max(1, Number(p?.physical_dims?.dy ?? 0) | 0),
+                        dz: Math.max(1, Number(p?.physical_dims?.dz ?? 0) | 0),
+                        weight_gross: Math.max(1, Number(p?.physical_dims?.weight_gross ?? 0) | 0),
+                        ...(p?.physical_dims?.predefined_volume ? { predefined_volume: Math.max(1, Number(p.physical_dims.predefined_volume) | 0) } : {}),
+                    }
+                }))
+                : [],
+
+            is_oversized: Boolean(order?.is_oversized),
+            send_unix: order?.send_unix === undefined ? true : Boolean(order.send_unix),
         };
 
         const calc = await withLoader(async () => {
