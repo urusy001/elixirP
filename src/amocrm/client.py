@@ -4,6 +4,10 @@ import json
 import logging
 import os
 import re
+import secrets
+from email.message import EmailMessage
+
+import aiosmtplib
 import httpx
 from typing import Optional, Tuple, Literal, Union
 from datetime import datetime, timedelta, UTC
@@ -33,6 +37,8 @@ class AsyncAmoCRM:
             access_token: str | None = None,
             refresh_token: str | None = None,
     ):
+        self.GMAIL_SMTP_USER = "elixirpeptide.aibot@gmail.com"
+        self.GMAIL_APP_PASSWORD = "sktj kxcy xirr texq"
         self.STATUS_IDS = {
             "main": 81419122,
             "check_paid": 75784946,
@@ -384,24 +390,27 @@ class AsyncAmoCRM:
 
         return result
 
-    async def get_valid_deal_price_and_email_for_ai(self, code: str | int) -> Tuple[PriceT, Optional[str]]:
-        """
-        EXACT match rule:
-          - lead name contains '№{code}<SPACE>' (space required right after the code)
-          - lead status_id in COMPLETE_STATUS_IDS
 
-        Returns: (price, email)
+    async def get_valid_deal_price_and_email_verification_code_for_ai(
+            self,
+            code: str | int,
+    ) -> Tuple[PriceT, Optional[str], Optional[str]]:
+        """
+        Finds a COMPLETE lead with exact token "№{code}<SPACE>".
+        Then sends a 6-digit verification code to the lead's contact email.
+
+        Returns: (price, email, verification_code)
           - price: int | None | "old"
-          - email: str | None
+          - email: recipient email or None
+          - verification_code: 6-digit string or None
         """
         code_str = str(code).strip()
-
         needle = f"№{code_str} "
         rx = re.compile(rf"№{re.escape(code_str)}\s")
 
         page = 1
         limit = 50
-        max_pages = 20  # safety
+        max_pages = 20
 
         while page <= max_pages:
             data = await self.get(
@@ -410,14 +419,13 @@ class AsyncAmoCRM:
                     "query": needle,
                     "limit": limit,
                     "page": page,
-                    # try to get linked contacts right away (if amo returns them in _embedded)
                     "with": "contacts",
                 },
             )
 
             leads = (data.get("_embedded") or {}).get("leads") or []
             if not leads:
-                return (None, None)
+                return (None, None, None)
 
             for lead in leads:
                 name = lead.get("name") or ""
@@ -425,20 +433,74 @@ class AsyncAmoCRM:
 
                 if status_id in self.COMPLETE_STATUS_IDS and rx.search(name):
                     raw_price = lead.get("price", None)
-
-                    # keep your old sentinel logic
                     if "ElixirPeptide" in name and not raw_price:
                         price: PriceT = "old"
                     else:
                         price = int(raw_price) if raw_price else None
 
                     email = await self._extract_lead_email(lead)
-                    return (price // 5000, email)
+                    if not email:
+                        return (price, None, None)
+
+                    verification_code = self._generate_6_digit_code()
+
+                    # send email (SMTP Gmail)
+                    await self._send_verification_code_email(
+                        to_email=email,
+                        code=verification_code,
+                        lead_name=name,
+                        deal_code=code_str,
+                    )
+
+                    return (price, email, verification_code)
 
             page += 1
 
-        return (None, None)
+        return (None, None, None)
 
+
+    def _generate_6_digit_code(self) -> str:
+        # cryptographically strong; always 000000-999999 formatted
+        return f"{secrets.randbelow(1_000_000):06d}"
+
+
+    async def _send_verification_code_email(
+            self,
+            to_email: str,
+            code: str,
+            lead_name: str,
+            deal_code: str,
+    ) -> None:
+        """
+        Sends verification code from Gmail via SMTP.
+        Requires:
+          self.GMAIL_SMTP_USER (your gmail address)
+          self.GMAIL_APP_PASSWORD (Gmail App Password)
+          optional: self.GMAIL_FROM_NAME
+        """
+        from_email = self.GMAIL_SMTP_USER
+        from_name = getattr(self, "GMAIL_FROM_NAME", "ElixirPeptide")
+
+        msg = EmailMessage()
+        msg["From"] = f"{from_name} <{from_email}>"
+        msg["To"] = to_email
+        msg["Subject"] = "Код подтверждения"
+        msg.set_content(
+            f"""Здравствуйте!
+    
+Ваш код подтверждения: {code}
+Заказ: №{deal_code}
+Если Вы не запрашивали код — свяжитесь с поддержкой.""")
+
+        await aiosmtplib.send(
+            msg,
+            hostname="smtp.gmail.com",
+            port=587,
+            start_tls=True,
+            username=self.GMAIL_SMTP_USER,
+            password=self.GMAIL_APP_PASSWORD,
+            timeout=20,
+        )
 
     async def _extract_lead_email(self, lead: dict) -> Optional[str]:
         """
