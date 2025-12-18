@@ -62,14 +62,31 @@ export class YandexPvzWidget {
                     <input id="ydw-query" type="text" inputmode="search" placeholder="Введите населённый пункт"
                            style="flex:1;padding:.5rem .6rem;border:1px solid #ddd;border-radius:8px;">
                 </div>
-                <div id="ydw-suggest"
-                     style="display:none;height:${SUGGEST_ROW_HEIGHT * 5}px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;background:#fff;"></div>
+                <div id="ydw-suggest" style="display:none;height:${SUGGEST_ROW_HEIGHT * 5}px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;background:#fff;"></div>
+                <div id="ydw-delivery"
+                     style="display:none;border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:10px 12px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                    <div style="font-weight:600;font-size:13px;">Доставка</div>
+                    <button id="ydw-delivery-close"
+                            style="border:0;background:transparent;cursor:pointer;font-size:16px;line-height:1;">✕</button>
+                  </div>
+                  <div id="ydw-delivery-body" style="margin-top:6px;font-size:13px;line-height:1.35;"></div>
+                </div>
             </div>
             <div id="ydw-map" style="width:100%;height:100%;min-height:400px;border-radius:8px;"></div>`;
 
         this.mapEl = this.root.querySelector("#ydw-map");
         this.queryEl = this.root.querySelector("#ydw-query");
         this.suggestEl = this.root.querySelector("#ydw-suggest");
+        this.deliveryEl = this.root.querySelector("#ydw-delivery");
+        this.deliveryBodyEl = this.root.querySelector("#ydw-delivery-body");
+        this.deliveryCloseEl = this.root.querySelector("#ydw-delivery-close");
+
+        this.deliveryCloseEl?.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this._hideDelivery();
+        });
 
         // Handle "Выбрать" clicks inside PVZ balloons
         this.root.addEventListener("click", (e) => {
@@ -337,8 +354,8 @@ export class YandexPvzWidget {
                 btn.style.cursor = "default";
 
                 const basePayload = { deliveryMode: "time_interval", coords, address: this._doorAddress || "" };
-                const enriched = await this._calcDelivery(basePayload);
-
+                const enriched = { ...destinationPayload, calc };
+                this._showDelivery(enriched);
                 btn.textContent = "✅ Выбрано";
                 this.options.onChoose?.(null, enriched);
             })();
@@ -385,6 +402,7 @@ export class YandexPvzWidget {
             this._doorPlacemark = null;
             this._doorAddress = "";
         }
+        this._hideDelivery();
     }
 
     _purgeOldDoorPlacemarks(keep) {
@@ -477,6 +495,7 @@ export class YandexPvzWidget {
     }
 
     _clearSelection() {
+        this._hideDelivery();
         const prev = this._selectedId;
         if (prev && this.manager) this.manager.objects.setObjectOptions(prev, { preset: this.preset.default });
         this._selectedId = null;
@@ -583,6 +602,49 @@ export class YandexPvzWidget {
     }
 
     _toast(msg) { console.info(msg); }
+
+    _showDelivery(enriched) {
+        if (!this.deliveryEl || !this.deliveryBodyEl) return;
+
+        const calc = enriched?.calc;
+        if (!calc?.ok) {
+            const err = calc?.error || "Не удалось рассчитать доставку";
+            this.deliveryBodyEl.innerHTML = `❌ ${this._escape(err)}`;
+            this.deliveryEl.style.display = "block";
+            return;
+        }
+
+        const priceKop = Number(calc?.price?.pricing_total ?? 0) | 0;
+        const priceRub = (priceKop / 100).toFixed(2);
+
+        const days = calc?.delivery_days;
+        const daysText =
+            Array.isArray(days) && days.length === 2 ? `${days[0]}–${days[1]} дн.` :
+                (typeof days === "number" ? `${days} дн.` : "");
+
+        const bi = calc?.best_interval;
+        const intervalText = (bi && (bi.from || bi.to))
+            ? `Интервал: ${bi.from ? new Date(bi.from * 1000).toLocaleString("ru-RU") : "—"} — ${bi.to ? new Date(bi.to * 1000).toLocaleString("ru-RU") : "—"}`
+            : "";
+
+        const modeTitle = enriched?.deliveryMode === "self_pickup" ? "Самовывоз (ПВЗ)" : "Курьер";
+
+        this.deliveryBodyEl.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <div><b>${this._escape(modeTitle)}</b></div>
+        <div>💰 Цена: <b>${priceRub} ₽</b></div>
+        ${daysText ? `<div>📦 Срок: ${this._escape(daysText)}</div>` : ""}
+        ${intervalText ? `<div>🕒 ${this._escape(intervalText)}</div>` : ""}
+      </div>
+    `;
+        this.deliveryEl.style.display = "block";
+    }
+
+    _hideDelivery() {
+        if (!this.deliveryEl) return;
+        this.deliveryEl.style.display = "none";
+        if (this.deliveryBodyEl) this.deliveryBodyEl.innerHTML = "";
+    }
 
     destroy() {
         this._removeDoorPlacemark();

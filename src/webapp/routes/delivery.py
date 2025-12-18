@@ -281,6 +281,15 @@ async def yandex_calculate(req: CalcRequest):
         else:
             offers_info = {"status_code": oi.status_code, "body": oi.text}
 
+    print(json.dumps({
+        "ok": True,
+        "delivery_mode": req.delivery_mode,
+        "price": {"pricing_total": pricing_total, "currency": "RUB"},
+        "delivery_days": delivery_days,
+        "best_interval": best_interval,
+        "offers_count": offers_count,
+        "offers_info": offers_info,
+    }, indent=4, ensure_ascii=False))
     return {
         "ok": True,
         "delivery_mode": req.delivery_mode,
