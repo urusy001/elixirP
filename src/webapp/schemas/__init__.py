@@ -1,3 +1,5 @@
+from typing import Union
+
 from .category import *
 from .feature import *
 from .product import *
@@ -33,3 +35,13 @@ class AvailabilityRequest(BaseModel):
     delivery_mode: Literal["self_pickup", "time_interval"]
     destination: AvailabilityDestination
     send_unix: bool = True
+
+
+PriceT = Union[int, None, Literal["old", "not_found"]]
+
+class VerifyOrderIn(BaseModel): code: Union[str, int] = Field(..., description="Код заказа/сделки, который ищем в amoCRM (№{code} )")
+class VerifyOrderOut(BaseModel):
+    status: Literal["ok", "not_found", "no_email", "smtp_failed"]
+    price: PriceT
+    email: Optional[str] = None
+    verification_code: Optional[str] = None

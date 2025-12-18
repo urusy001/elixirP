@@ -17,6 +17,7 @@ from aiogram import Bot
 from aiogram.enums import ChatMemberStatus
 from aiogram.types import Message
 from bs4 import BeautifulSoup, Tag
+from fastapi import HTTPException, Request
 from pydantic import BaseModel
 from transliterate import translit
 from datetime import datetime, timezone
@@ -25,7 +26,7 @@ from typing import Any
 from sqlalchemy import BigInteger, Integer, String, DateTime, Numeric, Boolean
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from config import ELIXIR_CHAT_ID, NEW_BOT_TOKEN
+from config import ELIXIR_CHAT_ID, NEW_BOT_TOKEN, INTERNAL_API_TOKEN
 from src.webapp.models.user import User
 
 MAX_TG_MSG_LEN = 4096
@@ -540,3 +541,10 @@ def validate_init_data(
             pass
 
     return result
+
+
+def require_internal_token(req: Request) -> None:
+    expected = INTERNAL_API_TOKEN
+    got = req.headers.get("X-Internal-Token")
+    if not expected or got != expected:
+        raise HTTPException(status_code=401, detail="Unauthorized")

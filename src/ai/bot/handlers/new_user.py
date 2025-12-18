@@ -1,12 +1,15 @@
 import asyncio
 from datetime import datetime, timedelta
+
+import httpx
 from aiogram import Router
 from aiogram.enums import ChatType
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile, Message, CallbackQuery, ReplyKeyboardRemove
 
-from config import OWNER_TG_IDS, MOSCOW_TZ, DATA_DIR, PROFESSOR_ASSISTANT_ID, NEW_ASSISTANT_ID, BOT_KEYWORDS
+from config import OWNER_TG_IDS, MOSCOW_TZ, DATA_DIR, PROFESSOR_ASSISTANT_ID, NEW_ASSISTANT_ID, BOT_KEYWORDS, \
+    WEBAPP_BASE_DOMAIN, INTERNAL_API_TOKEN
 from src.ai.calc import generate_drug_graphs, plot_filled_scale
 from src.helpers import CHAT_NOT_BANNED_FILTER, _notify_user, with_typing, _fmt
 from src.webapp import get_session
@@ -70,24 +73,74 @@ async def handle_user_start(message: Message, state: FSMContext):
 
 @new_user_router.message(user_states.Ai.activate_code)
 async def handle_activate_code(message: Message, state: FSMContext):
-    code = message.text.strip()
+    code = (message.text or "").strip()
+    if not code: return await message.answer("Введите код заказа.")
     async with get_session() as session: used_code = await get_used_code_by_code(session, code)
-    if used_code: await message.answer(f'Код {code} уже использован')
-    else:
-        from src.amocrm.client import amocrm
-        order_sum, email, verif_code = await amocrm.get_valid_deal_price_and_email_verification_code_for_ai(code)
-        if order_sum == "old": await message.answer('Для активации котов со старого сайта, пожалуйста, обратитесь к администрации')
-        elif order_sum == "not_found": await message.answer(f"Заказ не был найден по коду {code}")
-        elif isinstance(order_sum, (float, int)) and verif_code and email:
-            add_months = order_sum // 5000
-            if add_months > 0:
-                await state.update_data(verif_code=verif_code, add_months=add_months, failed=0, order_code=code, order_sum=order_sum)
-                await state.set_state(user_states.Ai.verif_code)
-                return await message.answer(f"На вашу почту {email} был отправлен код подтверждения. У вас есть 3 попытки чтобы ввести его правильно, иначе вы будете заблокированы на один день за попытку отгадать чужой код")
 
-            else: await message.answer(f"Сожалеем, считываются заказы от 5000р. Каждые 5000р = 1 месяц")
+    if used_code:
+        await message.answer(f"Код {code} уже использован")
+        return await handle_user_start(message, state)
 
-    return await handle_user_start(message, state)
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            r = await client.post(
+                f"{WEBAPP_BASE_DOMAIN}",
+                json={"code": code},
+                headers={"X-Internal-Token": INTERNAL_API_TOKEN},
+            )
+            r.raise_for_status()
+            data = r.json()
+    except httpx.HTTPStatusError as e:
+        await message.answer("Не удалось проверить заказ (ошибка сервера). Попробуйте позже.")
+        return await handle_user_start(message, state)
+    except Exception:
+        await message.answer("Не удалось проверить заказ (ошибка сети). Попробуйте позже.")
+        return await handle_user_start(message, state)
+
+    order_sum = data.get("order_sum")
+    email = data.get("email")
+    verif_code = data.get("verif_code")
+
+    # 3) handle statuses
+    if order_sum == "old":
+        await message.answer("Для активации кодов со старого сайта, пожалуйста, обратитесь к администрации.")
+        return await handle_user_start(message, state)
+
+    if order_sum == "not_found":
+        await message.answer(f"Заказ не был найден по коду {code}")
+        return await handle_user_start(message, state)
+
+    if not email or not verif_code:
+        await message.answer(
+            "Заказ найден, но не удалось отправить код на почту. "
+            "Проверьте, что в контакте указан Email, либо попробуйте позже."
+        )
+        return await handle_user_start(message, state)
+
+    if not isinstance(order_sum, (int, float)):
+        await message.answer("Ошибка: сумма заказа некорректна.")
+        return await handle_user_start(message, state)
+
+    add_months = int(order_sum) // 5000
+    if add_months <= 0:
+        await message.answer("Сожалеем, считываются заказы от 5000р. Каждые 5000р = 1 месяц.")
+        return await handle_user_start(message, state)
+
+    await state.update_data(
+        verif_code=verif_code,
+        add_months=add_months,
+        failed=0,
+        order_code=code,
+        order_sum=int(order_sum),
+        email=email,
+    )
+    await state.set_state(user_states.Ai.verif_code)
+
+    return await message.answer(
+        f"На вашу почту {email} был отправлен код подтверждения.\n\n"
+        "У вас есть 3 попытки, чтобы ввести его правильно. "
+        "Иначе вы будете заблокированы на один день за попытку отгадать чужой код."
+    )
 
 @new_user_router.message(user_states.Ai.verif_code)
 async def handle_verif_code(message: Message, state: FSMContext):
@@ -116,8 +169,16 @@ async def handle_verif_code(message: Message, state: FSMContext):
         await handle_user_start(message, state)
 
     else:
+        failed += 1
+        if failed >= 3:
+            async with get_session() as session:
+                user_update = UserUpdate(blocked_until=datetime.now(tz=MOSCOW_TZ)+timedelta(days=1))
+                user = await update_user(session, message.from_user.id, user_update)
+                return await handle_user_start(message, state)
         await message.answer(f"Код некорректный, осталось {3-failed} попыток")
-        await state.update_data(failed=failed + 1)
+        await state.update_data(failed=failed)
+
+    return None
 
 
 @new_user_router.message(user_states.Registration.phone)
