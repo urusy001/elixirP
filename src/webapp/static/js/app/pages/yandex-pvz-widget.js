@@ -127,9 +127,7 @@ export class YandexPvzWidget {
 
         const src = Array.isArray(all?.points) ? all.points : Array.isArray(all) ? all : [];
         const points = src.map((p) => this._normalizePoint(p));
-        try {
-            this._drawPoints(points)
-        } catch (e){alert('2'); alert(e);}
+        this._drawPoints(points);
 
         if (points.length) {
             try {
