@@ -43,12 +43,10 @@ export class YandexPvzWidget {
         this._pointsById = new Map();
         this._selectedId = null;
 
-        // Courier (to-door) placemark
         this._doorPlacemark = null;
         this._doorAddress = "";
         this._doorSeq = 0;
 
-        // Geocode suggest cache
         this._geocodeCache = new Map();
         this._geocodeCacheMax = 50;
 
@@ -60,28 +58,28 @@ export class YandexPvzWidget {
 
     _renderLayout() {
         this.root.innerHTML = `
-            <div class="ydw-toolbar" style="display:flex;flex-direction:column;gap:8px;margin-bottom:.5rem;">
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <input id="ydw-query" type="text" inputmode="search" placeholder="Введите населённый пункт"
-                           style="flex:1;padding:.5rem .6rem;border:1px solid #ddd;border-radius:8px;">
-                </div>
+      <div class="ydw-toolbar" style="display:flex;flex-direction:column;gap:8px;margin-bottom:.5rem;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input id="ydw-query" type="text" inputmode="search" placeholder="Введите населённый пункт"
+                 style="flex:1;padding:.5rem .6rem;border:1px solid #ddd;border-radius:8px;">
+        </div>
 
-                <div id="ydw-suggest"
-                     style="display:none;height:${SUGGEST_ROW_HEIGHT * 5}px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;background:#fff;"></div>
+        <div id="ydw-suggest"
+             style="display:none;height:${SUGGEST_ROW_HEIGHT * 5}px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;background:#fff;"></div>
 
-                <div id="ydw-delivery"
-                     style="display:none;border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:10px 12px;">
-                  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                    <div style="font-weight:600;font-size:13px;">Доставка</div>
-                    <button id="ydw-delivery-close"
-                            style="border:0;background:transparent;cursor:pointer;font-size:16px;line-height:1;">✕</button>
-                  </div>
-                  <div id="ydw-delivery-body" style="margin-top:6px;font-size:13px;line-height:1.35;"></div>
-                </div>
-            </div>
+        <div id="ydw-delivery"
+             style="display:none;border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:10px 12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div style="font-weight:600;font-size:13px;">Доставка</div>
+            <button id="ydw-delivery-close"
+                    style="border:0;background:transparent;cursor:pointer;font-size:16px;line-height:1;">✕</button>
+          </div>
+          <div id="ydw-delivery-body" style="margin-top:6px;font-size:13px;line-height:1.35;"></div>
+        </div>
+      </div>
 
-            <div id="ydw-map" style="width:100%;height:100%;min-height:400px;border-radius:8px;"></div>
-        `;
+      <div id="ydw-map" style="width:100%;height:100%;min-height:400px;border-radius:8px;"></div>
+    `;
 
         this.mapEl = this.root.querySelector("#ydw-map");
         this.queryEl = this.root.querySelector("#ydw-query");
@@ -131,14 +129,12 @@ export class YandexPvzWidget {
         this.manager.clusters.options.set("preset", "islands#invertedBlueClusterIcons");
         this.map.geoObjects.add(this.manager);
 
-        // Click on a PVZ => select (and remove door pin if any)
         this.manager.objects.events.add("click", (e) => {
             const id = e.get("objectId");
             this._removeDoorPlacemark();
             this._select(id, true);
         });
 
-        // Click on map (empty) => set courier pin and clear PVZ selection
         this.map.events.add("click", (e) => {
             if (e.get("target") !== this.map) return;
             const coords = e.get("coords");
@@ -146,7 +142,6 @@ export class YandexPvzWidget {
             this._setDoorPlacemark(coords);
         });
 
-        // Load and render PVZ points
         const all = await withLoader(async () => {
             try {
                 const data = await apiGet(this.options.dataUrl);
@@ -271,9 +266,9 @@ export class YandexPvzWidget {
             row.className = "ydw-suggest-row";
             row.setAttribute("data-index", String(i));
             row.style.cssText = `
-              display:flex;align-items:center;height:${SUGGEST_ROW_HEIGHT}px;padding:0 10px;
-              cursor:pointer;border-bottom:1px solid #f0f0f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:none;
-            `;
+        display:flex;align-items:center;height:${SUGGEST_ROW_HEIGHT}px;padding:0 10px;
+        cursor:pointer;border-bottom:1px solid #f0f0f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:none;
+      `;
             row.addEventListener("mouseenter", () => (row.style.background = "#f8fafc"));
             row.addEventListener("mouseleave", () => (row.style.background = ""));
 
@@ -281,11 +276,11 @@ export class YandexPvzWidget {
             const kind = (v.kind || "").toString();
 
             row.innerHTML = `
-              <div style="font-size:13px;flex:1;min-width:0;">
-                ${this._escape(name)}
-                ${kind ? `<span style="opacity:.65;font-size:12px;margin-left:6px;">(${this._escape(kind)})</span>` : ""}
-              </div>
-            `;
+        <div style="font-size:13px;flex:1;min-width:0;">
+          ${this._escape(name)}
+          ${kind ? `<span style="opacity:.65;font-size:12px;margin-left:6px;">(${this._escape(kind)})</span>` : ""}
+        </div>
+      `;
             frag.appendChild(row);
         });
 
@@ -402,13 +397,14 @@ export class YandexPvzWidget {
 
     async _resolveAddress(coords) {
         const [lat, lon] = coords;
+
+        // apiGet у тебя возвращает JSON, поэтому читаем как JSON.
         try {
-            const r = await apiGet(`/delivery/yandex/reverse-geocode?lat=${lat}&lon=${lon}`);
-            if (r?.ok) {
-                if (r?.formatted) return r.formatted;
-            }
+            const info = await apiGet(`/delivery/yandex/reverse-geocode?lat=${lat}&lon=${lon}`);
+            if (info?.formatted) return info.formatted;
         } catch {}
 
+        // fallback geocode from ymaps
         try {
             const g = await ymaps.geocode(coords, { results: 1 });
             const first = g.geoObjects.get(0);
@@ -420,17 +416,17 @@ export class YandexPvzWidget {
 
     _doorBalloonHtml(address) {
         return `
-        <div style="font-size:13px;line-height:1.35;max-width:260px">
-            <div style="font-weight:600;margin-bottom:4px">Доставка курьером</div>
-            <div style="margin-bottom:6px">${this._escape(address)}</div>
-            <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
-                <button class="ydw-choose-door"
-                        style="padding:6px 10px;border:0;border-radius:8px;background:#ef4444;color:#fff;cursor:pointer;">
-                    Выбрать этот адрес
-                </button>
-            </div>
+      <div style="font-size:13px;line-height:1.35;max-width:260px">
+        <div style="font-weight:600;margin-bottom:4px">Доставка курьером</div>
+        <div style="margin-bottom:6px">${this._escape(address)}</div>
+        <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
+          <button class="ydw-choose-door"
+                  style="padding:6px 10px;border:0;border-radius:8px;background:#ef4444;color:#fff;cursor:pointer;">
+            Выбрать этот адрес
+          </button>
         </div>
-        `;
+      </div>
+    `;
     }
 
     _removeDoorPlacemark() {
@@ -497,22 +493,22 @@ export class YandexPvzWidget {
 
     _balloonHtml(p) {
         return `
-            <div style="font-size:13px;line-height:1.35;max-width:260px">
-              <div style="font-weight:600;margin-bottom:4px">${this._escape(p.name)}</div>
-              <div style="margin-bottom:6px">${this._escape(p.address)}</div>
+      <div style="font-size:13px;line-height:1.35;max-width:260px">
+        <div style="font-weight:600;margin-bottom:4px">${this._escape(p.name)}</div>
+        <div style="margin-bottom:6px">${this._escape(p.address)}</div>
 
-              ${p.phone ? `<div style="margin-bottom:4px">☎ ${this._escape(p.phone)}</div>` : ""}
-              ${p.schedule ? `<div style="margin-bottom:4px">🕒 ${this._escape(p.schedule)}</div>` : ""}
-              ${p.dayoffs ? `<div style="margin-bottom:4px">❌ ${this._escape(p.dayoffs)}</div>` : ""}
+        ${p.phone ? `<div style="margin-bottom:4px">☎ ${this._escape(p.phone)}</div>` : ""}
+        ${p.schedule ? `<div style="margin-bottom:4px">🕒 ${this._escape(p.schedule)}</div>` : ""}
+        ${p.dayoffs ? `<div style="margin-bottom:4px">❌ ${this._escape(p.dayoffs)}</div>` : ""}
 
-              <div style="margin-top:8px;display:flex;justify-content:flex-end">
-                <button class="ydw-choose-btn" data-id="${this._escape(p.id)}"
-                        style="padding:6px 10px;border:0;border-radius:8px;background:#10b981;color:#fff;cursor:pointer;">
-                  Выбрать
-                </button>
-              </div>
-            </div>
-          `;
+        <div style="margin-top:8px;display:flex;justify-content:flex-end">
+          <button class="ydw-choose-btn" data-id="${this._escape(p.id)}"
+                  style="padding:6px 10px;border:0;border-radius:8px;background:#10b981;color:#fff;cursor:pointer;">
+            Выбрать
+          </button>
+        </div>
+      </div>
+    `;
     }
 
     _select(id, openBalloon = false) {
@@ -522,7 +518,6 @@ export class YandexPvzWidget {
         const prev = this._selectedId;
         if (prev === id) return;
 
-        // Clear any courier pin when selecting PVZ
         this._removeDoorPlacemark();
 
         if (this.manager) {
@@ -577,7 +572,7 @@ export class YandexPvzWidget {
         const order = (typeof this.options.getOrderData === "function" ? this.options.getOrderData() : null) || null;
 
         const body = {
-            delivery_mode: destinationPayload.deliveryMode, // "self_pickup" | "time_interval"
+            delivery_mode: destinationPayload.deliveryMode,
 
             destination:
                 destinationPayload.deliveryMode === "self_pickup"
@@ -610,8 +605,19 @@ export class YandexPvzWidget {
 
         const calc = await withLoader(async () => {
             try {
-                const data = await apiPost(this.options.calculateUrl, body);
-                if (!data.ok) throw new Error(data?.detail || "calculate failed");
+                const res = await apiPost(this.options.calculateUrl, body);
+
+                // apiPost может возвращать либо JSON, либо fetch Response — поддержим оба.
+                if (res && typeof res === "object" && typeof res.json === "function") {
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) throw new Error(data?.detail || "calculate failed");
+                    if (!data?.ok) throw new Error(data?.detail || "calculate failed");
+                    return data;
+                }
+
+                // JSON already
+                const data = res ?? {};
+                if (!data?.ok) throw new Error(data?.detail || "calculate failed");
                 return data;
             } catch (e) {
                 return { ok: false, error: String(e?.message || e) };
@@ -660,18 +666,44 @@ export class YandexPvzWidget {
 
     /* ----------------------- Delivery panel UI helpers ----------------------- */
 
+    _parsePriceRub(pricingTotal) {
+        // backend может вернуть "240 RUB" (строка) или число/копейки в будущем
+        if (pricingTotal == null) return 0;
+
+        if (typeof pricingTotal === "number") {
+            // если вдруг это копейки — будет слишком большое; но у тебя сейчас строка, так что ок.
+            // считаем, что это уже RUB.
+            return Math.round(pricingTotal);
+        }
+
+        const s = String(pricingTotal).trim();
+        // "240 RUB", "240", "240.5 RUB"
+        const m = s.match(/(\d+(?:[.,]\d+)?)/);
+        if (!m) return 0;
+        const v = Number(m[1].replace(",", "."));
+        return Number.isFinite(v) ? Math.round(v) : 0;
+    }
+
+    _fmtIntervalUnix(fromUnix, toUnix) {
+        const fmt = (u) => (u ? new Date(u * 1000).toLocaleString("ru-RU") : "—");
+        return `${fmt(fromUnix)} — ${fmt(toUnix)}`;
+    }
+
     _showDelivery(enriched) {
         if (!this.deliveryEl || !this.deliveryBodyEl) return;
 
-        if (!enriched?.ok) {
-            const err = enriched?.error || "Не удалось рассчитать доставку";
+        const calc = enriched?.calc;
+
+        if (!calc?.ok) {
+            const err = calc?.error || calc?.detail || "Не удалось рассчитать доставку";
             this.deliveryBodyEl.innerHTML = `❌ ${this._escape(err)}`;
             this.deliveryEl.style.display = "block";
             return;
         }
 
-        const priceRub = Math.round(Number(enriched?.calc?.price?.pricing_total ?? 0));
-        const days = enriched?.delivery_days;
+        const priceRub = this._parsePriceRub(calc?.price?.pricing_total);
+        const days = calc?.delivery_days;
+
         const daysText =
             Array.isArray(days) && days.length === 2
                 ? `${days[0]}–${days[1]} дн.`
@@ -679,15 +711,25 @@ export class YandexPvzWidget {
                     ? `~${days} дн.`
                     : "";
 
+        const bi = calc?.best_interval;
+        const intervalText =
+            bi && (bi.from || bi.to) ? this._fmtIntervalUnix(bi.from, bi.to) : "";
+
         const modeTitle = enriched?.deliveryMode === "self_pickup" ? "Самовывоз (ПВЗ)" : "Курьер";
+        const pointLine =
+            enriched?.deliveryMode === "self_pickup" && enriched?.name
+                ? `<div style="opacity:.85">${this._escape(enriched.name)}</div>`
+                : "";
 
         this.deliveryBodyEl.innerHTML = `
-          <div style="display:flex;flex-direction:column;gap:4px;">
-            <div><b>${this._escape(modeTitle)}</b></div>
-            <div>💰 Цена: <b>${priceRub} ₽</b></div>
-            ${daysText ? `<div>📦 Срок: ${this._escape(daysText)}</div>` : ""}
-          </div>
-        `;
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <div><b>${this._escape(modeTitle)}</b></div>
+        ${pointLine}
+        <div>💰 Цена: <b>${priceRub} ₽</b></div>
+        ${daysText ? `<div>📦 Срок: ${this._escape(daysText)}</div>` : ""}
+        ${intervalText ? `<div>🕒 Интервал: ${this._escape(intervalText)}</div>` : ""}
+      </div>
+    `;
         this.deliveryEl.style.display = "block";
     }
 
