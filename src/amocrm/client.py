@@ -4,14 +4,14 @@ import json
 import logging
 import os
 import re
-from typing import Any
-
 import httpx
+from typing import Optional, Tuple, Literal, Union
 from datetime import datetime, timedelta, UTC
 from urllib.parse import urlparse, parse_qs
 from playwright.async_api import async_playwright
 
-from src.helpers import normalize_address_for_cf
+PriceT = Union[int, None, Literal["old"]]
+
 from config import (
     AMOCRM_CLIENT_ID,
     AMOCRM_CLIENT_SECRET,
@@ -384,19 +384,19 @@ class AsyncAmoCRM:
 
         return result
 
-    async def get_valid_deal(self, code: str | int) -> int | None:
+    async def get_valid_deal_price_and_email_for_ai(self, code: str | int) -> Tuple[PriceT, Optional[str]]:
         """
         EXACT match rule:
           - lead name contains '№{code}<SPACE>' (space required right after the code)
           - lead status_id in COMPLETE_STATUS_IDS
 
-        Returns lead price (int) or None.
+        Returns: (price, email)
+          - price: int | None | "old"
+          - email: str | None
         """
         code_str = str(code).strip()
 
-        # exact token: №code + space
         needle = f"№{code_str} "
-        # strict regex: same thing, but robust + explicit whitespace
         rx = re.compile(rf"№{re.escape(code_str)}\s")
 
         page = 1
@@ -407,28 +407,97 @@ class AsyncAmoCRM:
             data = await self.get(
                 "/api/v4/leads",
                 params={
-                    # use the exact needle to reduce noise,
-                    # but still DO NOT trust it for exactness
                     "query": needle,
                     "limit": limit,
                     "page": page,
+                    # try to get linked contacts right away (if amo returns them in _embedded)
+                    "with": "contacts",
                 },
             )
 
             leads = (data.get("_embedded") or {}).get("leads") or []
             if not leads:
-                return None
+                return (None, None)
 
             for lead in leads:
                 name = lead.get("name") or ""
                 status_id = lead.get("status_id")
 
-                # ✅ exact match on your side (prevents №{code}1121, etc.)
                 if status_id in self.COMPLETE_STATUS_IDS and rx.search(name):
-                    price = lead.get("price", None)
-                    if 'ElixirPeptide' in name and not price: return "old"
-                    else: return int(price) if price else None
+                    raw_price = lead.get("price", None)
 
+                    # keep your old sentinel logic
+                    if "ElixirPeptide" in name and not raw_price:
+                        price: PriceT = "old"
+                    else:
+                        price = int(raw_price) if raw_price else None
+
+                    email = await self._extract_lead_email(lead)
+                    return (price, email)
+
+            page += 1
+
+        return (None, None)
+
+
+    async def _extract_lead_email(self, lead: dict) -> Optional[str]:
+        """
+        Tries to get email from linked contacts:
+          1) if lead already contains embedded contact data -> parse it
+          2) else fetch /api/v4/contacts/{id} and parse custom_fields_values
+        """
+        embedded = lead.get("_embedded") or {}
+        contacts = embedded.get("contacts") or lead.get("contacts") or []
+        print(json.dumps(lead, indent=4, ensure_ascii=False))
+
+        if not isinstance(contacts, list) or not contacts:
+            return None
+
+        # prefer main contact, else first
+        ordered = sorted(contacts, key=lambda c: 0 if c.get("is_main") else 1)
+
+        for c in ordered:
+            # sometimes amo gives full contact objects; sometimes only {id, is_main}
+            if isinstance(c, dict) and c.get("custom_fields_values"):
+                email = self._extract_email_from_contact_obj(c)
+                if email:
+                    return email
+
+            cid = None
+            if isinstance(c, dict):
+                cid = c.get("id") or c.get("contact_id")
+
+            if cid:
+                contact = await self.get(f"/api/v4/contacts/{cid}")
+                email = self._extract_email_from_contact_obj(contact)
+                if email:
+                    return email
+
+        return None
+
+
+    def _extract_email_from_contact_obj(self, contact: dict) -> Optional[str]:
+        cfs = contact.get("custom_fields_values") or []
+        print(json.dumps(cfs, indent=4, ensure_ascii=False))
+        if not isinstance(cfs, list):
+            return None
+
+        for cf in cfs:
+            if not isinstance(cf, dict):
+                continue
+            code = (cf.get("field_code") or "").upper()
+            name = (cf.get("field_name") or "").lower()
+
+            if code == "EMAIL" or "email" in name or "почта" in name:
+                values = cf.get("values") or []
+                if not isinstance(values, list):
+                    continue
+                for v in values:
+                    val = (v or {}).get("value")
+                    if isinstance(val, str) and "@" in val:
+                        return val.strip()
+
+        return None
 # ---------- INSTANCE ----------
 amocrm = AsyncAmoCRM(
     base_domain=AMOCRM_BASE_DOMAIN,

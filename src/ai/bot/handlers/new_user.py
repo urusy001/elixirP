@@ -76,7 +76,7 @@ async def handle_activate_code(message: Message, state: FSMContext):
     if used_code: await message.answer(f'Код {code} уже использован')
     else:
         from src.amocrm.client import amocrm
-        order_sum = await amocrm.get_valid_deal(code)
+        order_sum = await amocrm.get_valid_deal_email_for_ai(code)
         if order_sum == "old": await message.answer('Для активации котов со старого сайта, пожалуйста, обратитесь к администрации')
         elif isinstance(order_sum, (float, int)):
             add_amount = round(order_sum/500, 2)
