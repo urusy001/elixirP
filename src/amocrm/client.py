@@ -25,7 +25,7 @@ from config import (
     AMOCRM_LOGIN_PASSWORD,
     AMOCRM_REFRESH_TOKEN,
     AMOCRM_REDIRECT_URI,
-    AMOCRM_BASE_DOMAIN, WORKING_DIR,
+    AMOCRM_BASE_DOMAIN, WORKING_DIR, SMTP_USER, SMTP_PASSWORD,
 )
 
 class AsyncAmoCRM:
@@ -38,8 +38,6 @@ class AsyncAmoCRM:
             access_token: str | None = None,
             refresh_token: str | None = None,
     ):
-        self.GMAIL_SMTP_USER = "elixirpeptide.aibot.verify@devsivanschostakov.org"
-        self.GMAIL_APP_PASSWORD = "RusTNTisamouse11"
         self.STATUS_IDS = {
             "main": 81419122,
             "check_paid": 75784946,
@@ -473,11 +471,8 @@ class AsyncAmoCRM:
           self.GMAIL_APP_PASSWORD (Gmail App Password)
           optional: self.GMAIL_FROM_NAME
         """
-        from_email = self.GMAIL_SMTP_USER
-        from_name = getattr(self, "GMAIL_FROM_NAME", "ElixirPeptide")
-
         msg = EmailMessage()
-        msg["From"] = f"{from_name} <{from_email}>"
+        msg["From"] = SMTP_USER
         msg["To"] = to_email
         msg["Subject"] = "Код подтверждения"
         msg.set_content(
@@ -485,18 +480,16 @@ class AsyncAmoCRM:
     
 Ваш код подтверждения: {code}
 Заказ: №{deal_code}
-Если Вы не запрашивали код — свяжитесь с поддержкой.""")
-        tls_ctx = ssl.create_default_context()
-
+Если Вы не запрашивали код — свяжитесь с поддержкой.""",charset="utf-8")
         await aiosmtplib.send(
             msg,
             hostname="smtp.timeweb.ru",
             port=465,
             use_tls=True,
-            username=self.GMAIL_SMTP_USER,
-            password=self.GMAIL_APP_PASSWORD,
+            username=SMTP_USER,
+            password=SMTP_PASSWORD,
+            tls_context=ssl.create_default_context(),
             timeout=20,
-            tls_context=tls_ctx,
         )
 
     async def _extract_lead_email(self, lead: dict) -> Optional[str]:

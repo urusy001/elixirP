@@ -152,3 +152,5 @@ BOT_KEYWORDS = {
 }
 
 API_PREFIX = "/api/v1"
+SMTP_USER     = env("SMTP_USER", "")
+SMTP_PASSWORD = env("SMTP_PASSWORD", "")
