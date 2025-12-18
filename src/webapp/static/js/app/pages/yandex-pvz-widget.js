@@ -202,28 +202,36 @@ export class YandexPvzWidget {
             this.suggestEl.innerHTML = "";
             return;
         }
+
         const frag = document.createDocumentFragment();
         variants.forEach((v, i) => {
             const row = document.createElement("div");
             row.className = "ydw-suggest-row";
             row.setAttribute("data-index", String(i));
             row.style.cssText = `
-                display:flex;align-items:center;height:${SUGGEST_ROW_HEIGHT}px;padding:0 10px;
-            cursor:pointer;border-bottom:1px solid #f0f0f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:none;
-            `;
+      display:flex;align-items:center;height:${SUGGEST_ROW_HEIGHT}px;padding:0 10px;
+      cursor:pointer;border-bottom:1px solid #f0f0f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:none;
+    `;
             row.addEventListener("mouseenter", () => (row.style.background = "#f8fafc"));
             row.addEventListener("mouseleave", () => (row.style.background = ""));
+
             const name = (v.name || "").toString();
             const kind = (v.kind || "").toString();
-            row.innerHTML = `<div style="font-size:13px;flex:1;min-width:0;">${this._escape(name)}${kind ? <span style="opacity:.65;font-size:12px;margin-left:6px;">(${this._escape(kind)})</span> : ""}</div>`;
+
+            row.innerHTML = `
+      <div style="font-size:13px;flex:1;min-width:0;">
+        ${this._escape(name)}
+        ${kind ? `<span style="opacity:.65;font-size:12px;margin-left:6px;">(${this._escape(kind)})</span>` : ""}
+      </div>
+    `;
             frag.appendChild(row);
         });
+
         this.suggestEl.innerHTML = "";
         this.suggestEl.appendChild(frag);
         this.suggestEl.style.height = `${SUGGEST_ROW_HEIGHT * 5}px`;
         this.suggestEl.style.display = "block";
     }
-
     async _geocodeLocality(query) {
         if (this._geocodeCache.has(query)) return this._geocodeCache.get(query);
         try {
@@ -394,20 +402,22 @@ export class YandexPvzWidget {
 
     _balloonHtml(p) {
         return `
-        <div style="font-size:13px;line-height:1.35;max-width:260px">
-            <div style="font-weight:600;margin-bottom:4px">${this._escape(p.name)}</div>
-            <div style="margin-bottom:6px">${this._escape(p.address)}</div>
-            ${p.phone ? <div style="margin-bottom:4px">☎ ${this._escape(p.phone)}</div> : ""}
-            ${p.schedule ? <div style="margin-bottom:4px">🕒 ${this._escape(p.schedule)}</div> : ""}
-            ${p.dayoffs ? <div style="margin-bottom:4px">❌ ${this._escape(p.dayoffs)}</div> : ""}
-            <div style="margin-top:8px;display:flex;justify-content:flex-end">
+            <div style="font-size:13px;line-height:1.35;max-width:260px">
+              <div style="font-weight:600;margin-bottom:4px">${this._escape(p.name)}</div>
+              <div style="margin-bottom:6px">${this._escape(p.address)}</div>
+        
+              ${p.phone ? `<div style="margin-bottom:4px">☎ ${this._escape(p.phone)}</div>` : ""}
+              ${p.schedule ? `<div style="margin-bottom:4px">🕒 ${this._escape(p.schedule)}</div>` : ""}
+              ${p.dayoffs ? `<div style="margin-bottom:4px">❌ ${this._escape(p.dayoffs)}</div>` : ""}
+        
+              <div style="margin-top:8px;display:flex;justify-content:flex-end">
                 <button class="ydw-choose-btn" data-id="${this._escape(p.id)}"
                         style="padding:6px 10px;border:0;border-radius:8px;background:#10b981;color:#fff;cursor:pointer;">
-                    Выбрать
+                  Выбрать
                 </button>
+              </div>
             </div>
-        </div>
-        `;
+          `;
     }
 
     _select(id, openBalloon = false) {
