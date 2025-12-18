@@ -38,8 +38,8 @@ class AsyncAmoCRM:
             access_token: str | None = None,
             refresh_token: str | None = None,
     ):
-        self.GMAIL_SMTP_USER = "elixirpeptide.aibot@gmail.com"
-        self.GMAIL_APP_PASSWORD = "sktj kxcy xirr texq"
+        self.GMAIL_SMTP_USER = "elixirpeptide.aibot.verify@devsivanschostakov.org"
+        self.GMAIL_APP_PASSWORD = "RusTNTisamouse11"
         self.STATUS_IDS = {
             "main": 81419122,
             "check_paid": 75784946,
@@ -492,7 +492,7 @@ class AsyncAmoCRM:
             msg,
             hostname="smtp.timeweb.ru",
             port=465,
-            start_tls=True,
+            use_tls=True,
             username=self.GMAIL_SMTP_USER,
             password=self.GMAIL_APP_PASSWORD,
             timeout=20,
