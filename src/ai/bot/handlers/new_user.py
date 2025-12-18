@@ -118,6 +118,8 @@ async def handle_activate_code(message: Message, state: FSMContext):
         )
         return await handle_user_start(message, state)
 
+    try: order_sum = float(order_sum)
+    except ValueError: pass
     if not isinstance(order_sum, (int, float)):
         await message.answer("Ошибка: сумма заказа некорректна.")
         return await handle_user_start(message, state)
