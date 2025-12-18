@@ -330,6 +330,7 @@ def _extract_price_and_days(offers_data: dict[str, Any]) -> tuple[dict[str, Any]
 
 @yandex_router.post("/confirm")
 async def yandex_confirm(req: ConfirmRequest):
+    print(req.model_dump_json(indent=4, ensure_ascii=False))
     headers = {
         "Authorization": f"Bearer {YANDEX_DELIVERY_TOKEN}",
         "Accept": "application/json",
@@ -352,7 +353,6 @@ async def yandex_confirm(req: ConfirmRequest):
         destination_node = {
             "type": "custom_location",
             "custom_location": {"details": {"full_address": str(req.destination.address)}},
-            # CRITICAL: interval_utc required for time_interval
             "interval_utc": {
                 "from": unix_to_iso_z(req.interval.from_),
                 "to": unix_to_iso_z(req.interval.to),
@@ -419,6 +419,12 @@ async def yandex_confirm(req: ConfirmRequest):
         "items": items,
         "places": places,
         "billing_info": {"payment_method": req.payment_method},
+        "recipient_info":{
+            "first_name": "Получатель",
+            "last_name": "",
+            "phone": "+79990000000",     # <-- replace later
+            "email": "stub@example.com", # <-- replace later (optional)
+        },
         "last_mile_policy": last_mile_policy,
         "particular_items_refuse": False,
         "forbid_unboxing": False,
