@@ -258,6 +258,7 @@ async def yandex_calculate(req: CalcRequest):
         if pr.status_code >= 400: raise HTTPException(status_code=502, detail=f"Yandex pricing-calculator error: {pr.text}")
 
         pricing = pr.json()
+        print(json.dumps(pricing, indent=4, ensure_ascii=False))
         pricing_total = pricing.get("pricing_total")
         delivery_days = pricing.get("delivery_days")
 
