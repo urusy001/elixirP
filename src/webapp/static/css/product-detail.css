@@ -113,8 +113,8 @@
     height: 40px !important;
     border: none;
     border-radius: 6px;
-    background: #2AABEE;
-    color: #fff;
+    color: black !important;
+    background: transparent !important;
     font-size: 1em;                         /* follows row font-size */
     line-height: 1;                         /* avoid vertical jitter */
     cursor: pointer;
@@ -137,6 +137,8 @@
 .qty-dec,
 .qty-inc {
     padding: 0 !important;
+    color: black !important;
+    background: transparent !important;
 }
 
 /* Buy button */
@@ -147,10 +149,6 @@
     padding: 6px 12px;
     border-radius: 4px;
     cursor: pointer;
-}
-
-.buy-btn:hover {
-    background-color: #2071b4;
 }
 
 /* Bottom sheet */
