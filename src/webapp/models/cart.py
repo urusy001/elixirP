@@ -42,7 +42,7 @@ class Cart(Base):
         server_default="true",
         index=True,
     )
-    yandex_request_id = Column(BigInteger, nullable=True, default=None)
+    yandex_request_id = Column(String, nullable=True, default=None)
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,

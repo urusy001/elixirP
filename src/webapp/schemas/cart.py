@@ -29,7 +29,7 @@ class CartBase(BaseModel):
     # DB: Numeric(8,2) NOT NULL default 0
     sum: Decimal = Field(default=ZERO_MONEY)
     delivery_sum: Decimal = Field(default=ZERO_MONEY)
-    yandex_request_id: int | None = None
+    yandex_request_id: str | None = None
     # DB: NOT NULL default "Не указан"
     delivery_string: str = "Не указан"
 
@@ -54,7 +54,7 @@ class CartCreate(BaseModel):
     delivery_sum: Decimal = Field(default=ZERO_MONEY)
     delivery_string: str = "Не указан"
     commentary: str | None = None
-    yandex_request_id: int | None = None
+    yandex_request_id: str | None = None
 
 
 class CartUpdate(BaseModel):
@@ -69,7 +69,7 @@ class CartUpdate(BaseModel):
     sum: Decimal | None = None
     delivery_sum: Decimal | None = None
     delivery_string: str | None = None
-    yandex_request_id: int | None = None
+    yandex_request_id: str | None = None
     commentary: str | None = None
 
 
@@ -90,7 +90,7 @@ class CartRead(BaseModel):
     delivery_sum: Decimal
     delivery_string: str
     commentary: str | None = None
-    yandex_request_id: int | None = None
+    yandex_request_id: str | None = None
     is_active: bool
 
     created_at: datetime
