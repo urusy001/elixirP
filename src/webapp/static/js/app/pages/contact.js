@@ -160,9 +160,45 @@ export async function renderContactPage() {
             const contact_info = formData;
             const checkout_data = JSON.parse(sessionStorage.getItem("checkout_data") || "null");
             const promocode = JSON.parse(sessionStorage.getItem("promocode") || "null");
-            const selected_delivery = JSON.parse(sessionStorage.getItem("selected_delivery") || "null");
+            let selected_delivery = JSON.parse(sessionStorage.getItem("selected_delivery") || "null");
             const selected_delivery_service =
                 sessionStorage.getItem("selected_delivery_service") || "Yandex";
+
+            // ✅ ВАРИАНТ A: цена доставки берётся из localStorage и кладётся в selected_delivery.delivery_sum (только ₽)
+            if (String(selected_delivery_service).toLowerCase() === "yandex") {
+                let costRub = 0;
+
+                const raw = localStorage.getItem("yandex_delivery_cost_rub") ?? sessionStorage.getItem("yandex_delivery_cost_rub");
+                if (raw != null) {
+                    const n = Number(raw);
+                    if (Number.isFinite(n) && n > 0) costRub = Math.round(n);
+                }
+
+                // fallback: если вдруг cost не записали в localStorage, но он есть в selected_delivery.calc.price.pricing_total
+                if (!costRub && selected_delivery && typeof selected_delivery === "object") {
+                    const pt =
+                        selected_delivery?.calc?.price?.pricing_total ??
+                        selected_delivery?.calc?.price?.pricing ??
+                        selected_delivery?.calc?.pricing_total ??
+                        selected_delivery?.calc?.pricing ??
+                        null;
+
+                    if (pt != null) {
+                        const m = String(pt).trim().match(/(\d+(?:[.,]\d+)?)/);
+                        if (m) {
+                            const v = Number(m[1].replace(",", "."));
+                            if (Number.isFinite(v) && v > 0) costRub = Math.round(v);
+                        }
+                    }
+                }
+
+                // гарантируем объект
+                if (!selected_delivery || typeof selected_delivery !== "object") selected_delivery = {};
+                selected_delivery.delivery_sum = costRub;
+
+                // на всякий — чтобы другие страницы тоже могли прочитать (если нужно)
+                if (costRub > 0) sessionStorage.setItem("delivery_sum", String(costRub));
+            }
 
             const payment_method = "later"; // only option now
             const payment_commentary = (commentaryInput?.value || "").trim();

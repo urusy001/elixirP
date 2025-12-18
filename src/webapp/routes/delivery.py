@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 
 import httpx
@@ -253,9 +254,7 @@ async def yandex_availability(req: AvailabilityRequest):
     body = {
         "info": {"operator_request_id": operator_request_id, "comment": "availability-check"},
         "source": {"platform_station": {"platform_id": str(YANDEX_DELIVERY_WAREHOUSE_ID)}},
-
         "destination": destination_node,
-
         "items": [
             {
                 "count": 1,
@@ -273,7 +272,6 @@ async def yandex_availability(req: AvailabilityRequest):
                 "physical_dims": {"dx": 25, "dy": 15, "dz": 10, "weight_gross": 100},
             }
         ],
-
         "billing_info": {"payment_method": "already_paid"},
         "recipient_info": {
             "first_name": "Получатель",
@@ -281,7 +279,6 @@ async def yandex_availability(req: AvailabilityRequest):
             "phone": "+79990000000",
             "email": "no-reply@example.com",
         },
-
         "last_mile_policy": last_mile_policy,
         "particular_items_refuse": False,
         "forbid_unboxing": False,
@@ -311,23 +308,71 @@ async def yandex_availability(req: AvailabilityRequest):
         data = r.json()
 
     offers = data.get("offers") or []
+
     slim = []
+    nearest = None
+    nearest_min = None  # минимальный delivery_interval.min
+    nearest_price_str = None
+
     for o in offers:
         det = o.get("offer_details") or {}
         di = det.get("delivery_interval") or {}
-        slim.append(
-            {
-                "offer_id": o.get("offer_id"),
-                "expires_at": o.get("expires_at"),
-                "pricing_total": det.get("pricing_total") or det.get("pricing"),
-                "station_id": o.get("station_id"),
-                "interval": {"from": di.get("min"), "to": di.get("max"), "policy": di.get("policy")},
-            }
-        )
+
+        offer_id = o.get("offer_id")
+        expires_at = o.get("expires_at")
+        station_id = o.get("station_id")
+
+        di_min = di.get("min")
+        di_max = di.get("max")
+        di_policy = di.get("policy")
+
+        price_str = det.get("pricing_total") or det.get("pricing")
+
+        item = {
+            "offer_id": offer_id,
+            "expires_at": expires_at,
+            "pricing_total": price_str,
+            "station_id": station_id,
+            "interval": {"from": di_min, "to": di_max, "policy": di_policy},
+        }
+        slim.append(item)
+
+        # Выбираем ближайший оффер по min интервала
+        if di_min is not None:
+            try:
+                di_min_int = int(di_min)
+            except Exception:
+                di_min_int = None
+
+            if di_min_int is not None and (nearest_min is None or di_min_int < nearest_min):
+                nearest_min = di_min_int
+                nearest = item
+                nearest_price_str = price_str
+
+    # Парсим цену в рублях (из "204 RUB", "204", "204.5 RUB")
+    nearest_price_rub = None
+    if nearest_price_str is not None:
+        s = str(nearest_price_str).strip()
+        m = re.search(r"(\d+(?:[.,]\d+)?)", s)
+        if m:
+            try:
+                nearest_price_rub = int(round(float(m.group(1).replace(",", "."))))
+            except Exception:
+                nearest_price_rub = None
+
+    deliverable = len(offers) > 0
 
     return {
         "ok": True,
-        "deliverable": len(offers) > 0,
+        "deliverable": deliverable,
         "offers_count": len(offers),
+        "nearest": {
+            "offer_id": nearest.get("offer_id") if nearest else None,
+            "pricing_total": nearest.get("pricing_total") if nearest else None,
+            "price_rub": nearest_price_rub,
+            "interval": nearest.get("interval") if nearest else None,
+            "expires_at": nearest.get("expires_at") if nearest else None,
+            "station_id": nearest.get("station_id") if nearest else None,
+        },
         "offers": slim,
     }
