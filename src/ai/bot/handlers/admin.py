@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pandas as pd
 from aiogram import Router
@@ -169,8 +169,8 @@ async def handle_unblock(message: Message):
         )
 
     mode, value = args[0], args[1]
-    # снимаем блокировку
-    user_update = UserUpdate(blocked_until=datetime.min.replace(tzinfo=MOSCOW_TZ))
+    low_date = datetime.now().replace(tzinfo=MOSCOW_TZ)-timedelta(days=30)
+    user_update = UserUpdate(blocked_until=low_date)
     full_name = "Unknown"
 
     # ------------- /unblock id 123456 -------------
