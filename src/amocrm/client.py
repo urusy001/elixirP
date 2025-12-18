@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import secrets
+import ssl
 from email.message import EmailMessage
 
 import aiosmtplib
@@ -485,15 +486,17 @@ class AsyncAmoCRM:
 Ваш код подтверждения: {code}
 Заказ: №{deal_code}
 Если Вы не запрашивали код — свяжитесь с поддержкой.""")
+        tls_ctx = ssl.create_default_context()
 
         await aiosmtplib.send(
             msg,
             hostname="smtp.gmail.com",
-            port=587,
+            port=465,
             start_tls=True,
             username=self.GMAIL_SMTP_USER,
             password=self.GMAIL_APP_PASSWORD,
             timeout=20,
+            tls_context=tls_ctx,
         )
 
     async def _extract_lead_email(self, lead: dict) -> Optional[str]:
