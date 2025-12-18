@@ -8,13 +8,13 @@ from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, FSInputFile
 
-from config import OWNER_TG_IDS, SPENDS_DIR, PROFESSOR_BOT_TOKEN, DOSE_BOT_TOKEN
+from config import OWNER_TG_IDS, SPENDS_DIR, PROFESSOR_BOT_TOKEN, DOSE_BOT_TOKEN, MOSCOW_TZ
 from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
+from src.tg_methods import get_user_id_by_phone, normalize_phone
 from src.webapp import get_session
 from src.webapp.crud import get_usages, get_user, update_user, upsert_user
 from src.webapp.schemas import UserUpdate, UserCreate
-from src.tg_methods import get_user_id_by_phone, normalize_phone
 
 professor_admin_router = Router(name="admin_professor")
 new_admin_router = Router(name="admin_new")
@@ -70,7 +70,7 @@ async def handle_block(message: Message):
         )
 
     mode, value = args[0], args[1]
-    user_update = UserUpdate(blocked_until=datetime.max)
+    user_update = UserUpdate(blocked_until=datetime.max.replace(tzinfo=MOSCOW_TZ))
     full_name = "Unknown"
 
     if mode == "id":
@@ -109,21 +109,20 @@ async def handle_block(message: Message):
 
         async with get_session() as session:
             user = await get_user(session, "tg_phone", phone)
-            if not user:
-                user = await get_user(session, "tg_id", f'+{phone}')
+            if not user: user = await get_user(session, "tg_id", f'+{phone}')
 
         if not user:
             user_id = await get_user_id_by_phone(phone)
             if not user_id:
                 return await message.answer(
-                    f"<b>Ошибка команды: пользователь с номером {phone} не найден</b>"
+                    f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>"
                 )
 
             async with get_session() as session:
                 user = await get_user(session, "tg_id", user_id)
                 if not user:
                     return await message.answer(
-                        f"<b>Ошибка команды: пользователь с номером {phone} не найден</b>"
+                        f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>"
                     )
 
                 # блокируем по tg_id (важно — этого не было в твоем коде)
@@ -144,7 +143,7 @@ async def handle_block(message: Message):
 
         return await message.answer(
             f"Пользователь {full_name} успешно <b>заблокирован</b>\n"
-            f"Команда для разблокировки: <code>/unblock phone {phone}</code>"
+            f"Команда для разблокировки: <code>/unblock phone +{phone.removeprefix('+')}</code>"
         )
 
     # ------------- неизвестный режим -------------
@@ -171,7 +170,7 @@ async def handle_unblock(message: Message):
 
     mode, value = args[0], args[1]
     # снимаем блокировку
-    user_update = UserUpdate(blocked_until=None)
+    user_update = UserUpdate(blocked_until=datetime.min.replace(tzinfo=MOSCOW_TZ))
     full_name = "Unknown"
 
     # ------------- /unblock id 123456 -------------
@@ -218,33 +217,30 @@ async def handle_unblock(message: Message):
             user_id = await get_user_id_by_phone(phone)
             if not user_id:
                 return await message.answer(
-                    f"<b>Ошибка команды: пользователь с номером {phone} не найден</b>"
+                    f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>"
                 )
 
             async with get_session() as session:
                 user = await get_user(session, "tg_id", user_id)
                 if not user:
                     return await message.answer(
-                        f"<b>Ошибка команды: пользователь с номером {phone} не найден</b>"
+                        f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>"
                     )
 
                 await update_user(session, user.tg_id, user_update)
 
         else:
-            async with get_session() as session:
-                await update_user(session, user.tg_id, user_update)
+            async with get_session() as session:  await update_user(session, user.tg_id, user_update)
 
-        # попытка достать нормальное имя из Telegram
         try:
             chat = await message.bot.get_chat(user.tg_id)
-            if chat:
-                full_name = chat.full_name
+            if chat: full_name = chat.full_name
         except Exception:
             pass
 
         return await message.answer(
             f"Пользователь {full_name} успешно <b>разблокирован</b>\n"
-            f"Команда для блокировки: <code>/block phone {phone}</code>"
+            f"Команда для блокировки: <code>/block phone +{phone.removeprefix('+')}</code>"
         )
 
     # ------------- неизвестный режим -------------
