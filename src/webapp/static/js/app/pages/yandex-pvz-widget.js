@@ -1,5 +1,5 @@
 import { withLoader } from "../ui/loader.js";
-import {apiGet, apiPost} from "../../services/api.js";
+import { apiGet, apiPost } from "../../services/api.js";
 
 const SUGGEST_ROW_HEIGHT = 36;
 const DEFAULT_CENTER = [55.751, 37.618];
@@ -21,17 +21,7 @@ export class YandexPvzWidget {
             autoLocate: false,
             onReady: null,
             onChoose: null,
-
-            // must return order payload for calculation
-            // {
-            //   total_weight_g: number,
-            //   total_assessed_price_kop: number,
-            //   client_price_kop: number,
-            //   payment_method: "already_paid" | "card_on_receipt",
-            //   places: [{ physical_dims: { dx:number, dy:number, dz:number, weight_gross:number, predefined_volume?:number } }]
-            // }
             getOrderData: null,
-
             ...options,
         };
 
@@ -71,6 +61,7 @@ export class YandexPvzWidget {
         this.queryEl = this.root.querySelector("#ydw-query");
         this.suggestEl = this.root.querySelector("#ydw-suggest");
 
+        // "Выбрать" в балуне ПВЗ
         this.root.addEventListener("click", (e) => {
             const btn = e.target.closest(".ydw-choose-btn");
             if (!btn) return;
@@ -78,12 +69,21 @@ export class YandexPvzWidget {
             const id = btn.getAttribute("data-id");
             if (!id) return;
 
-            this._select(id, false);
-            this._emitChoosePVZ();
-
-            btn.textContent = "✅ Выбрано";
+            btn.textContent = "⏳ Считаю доставку...";
             btn.disabled = true;
-            btn.style.opacity = "0.8";
+            btn.style.opacity = "0.85";
+
+            this._select(id, false).then(() => {
+                this._emitChoosePVZ()
+                    .then(() => {
+                        btn.textContent = "✅ Выбрано";
+                    })
+                    .catch(() => {
+                        btn.textContent = "Ошибка";
+                        btn.disabled = false;
+                        btn.style.opacity = "1";
+                    });
+            });
         });
     }
 
@@ -103,24 +103,26 @@ export class YandexPvzWidget {
         this.manager.clusters.options.set("preset", "islands#invertedBlueClusterIcons");
         this.map.geoObjects.add(this.manager);
 
+        // click по точке -> открыть балун, выделить
         this.manager.objects.events.add("click", (e) => {
             const id = e.get("objectId");
             this._removeDoorPlacemark();
             this._select(id, true);
         });
 
+        // click по карте -> курьерная точка
         this.map.events.add("click", (e) => {
             if (e.get("target") !== this.map) return;
-            const coords = e.get("coords");
+            const coords = e.get("coords"); // [lat, lon]
             this._clearSelection();
             this._setDoorPlacemark(coords);
         });
 
         const all = await withLoader(async () => {
             try {
-                const data = await apiGet(this.options.dataUrl);
+                const data = await apiGet(this.options.dataUrl); // json
                 return data ?? { points: [] };
-            } catch (e) {
+            } catch {
                 return { points: [] };
             }
         });
@@ -131,6 +133,7 @@ export class YandexPvzWidget {
 
         if (points.length) {
             try {
+                // bounds из [lat, lon]
                 const coords = points.map((p) => p.coords);
                 const bounds = ymaps.util.bounds.fromPoints(coords);
                 this.map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 32 });
@@ -231,6 +234,7 @@ export class YandexPvzWidget {
             this.suggestEl.innerHTML = "";
             return;
         }
+
         const frag = document.createDocumentFragment();
         variants.forEach((v, i) => {
             const row = document.createElement("div");
@@ -249,6 +253,7 @@ export class YandexPvzWidget {
             }</div>`;
             frag.appendChild(row);
         });
+
         this.suggestEl.innerHTML = "";
         this.suggestEl.appendChild(frag);
         this.suggestEl.style.height = `${SUGGEST_ROW_HEIGHT * 5}px`;
@@ -271,7 +276,7 @@ export class YandexPvzWidget {
                 variants.push({
                     name: g.getAddressLine(),
                     kind: meta?.kind,
-                    coords: g.geometry.getCoordinates(),
+                    coords: g.geometry.getCoordinates(), // [lat,lon]
                     bounds: g.properties.get("boundedBy"),
                 });
             }
@@ -297,17 +302,19 @@ export class YandexPvzWidget {
         const mySeq = ++this._doorSeq;
 
         const prev = this._doorPlacemark || null;
+
         const address = (await this._resolveAddress(coords)) || "Адрес не определён";
         if (mySeq !== this._doorSeq) return;
 
         this._doorAddress = address;
-        const html = this._doorBalloonHtml(address, coords);
+        const html = this._doorBalloonHtml(address);
 
         const fresh = new ymaps.Placemark(
             coords,
             { hintContent: address, balloonContent: html },
             { preset: "islands#redIcon", draggable: true }
         );
+
         try {
             fresh.properties.set("ydwDoor", true);
         } catch {}
@@ -319,9 +326,11 @@ export class YandexPvzWidget {
 
         this.map.geoObjects.add(fresh);
         this._doorPlacemark = fresh;
+
         try {
             fresh.balloon.open();
         } catch {}
+
         this._wireDoorChooseOnce(coords);
 
         if (prev && prev !== fresh) {
@@ -345,7 +354,7 @@ export class YandexPvzWidget {
 
             btn.textContent = "⏳ Считаю доставку...";
             btn.disabled = true;
-            btn.style.opacity = "0.8";
+            btn.style.opacity = "0.85";
             btn.style.cursor = "default";
 
             const payload = { deliveryMode: "time_interval", coords, address: this._doorAddress || "" };
@@ -360,12 +369,12 @@ export class YandexPvzWidget {
 
     async _resolveAddress(coords) {
         const [lat, lon] = coords;
+
+        // apiGet returns JSON (не Response)
         try {
-            const r = await apiGet(`/delivery/yandex/reverse-geocode?lat=${lat}&lon=${lon}`);
-            if (r.ok) {
-                const info = await r.json();
-                if (info?.formatted) return info.formatted;
-            }
+            const info = await apiGet(`/delivery/yandex/reverse-geocode?lat=${lat}&lon=${lon}`);
+            if (info?.formatted) return info.formatted;
+            if (info?.address) return info.address;
         } catch {}
 
         try {
@@ -423,16 +432,19 @@ export class YandexPvzWidget {
     _normalizePoint(p) {
         const safeId = `pvz_${p.id}`;
         const addr = p.address ?? {};
+        const lat = Number(p?.position?.latitude);
+        const lon = Number(p?.position?.longitude);
+
         return {
             id: safeId,
             rawId: p.id,
-            coords: [p.position.latitude, p.position.longitude],
+            coords: [lat, lon], // [lat, lon] for map
             name: p.name ?? "Пункт выдачи заказов",
             phone: p.contact?.phone ?? "",
             schedule: this._formatSchedule(p.schedule),
             dayoffs: this._formatDayoffs(p.dayoffs),
             address: addr.full_address || [addr.region, addr.locality, addr.street, addr.house].filter(Boolean).join(", "),
-            type: p.type || "", // "pickup_point" | "terminal"
+            type: p.type || "",
         };
     }
 
@@ -443,10 +455,15 @@ export class YandexPvzWidget {
 
         const features = points.map((p) => {
             this._pointsById.set(p.id, p);
+
+            // IMPORTANT: GeoJSON coords for ObjectManager are [lon, lat]
+            const [lat, lon] = p.coords;
+            const geojsonCoords = [lon, lat];
+
             return {
                 type: "Feature",
                 id: p.id,
-                geometry: { type: "Point", coordinates: p.coords },
+                geometry: { type: "Point", coordinates: geojsonCoords },
                 properties: { hintContent: p.name, balloonContent: this._balloonHtml(p) },
             };
         });
@@ -472,12 +489,19 @@ export class YandexPvzWidget {
     `;
     }
 
-    _select(id, openBalloon = false) {
+    async _select(id, openBalloon = false) {
         if (id && !String(id).startsWith("pvz_")) id = `pvz_${id}`;
         if (!this._pointsById.has(id)) return;
 
         const prev = this._selectedId;
-        if (prev === id) return;
+        if (prev === id) {
+            if (openBalloon) {
+                try {
+                    this.manager.objects.balloon.open(id);
+                } catch {}
+            }
+            return;
+        }
 
         this._removeDoorPlacemark();
 
@@ -494,7 +518,11 @@ export class YandexPvzWidget {
             try {
                 this.manager.objects.balloon.close();
             } catch {}
-            setTimeout(() => this.manager.objects.balloon.open(id), 0);
+            setTimeout(() => {
+                try {
+                    this.manager.objects.balloon.open(id);
+                } catch {}
+            }, 0);
         }
     }
 
@@ -532,9 +560,10 @@ export class YandexPvzWidget {
 
         const reqBody = {
             delivery_mode: destinationPayload.deliveryMode,
-            destination: destinationPayload.deliveryMode === "self_pickup"
-                ? { platform_station_id: destinationPayload.platform_station_id }
-                : { address: destinationPayload.address },
+            destination:
+                destinationPayload.deliveryMode === "self_pickup"
+                    ? { platform_station_id: destinationPayload.platform_station_id }
+                    : { address: destinationPayload.address },
             total_weight: Number(order?.total_weight_g || 0),
             total_assessed_price: Number(order?.total_assessed_price_kop || 0),
             client_price: Number(order?.client_price_kop || 0),
@@ -545,7 +574,7 @@ export class YandexPvzWidget {
 
         const calc = await withLoader(async () => {
             try {
-                const r = await apiPost(this.options.calculateUrl, reqBody);
+                const r = await apiPost(this.options.calculateUrl, reqBody); // Response
                 const data = await r.json().catch(() => ({}));
                 if (!r.ok) throw new Error(data?.detail || "calculate failed");
                 return data;
