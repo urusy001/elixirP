@@ -53,7 +53,7 @@ class AsyncAmoCRM:
             "city": 752927,
             "address": 752435,
             "promo_code": 752923,
-            "delivery_price": 752929,
+            "delivery_sum": 752929,
             "ai": 753181,
         }
         
