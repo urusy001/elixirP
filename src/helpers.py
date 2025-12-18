@@ -26,8 +26,11 @@ from typing import Any
 from sqlalchemy import BigInteger, Integer, String, DateTime, Numeric, Boolean
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from config import ELIXIR_CHAT_ID, NEW_BOT_TOKEN, INTERNAL_API_TOKEN
+from config import ELIXIR_CHAT_ID, NEW_BOT_TOKEN, INTERNAL_API_TOKEN, MOSCOW_TZ
+from src.webapp import get_session
+from src.webapp.crud import get_user
 from src.webapp.models.user import User
+from src.ai.bot.texts import user_texts
 
 MAX_TG_MSG_LEN = 4096
 _NULLY = {None, "", "null", "None", "NULL"}
@@ -548,3 +551,10 @@ def require_internal_token(req: Request) -> None:
     got = req.headers.get("X-Internal-Token")
     if not expected or got != expected:
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+async def check_blocked(message: Message):
+    async with get_session() as session: user = await get_user(session, 'tg_id', message.from_user.id)
+    if user and user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ):
+        await message.answer(user_texts.banned_until.replace("Блокировка до 9999-12-31, п", "П").replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}'))
+        return False
+    return True

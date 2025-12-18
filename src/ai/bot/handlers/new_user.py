@@ -11,7 +11,7 @@ from aiogram.types import FSInputFile, Message, CallbackQuery, ReplyKeyboardRemo
 from config import OWNER_TG_IDS, MOSCOW_TZ, DATA_DIR, PROFESSOR_ASSISTANT_ID, NEW_ASSISTANT_ID, BOT_KEYWORDS, \
     WEBAPP_BASE_DOMAIN, INTERNAL_API_TOKEN
 from src.ai.calc import generate_drug_graphs, plot_filled_scale
-from src.helpers import CHAT_NOT_BANNED_FILTER, _notify_user, with_typing, _fmt
+from src.helpers import CHAT_NOT_BANNED_FILTER, _notify_user, with_typing, _fmt, check_blocked
 from src.webapp import get_session
 from src.webapp.crud import write_usage, increment_tokens, get_user, update_user, get_used_code_by_code, \
     create_used_code
@@ -25,11 +25,13 @@ async def _(x: Message):
     await x.delete()
 
 new_user_router = Router(name="shop_user")
-new_user_router.message.filter(lambda message: message.from_user.id not in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE)
-new_user_router.callback_query.filter(lambda call: call.data.startswith("user") and call.from_user.id not in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
+new_user_router.message.filter(lambda message: message.from_user.id not in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE, check_blocked)
+new_user_router.callback_query.filter(lambda call: call.data.startswith("user") and call.from_user.id not in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE, check_blocked)
+
 
 @new_user_router.message(Command('shop'))
-async def app(message: Message): await message.answer(user_texts.offer, reply_markup=user_keyboards.open_app)
+async def app(message: Message):
+    await message.answer(user_texts.offer, reply_markup=user_keyboards.open_app)
 
 @new_user_router.message(Command('about'))
 async def about(message: Message):
@@ -68,7 +70,6 @@ async def handle_user_start(message: Message, state: FSMContext):
         await state.set_state(user_states.Registration.phone)
         return await message.answer(user_texts.verify_phone.replace('*', message.from_user.full_name), reply_markup=user_keyboards.phone)
 
-    if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ): return await message.answer(user_texts.banned_until.replace("Блокировка до 9999-12-31, п", "П").replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}'))
     return await message.answer(user_texts.greetings.replace('full_name', message.from_user.full_name), reply_markup=user_keyboards.main_menu)
 
 @new_user_router.message(user_states.Ai.activate_code)
@@ -424,7 +425,6 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
 
     async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
     if not user: return await handle_user_start(message, state, professor_bot, professor_client)
-    if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ): return await message.answer(user_texts.banned_until.replace("Блокировка до 9999-12-31, п", "П").replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}'))
 
     state_data = await state.get_data()
     assistant_id = state_data.get("assistant_id", None)

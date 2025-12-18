@@ -9,7 +9,7 @@ from config import PROFESSOR_BOT_TOKEN, MOSCOW_TZ, OWNER_TG_IDS, BOT_KEYWORDS, P
 from src.ai.bot.keyboards import user_keyboards
 from src.ai.bot.states import user_states
 from src.ai.bot.texts import user_texts
-from src.helpers import with_typing, CHAT_NOT_BANNED_FILTER
+from src.helpers import with_typing, CHAT_NOT_BANNED_FILTER, check_blocked
 from src.webapp import get_session
 from src.webapp.crud import update_user, increment_tokens, write_usage, get_user
 from src.webapp.schemas import UserUpdate
@@ -17,10 +17,10 @@ from src.webapp.schemas import UserUpdate
 professor_user_router = Router(name="user")
 dose_user_router = Router(name="user3")
 
-professor_user_router.message.filter(lambda message: message.from_user.id not in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE)
-professor_user_router.callback_query.filter(lambda call: call.data.startswith("user") and call.from_user.id not in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
-dose_user_router.message.filter(lambda message: message.from_user.id not in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE)
-dose_user_router.callback_query.filter(lambda call: call.data.startswith("user") and call.from_user.id not in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
+professor_user_router.message.filter(lambda message: message.from_user.id not in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE, check_blocked)
+professor_user_router.callback_query.filter(lambda call: call.data.startswith("user") and call.from_user.id not in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE, check_blocked)
+dose_user_router.message.filter(lambda message: message.from_user.id not in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE, check_blocked)
+dose_user_router.callback_query.filter(lambda call: call.data.startswith("user") and call.from_user.id not in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE, check_blocked)
 
 
 @professor_user_router.message(CommandStart())
