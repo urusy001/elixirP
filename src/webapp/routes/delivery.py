@@ -1,11 +1,15 @@
 import json
 import logging
+from typing import Any, Optional
+
 import httpx
 from fastapi import APIRouter, Request, Query, HTTPException
 from fastapi.responses import Response
 
-from config import CDEK_API_URL, YANDEX_GEOCODER_TOKEN, YANDEX_DELIVERY_TOKEN, YANDEX_DELIVERY_BASE_URL
+from config import CDEK_API_URL, YANDEX_GEOCODER_TOKEN, YANDEX_DELIVERY_TOKEN, YANDEX_DELIVERY_BASE_URL, \
+    YANDEX_DELIVERY_WAREHOUSE_ID
 from src.delivery.sdek import client as cdek_client
+from src.webapp.schemas.yadev import PickupPointsResponse, CalcRequest
 
 logger = logging.getLogger(__name__)
 
@@ -188,26 +192,134 @@ async def get_pvz(req: dict):
     logger.info("pickup payload: %s", json.dumps(payload, ensure_ascii=False))
     return resp.json()
 
-@yandex_router.get("/get-pvz-all")
-async def get_all_pvz():
-    """
-    Load all PVZ for Russia + Kazakhstan (merged cache or direct Yandex call).
-    This endpoint should respond with:
-        { "points": [ ... ] }
-    """
-    if not YANDEX_DELIVERY_TOKEN: raise HTTPException(500, "Token missing")
 
-    payload = {
-        "type": "pickup_point",
-        "is_not_branded_partner_station": True,
+@yandex_router.get("/get-pvz-all", response_model=PickupPointsResponse)
+async def get_pvz_all(
+        geo_id: Optional[int] = Query(default=None),
+        lat_from: Optional[float] = Query(default=None),
+        lat_to: Optional[float] = Query(default=None),
+        lon_from: Optional[float] = Query(default=None),
+        lon_to: Optional[float] = Query(default=None),
+):
+    if not YANDEX_DELIVERY_TOKEN: raise HTTPException(status_code=500, detail="YANDEX_DELIVERY_TOKEN is not set")
+
+    url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/pickup-points/list"
+    headers = {
+        "Authorization": f"Bearer {YANDEX_DELIVERY_TOKEN}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Accept-Language": "ru",
     }
+
+    common_body: dict[str, Any] = {}
+    if geo_id is not None: common_body["geo_id"] = geo_id
+    if lat_from is not None and lat_to is not None: common_body["latitude"] = {"from": lat_from, "to": lat_to}
+    if lon_from is not None and lon_to is not None: common_body["longitude"] = {"from": lon_from, "to": lon_to}
+
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        points: list[dict[str, Any]] = []
+        seen: set[str] = set()
+
+        for t in ("pickup_point", "terminal"):
+            body = {**common_body, "type": t}
+            r = await client.post(url, headers=headers, json=body)
+            if r.status_code >= 400: raise HTTPException(status_code=502, detail=f"Yandex pickup-points/list error: {r.text}")
+            data = r.json()
+            for p in (data.get("points") or []):
+                pid = str(p.get("id") or p.get("ID") or "")
+                key = pid if pid else f'{t}:{p.get("operator_station_id")}'
+                if key in seen: continue
+                seen.add(key)
+
+
+                p_out = {
+                    "id": pid or p.get("ID"),  # ВАЖНО: это то, что пойдёт в destination.platform_station_id
+                    "type": p.get("type") or t,
+                    "name": p.get("name"),
+                    "position": p.get("position"),
+                    "address": p.get("address"),
+                    "contact": p.get("contact"),
+                    "schedule": p.get("schedule"),
+                    "dayoffs": p.get("dayoffs"),
+                    "payment_methods": p.get("payment_methods"),
+                    "operator_station_id": p.get("operator_station_id"),
+                }
+                points.append(p_out)
+
+    return {"points": points}
+
+
+@yandex_router.post("/calculate")
+async def yandex_calculate(req: CalcRequest):
+    if not YANDEX_DELIVERY_TOKEN: raise HTTPException(status_code=500, detail="YANDEX_DELIVERY_TOKEN is not set")
+    if not YANDEX_DELIVERY_WAREHOUSE_ID: raise HTTPException(status_code=500, detail="YANDEX_SOURCE_PLATFORM_STATION_ID is not set")
+    if req.delivery_mode == "self_pickup" and not req.destination.platform_station_id: raise HTTPException(status_code=400, detail="destination.platform_station_id is required for self_pickup")
+    if req.delivery_mode == "time_interval" and not req.destination.address: raise HTTPException(status_code=400, detail="destination.address is required for time_interval")
 
     headers = {
         "Authorization": f"Bearer {YANDEX_DELIVERY_TOKEN}",
+        "Accept": "application/json",
         "Content-Type": "application/json",
+        "Accept-Language": "ru",
     }
-    url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/pickup-points/list"
 
-    async with httpx.AsyncClient(timeout=60) as client: resp = await client.post(url, json=payload, headers=headers)
-    if resp.status_code != 200: raise HTTPException(resp.status_code, resp.text)
-    return resp.json()
+    pricing_url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/pricing-calculator"
+    offers_info_url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/offers/info"
+
+    pricing_body: dict[str, Any] = {
+        "source": {"platform_station_id": YANDEX_DELIVERY_WAREHOUSE_ID},
+        "destination": (
+            {"platform_station_id": req.destination.platform_station_id}
+            if req.delivery_mode == "self_pickup"
+            else {"address": req.destination.address}
+        ),
+        "tariff": req.delivery_mode,
+        "total_weight": req.total_weight,
+        "total_assessed_price": req.total_assessed_price,
+        "client_price": req.client_price,
+        "payment_method": req.payment_method,
+        "places": [p.model_dump() for p in req.places],
+    }
+
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        pr = await client.post(
+            pricing_url,
+            headers=headers,
+            params={"is_oversized": str(req.is_oversized).lower()},
+            json=pricing_body,
+        )
+        if pr.status_code >= 400: raise HTTPException(status_code=502, detail=f"Yandex pricing-calculator error: {pr.text}")
+
+        pricing = pr.json()
+        pricing_total = pricing.get("pricing_total")
+        delivery_days = pricing.get("delivery_days")
+
+        params: dict[str, Any] = {
+            "station_id": YANDEX_DELIVERY_WAREHOUSE_ID,
+            "last_mile_policy": req.delivery_mode,
+            "send_unix": str(req.send_unix).lower(),
+        }
+        if req.delivery_mode == "self_pickup": params["self_pickup_id"] = req.destination.platform_station_id
+        else: params["full_address"] = req.destination.address
+
+        oi = await client.get(offers_info_url, headers=headers, params=params)
+
+        best_interval = None
+        offers_count = 0
+        if oi.status_code == 200:
+            offers_info = oi.json()
+            offers = offers_info.get("offers") or []
+            offers_count = len(offers)
+            if offers: best_interval = min(offers, key=lambda x: x.get("from", 10**18))
+        else:
+            offers_info = {"status_code": oi.status_code, "body": oi.text}
+
+    return {
+        "ok": True,
+        "delivery_mode": req.delivery_mode,
+        "price": {"pricing_total": pricing_total, "currency": "RUB"},
+        "delivery_days": delivery_days,
+        "best_interval": best_interval,
+        "offers_count": offers_count,
+        "offers_info": offers_info,   
+    }

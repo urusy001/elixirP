@@ -1,5 +1,5 @@
 import { withLoader } from "../ui/loader.js";
-import {apiGet} from "../../services/api.js";
+import { apiGet } from "../../services/api.js";
 
 const SUGGEST_ROW_HEIGHT = 36;
 const DEFAULT_CENTER = [55.751, 37.618];
@@ -8,15 +8,30 @@ const DEFAULT_ZOOM = 4;
 export class YandexPvzWidget {
     constructor(containerId, options = {}) {
         this.root = document.getElementById(containerId);
-        if (!this.root) { console.error(`YandexPvzWidget: #${containerId} not found`); return; }
+        if (!this.root) {
+            console.error(`YandexPvzWidget: #${containerId} not found`);
+            return;
+        }
 
         this.options = {
             dataUrl: "/delivery/yandex/get-pvz-all",
+            calculateUrl: "/delivery/yandex/calculate",
             defaultCenter: DEFAULT_CENTER,
             defaultZoom: DEFAULT_ZOOM,
             autoLocate: false,
             onReady: null,
             onChoose: null,
+
+            // must return order payload for calculation
+            // {
+            //   total_weight_g: number,
+            //   total_assessed_price_kop: number,
+            //   client_price_kop: number,
+            //   payment_method: "already_paid" | "card_on_receipt",
+            //   places: [{ physical_dims: { dx:number, dy:number, dz:number, weight_gross:number, predefined_volume?:number } }]
+            // }
+            getOrderData: null,
+
             ...options,
         };
 
@@ -26,12 +41,10 @@ export class YandexPvzWidget {
         this._pointsById = new Map();
         this._selectedId = null;
 
-        // Courier (to-door) placemark
         this._doorPlacemark = null;
         this._doorAddress = "";
         this._doorSeq = 0;
 
-        // Geocode suggest cache
         this._geocodeCache = new Map();
         this._geocodeCacheMax = 50;
 
@@ -53,18 +66,21 @@ export class YandexPvzWidget {
       </div>
       <div id="ydw-map" style="width:100%;height:100%;min-height:400px;border-radius:8px;"></div>
     `;
+
         this.mapEl = this.root.querySelector("#ydw-map");
         this.queryEl = this.root.querySelector("#ydw-query");
         this.suggestEl = this.root.querySelector("#ydw-suggest");
 
-        // Handle "Выбрать" clicks inside PVZ balloons
         this.root.addEventListener("click", (e) => {
             const btn = e.target.closest(".ydw-choose-btn");
             if (!btn) return;
+
             const id = btn.getAttribute("data-id");
             if (!id) return;
+
             this._select(id, false);
             this._emitChoosePVZ();
+
             btn.textContent = "✅ Выбрано";
             btn.disabled = true;
             btn.style.opacity = "0.8";
@@ -78,49 +94,47 @@ export class YandexPvzWidget {
             { suppressMapOpenBlock: true, yandexMapDisablePoiInteractivity: true }
         );
 
-        this.manager = new ymaps.ObjectManager({ clusterize: true, gridSize: 64, clusterDisableClickZoom: false });
+        this.manager = new ymaps.ObjectManager({
+            clusterize: true,
+            gridSize: 64,
+            clusterDisableClickZoom: false,
+        });
         this.manager.objects.options.set("preset", this.preset.default);
         this.manager.clusters.options.set("preset", "islands#invertedBlueClusterIcons");
         this.map.geoObjects.add(this.manager);
 
-        // Click on a PVZ => choose pickup (and remove door pin if any)
         this.manager.objects.events.add("click", (e) => {
             const id = e.get("objectId");
             this._removeDoorPlacemark();
             this._select(id, true);
         });
 
-        // Click on map (empty) => set courier pin and clear PVZ selection
         this.map.events.add("click", (e) => {
-            if (e.get("target") !== this.map) return; // safety
+            if (e.get("target") !== this.map) return;
             const coords = e.get("coords");
             this._clearSelection();
             this._setDoorPlacemark(coords);
         });
 
-        // Load and render PVZ points
         const all = await withLoader(async () => {
             try {
-                const data = await apiGet(this.options.dataUrl); // <- тут уже JSON
-                // если сервер всегда отдаёт объект вида { points: [...] }:
+                const data = await apiGet(this.options.dataUrl);
                 return data ?? { points: [] };
             } catch {
                 return { points: [] };
             }
         });
 
-        const src = Array.isArray(all?.points) ? all.points : (Array.isArray(all) ? all : []);
+        const src = Array.isArray(all?.points) ? all.points : Array.isArray(all) ? all : [];
         const points = src.map((p) => this._normalizePoint(p));
         this._drawPoints(points);
 
         if (points.length) {
             try {
-                const coords = points.map(p => p.coords);
+                const coords = points.map((p) => p.coords);
                 const bounds = ymaps.util.bounds.fromPoints(coords);
                 this.map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 32 });
             } catch {}
-        } else {
-            this._toast("Нет пунктов выдачи для отображения");
         }
 
         if (this.options.autoLocate && navigator.geolocation) {
@@ -140,18 +154,32 @@ export class YandexPvzWidget {
     /* ------------------------ Search (locality suggest) ----------------------- */
 
     _bindSearchUI() {
-        const debounce = (fn, delay = 300) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), delay); }; };
+        const debounce = (fn, delay = 300) => {
+            let t;
+            return (...a) => {
+                clearTimeout(t);
+                t = setTimeout(() => fn(...a), delay);
+            };
+        };
+
         this._searchVariants = [];
         this._suggestActive = -1;
 
-        this.queryEl?.addEventListener("input", debounce(async (e) => {
-            const q = e.target.value.trim();
-            if (!q) { this._searchVariants = []; this._renderSuggest([]); return; }
-            const variants = await this._geocodeLocality(q);
-            this._searchVariants = Array.isArray(variants) ? variants : [];
-            this._renderSuggest(this._searchVariants);
-            this._suggestActive = -1;
-        }, 250));
+        this.queryEl?.addEventListener(
+            "input",
+            debounce(async (e) => {
+                const q = e.target.value.trim();
+                if (!q) {
+                    this._searchVariants = [];
+                    this._renderSuggest([]);
+                    return;
+                }
+                const variants = await this._geocodeLocality(q);
+                this._searchVariants = Array.isArray(variants) ? variants : [];
+                this._renderSuggest(this._searchVariants);
+                this._suggestActive = -1;
+            }, 250)
+        );
 
         this.suggestEl?.addEventListener("click", (e) => {
             const row = e.target.closest(".ydw-suggest-row");
@@ -160,16 +188,17 @@ export class YandexPvzWidget {
             const idx = Number(row.getAttribute("data-index") || "-1");
             const item = this._searchVariants?.[idx];
             if (!item?.coords) return;
-            this._goToVariant(item); // just navigate; user clicks map to place courier pin if needed
+            this._goToVariant(item);
         });
 
         this.queryEl?.addEventListener("keydown", (e) => {
             if (!this._searchVariants.length) return;
+
             if (e.key === "ArrowDown" || e.key === "ArrowUp") {
                 e.preventDefault();
                 const max = this._searchVariants.length - 1;
                 if (e.key === "ArrowDown") this._suggestActive = Math.min(max, this._suggestActive + 1);
-                else this._suggestActive = Math.max(0, (this._suggestActive < 0 ? 0 : this._suggestActive - 1));
+                else this._suggestActive = Math.max(0, this._suggestActive < 0 ? 0 : this._suggestActive - 1);
                 this._highlightSuggest(this._suggestActive);
             } else if (e.key === "Enter") {
                 e.preventDefault();
@@ -190,7 +219,7 @@ export class YandexPvzWidget {
 
     _highlightSuggest(activeIdx) {
         if (!this.suggestEl) return;
-        [...this.suggestEl.children].forEach((el, i) => { el.style.background = (i === activeIdx) ? "#eef2ff" : ""; });
+        [...this.suggestEl.children].forEach((el, i) => (el.style.background = i === activeIdx ? "#eef2ff" : ""));
         const target = this.suggestEl.children[activeIdx];
         if (target) target.scrollIntoView({ block: "nearest" });
     }
@@ -215,7 +244,9 @@ export class YandexPvzWidget {
             row.addEventListener("mouseleave", () => (row.style.background = ""));
             const name = (v.name || "").toString();
             const kind = (v.kind || "").toString();
-            row.innerHTML = `<div style="font-size:13px;flex:1;min-width:0;">${this._escape(name)}${kind ? `<span style="opacity:.65;font-size:12px;margin-left:6px;">(${this._escape(kind)})</span>` : ""}</div>`;
+            row.innerHTML = `<div style="font-size:13px;flex:1;min-width:0;">${this._escape(name)}${
+                kind ? `<span style="opacity:.65;font-size:12px;margin-left:6px;">(${this._escape(kind)})</span>` : ""
+            }</div>`;
             frag.appendChild(row);
         });
         this.suggestEl.innerHTML = "";
@@ -229,7 +260,10 @@ export class YandexPvzWidget {
         try {
             const res = await ymaps.geocode(query, { results: 50 });
             const gos = res.geoObjects;
-            if (!gos || gos.getLength() === 0) { this._rememberGeocode(query, []); return []; }
+            if (!gos || gos.getLength() === 0) {
+                this._rememberGeocode(query, []);
+                return [];
+            }
             const variants = [];
             for (let i = 0; i < gos.getLength(); i++) {
                 const g = gos.get(i);
@@ -243,8 +277,12 @@ export class YandexPvzWidget {
             }
             this._rememberGeocode(query, variants);
             return variants;
-        } catch { this._rememberGeocode(query, []); return []; }
+        } catch {
+            this._rememberGeocode(query, []);
+            return [];
+        }
     }
+
     _rememberGeocode(q, val) {
         this._geocodeCache.set(q, val);
         if (this._geocodeCache.size > this._geocodeCacheMax) {
@@ -270,7 +308,9 @@ export class YandexPvzWidget {
             { hintContent: address, balloonContent: html },
             { preset: "islands#redIcon", draggable: true }
         );
-        try { fresh.properties.set("ydwDoor", true); } catch {}
+        try {
+            fresh.properties.set("ydwDoor", true);
+        } catch {}
 
         fresh.events.add("dragend", async () => {
             const newCoords = fresh.geometry.getCoordinates();
@@ -279,52 +319,65 @@ export class YandexPvzWidget {
 
         this.map.geoObjects.add(fresh);
         this._doorPlacemark = fresh;
-        try { fresh.balloon.open(); } catch {}
+        try {
+            fresh.balloon.open();
+        } catch {}
         this._wireDoorChooseOnce(coords);
 
         if (prev && prev !== fresh) {
-            try { prev.balloon?.close?.(); } catch {}
-            try { this.map.geoObjects.remove(prev); } catch {}
+            try {
+                prev.balloon?.close?.();
+            } catch {}
+            try {
+                this.map.geoObjects.remove(prev);
+            } catch {}
         }
+
         this._purgeOldDoorPlacemarks(fresh);
         this.map?.panTo(coords, { duration: 300 });
     }
 
     _wireDoorChooseOnce(coords) {
-        const onceHandler = (e) => {
+        const onceHandler = async (e) => {
             const btn = e.target.closest(".ydw-choose-door");
             if (!btn) return;
             e.stopPropagation();
 
-            btn.textContent = "✅ Выбрано";
+            btn.textContent = "⏳ Считаю доставку...";
             btn.disabled = true;
             btn.style.opacity = "0.8";
             btn.style.cursor = "default";
 
-            this._emitChooseDoor(coords, this._doorAddress);
+            const payload = { deliveryMode: "time_interval", coords, address: this._doorAddress || "" };
+            const enriched = await this._calcDelivery(payload);
+
+            btn.textContent = "✅ Выбрано";
+            this.options.onChoose?.(null, enriched);
         };
+
         this.root.addEventListener("click", onceHandler, { once: true });
     }
 
     async _resolveAddress(coords) {
         const [lat, lon] = coords;
         try {
-            const r = await apiGet(`/delivery/yandex/reverse-geocode?lat=${lat}&lon=${lon}`);
+            const r = await fetch(`/delivery/yandex/reverse-geocode?lat=${lat}&lon=${lon}`);
             if (r.ok) {
                 const info = await r.json();
                 if (info?.formatted) return info.formatted;
             }
         } catch {}
+
         try {
             const g = await ymaps.geocode(coords, { results: 1 });
             const first = g.geoObjects.get(0);
             return first?.getAddressLine?.() || "";
         } catch {}
+
         return "";
     }
 
-    _doorBalloonHtml(address, coords) {
-        const [lat, lon] = coords;
+    _doorBalloonHtml(address) {
         return `
       <div style="font-size:13px;line-height:1.35;max-width:260px">
         <div style="font-weight:600;margin-bottom:4px">Доставка курьером</div>
@@ -341,7 +394,9 @@ export class YandexPvzWidget {
 
     _removeDoorPlacemark() {
         if (this._doorPlacemark) {
-            try { this.map.geoObjects.remove(this._doorPlacemark); } catch {}
+            try {
+                this.map.geoObjects.remove(this._doorPlacemark);
+            } catch {}
             this._doorPlacemark = null;
             this._doorAddress = "";
         }
@@ -352,8 +407,12 @@ export class YandexPvzWidget {
         try {
             this.map.geoObjects.each((obj) => {
                 if (obj && obj.properties && obj.properties.get("ydwDoor") && obj !== keep) {
-                    try { obj.balloon?.close?.(); } catch {}
-                    try { this.map.geoObjects.remove(obj); } catch {}
+                    try {
+                        obj.balloon?.close?.();
+                    } catch {}
+                    try {
+                        this.map.geoObjects.remove(obj);
+                    } catch {}
                 }
             });
         } catch {}
@@ -373,6 +432,7 @@ export class YandexPvzWidget {
             schedule: this._formatSchedule(p.schedule),
             dayoffs: this._formatDayoffs(p.dayoffs),
             address: addr.full_address || [addr.region, addr.locality, addr.street, addr.house].filter(Boolean).join(", "),
+            type: p.type || "", // "pickup_point" | "terminal"
         };
     }
 
@@ -390,6 +450,7 @@ export class YandexPvzWidget {
                 properties: { hintContent: p.name, balloonContent: this._balloonHtml(p) },
             };
         });
+
         this.manager.add({ type: "FeatureCollection", features });
     }
 
@@ -418,18 +479,21 @@ export class YandexPvzWidget {
         const prev = this._selectedId;
         if (prev === id) return;
 
-        // Clear any courier pin when selecting PVZ
         this._removeDoorPlacemark();
 
         if (this.manager) {
             if (prev) this.manager.objects.setObjectOptions(prev, { preset: this.preset.default });
             this.manager.objects.setObjectOptions(id, { preset: this.preset.active });
         }
+
         const p = this._pointsById.get(id);
         this.map?.panTo(p.coords, { duration: 300 });
         this._selectedId = id;
+
         if (openBalloon) {
-            try { this.manager.objects.balloon.close(); } catch {}
+            try {
+                this.manager.objects.balloon.close();
+            } catch {}
             setTimeout(() => this.manager.objects.balloon.open(id), 0);
         }
     }
@@ -438,24 +502,65 @@ export class YandexPvzWidget {
         const prev = this._selectedId;
         if (prev && this.manager) this.manager.objects.setObjectOptions(prev, { preset: this.preset.default });
         this._selectedId = null;
-        try { this.manager?.objects?.balloon?.close(); } catch {}
+        try {
+            this.manager?.objects?.balloon?.close?.();
+        } catch {}
     }
 
-    _emitChoosePVZ() {
+    async _emitChoosePVZ() {
         const p = this._pointsById.get(this._selectedId);
         if (!p) return;
+
         const payload = {
             deliveryMode: "self_pickup",
-            code: p.rawId, name: p.name, coords: p.coords, address: p.address,
-            phone: p.phone, schedule: p.schedule, dayoffs: p.dayoffs,
+            platform_station_id: String(p.rawId),
+            address: p.address,
+            coords: p.coords,
+            name: p.name,
+            phone: p.phone,
+            schedule: p.schedule,
+            dayoffs: p.dayoffs,
+            pointType: p.type,
         };
-        this.options.onChoose?.(p, payload);
+
+        const enriched = await this._calcDelivery(payload);
+        this.options.onChoose?.(p, enriched);
     }
 
-    _emitChooseDoor(coords, address) {
-        const payload = {deliveryMode: "time_interval", coords, address: address || ""};
-        this.options.onChoose?.(null, payload);
+    async _calcDelivery(destinationPayload) {
+        const order = (typeof this.options.getOrderData === "function" ? this.options.getOrderData() : null) || null;
+
+        const reqBody = {
+            delivery_mode: destinationPayload.deliveryMode,
+            destination: destinationPayload.deliveryMode === "self_pickup"
+                ? { platform_station_id: destinationPayload.platform_station_id }
+                : { address: destinationPayload.address },
+            total_weight: Number(order?.total_weight_g || 0),
+            total_assessed_price: Number(order?.total_assessed_price_kop || 0),
+            client_price: Number(order?.client_price_kop || 0),
+            payment_method: order?.payment_method || "already_paid",
+            places: Array.isArray(order?.places) ? order.places : [],
+            send_unix: true,
+        };
+
+        const calc = await withLoader(async () => {
+            try {
+                const r = await fetch(this.options.calculateUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(reqBody),
+                });
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(data?.detail || "calculate failed");
+                return data;
+            } catch (e) {
+                return { ok: false, error: String(e?.message || e) };
+            }
+        });
+
+        return { ...destinationPayload, calc };
     }
+
     /* ------------------------------ Formatting ------------------------------- */
 
     _formatSchedule(schedule) {
@@ -463,32 +568,41 @@ export class YandexPvzWidget {
         const dayNames = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
         const pad = (n) => String(n).padStart(2, "0");
         const fmt = (t) => `${pad(t?.hours ?? 0)}:${pad(t?.minutes ?? 0)}`;
-        return schedule.restrictions.map((r) => {
-            const days = (r.days ?? []).map((d) => dayNames[d - 1]).join(", ");
-            return `${days || "—"}: ${fmt(r.time_from)}–${fmt(r.time_to)}`;
-        }).join(" · ");
+        return schedule.restrictions
+            .map((r) => {
+                const days = (r.days ?? []).map((d) => dayNames[d - 1]).join(", ");
+                return `${days || "—"}: ${fmt(r.time_from)}–${fmt(r.time_to)}`;
+            })
+            .join(" · ");
     }
 
     _formatDayoffs(dayoffs) {
         if (!Array.isArray(dayoffs) || !dayoffs.length) return "";
         const opts = { day: "2-digit", month: "2-digit" };
-        const formatted = dayoffs.map((d) => {
-            const dt = d.date_utc ? new Date(d.date_utc) : new Date((d.date ?? 0) * 1000);
-            return isNaN(dt) ? "" : dt.toLocaleDateString("ru-RU", opts);
-        }).filter(Boolean);
+        const formatted = dayoffs
+            .map((d) => {
+                const dt = d.date_utc ? new Date(d.date_utc) : new Date((d.date ?? 0) * 1000);
+                return isNaN(dt) ? "" : dt.toLocaleDateString("ru-RU", opts);
+            })
+            .filter(Boolean);
         return formatted.length ? `Выходные: ${formatted.join(", ")}` : "";
     }
 
     _escape(s) {
-        return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        return String(s ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
     }
-
-    _toast(msg) { console.info(msg); }
 
     destroy() {
         this._removeDoorPlacemark();
-        try { this.manager?.removeAll(); } catch {}
-        try { this.map?.destroy?.(); } catch {}
+        try {
+            this.manager?.removeAll();
+        } catch {}
+        try {
+            this.map?.destroy?.();
+        } catch {}
         this.map = null;
         this.manager = null;
         this.root.innerHTML = "";

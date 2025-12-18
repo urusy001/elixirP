@@ -1,0 +1,37 @@
+from typing import Literal, Optional, Any
+
+from pydantic import Field, BaseModel
+
+
+class CalcDestination(BaseModel):
+    platform_station_id: Optional[str] = None
+    address: Optional[str] = None
+
+
+class CalcPlaceDims(BaseModel):
+    dx: int = Field(..., ge=1)           # cm
+    dy: int = Field(..., ge=1)           # cm
+    dz: int = Field(..., ge=1)           # cm
+    weight_gross: int = Field(..., ge=1) # g
+    predefined_volume: Optional[int] = Field(None, ge=1)  # cm3
+
+
+class CalcPlace(BaseModel):
+    physical_dims: CalcPlaceDims
+
+
+class CalcRequest(BaseModel):
+    delivery_mode: Literal["self_pickup", "time_interval"]
+    destination: CalcDestination
+
+    total_weight: int = Field(..., ge=1)                 # g
+    total_assessed_price: int = Field(0, ge=0)           # копейки
+    client_price: int = Field(0, ge=0)                   # копейки
+    payment_method: Literal["already_paid", "card_on_receipt"] = "already_paid"
+
+    places: list[CalcPlace] = Field(default_factory=list)
+    is_oversized: bool = False
+    send_unix: bool = True
+
+class PickupPointsResponse(BaseModel):
+    points: list[dict[str, Any]]
