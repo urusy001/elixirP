@@ -1,5 +1,9 @@
+from __future__ import annotations
+
+import datetime
 import json
 import logging
+from decimal import Decimal
 from typing import Any
 
 import httpx
@@ -9,7 +13,7 @@ from fastapi.responses import Response
 from config import CDEK_API_URL, YANDEX_GEOCODER_TOKEN, YANDEX_DELIVERY_TOKEN, YANDEX_DELIVERY_BASE_URL, \
     YANDEX_DELIVERY_WAREHOUSE_ID
 from src.delivery.sdek import client as cdek_client
-from src.webapp.schemas.yadev import CalcRequest
+from src.webapp.schemas.yadev import CalcRequest, ConfirmRequest, DestinationCourier, DestinationSelfPickup
 
 logger = logging.getLogger(__name__)
 
@@ -299,4 +303,151 @@ async def yandex_calculate(req: CalcRequest):
         "best_interval": best_interval,
         "offers_count": offers_count,
         "offers_info": offers_info,
+    }
+
+def unix_to_iso_z(u: int) -> str:
+    return datetime.datetime.fromtimestamp(int(u), tz=datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000000Z")
+
+
+def _extract_price_and_days(offers_data: dict[str, Any]) -> tuple[dict[str, Any] | None, int | list[int] | None]:
+    # Try common shapes
+    if isinstance(offers_data.get("price"), dict):
+        return offers_data["price"], offers_data.get("delivery_days")
+
+    # Some APIs return list of offers/options
+    for k in ("offers", "options", "delivery_options", "deliveryOptions"):
+        lst = offers_data.get(k)
+        if isinstance(lst, list) and lst:
+            first = lst[0]
+            if isinstance(first, dict):
+                price = first.get("price") if isinstance(first.get("price"), dict) else None
+                days = first.get("delivery_days") or first.get("deliveryDays")
+                if price:
+                    return price, days
+
+    return None, offers_data.get("delivery_days")
+
+
+@yandex_router.post("/confirm")
+async def yandex_confirm(req: ConfirmRequest):
+    headers = {
+        "Authorization": f"Bearer {YANDEX_DELIVERY_TOKEN}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Accept-Language": "ru",
+    }
+
+    # destination node + policy
+    if req.delivery_mode == "self_pickup":
+        if not isinstance(req.destination, DestinationSelfPickup) or not req.destination.platform_station_id:
+            raise HTTPException(422, detail="destination.platform_station_id is required for self_pickup")
+        destination_node = {
+            "type": "platform_station",
+            "platform_station": {"platform_id": str(req.destination.platform_station_id)},
+        }
+        last_mile_policy = "self_pickup"
+    else:
+        if not isinstance(req.destination, DestinationCourier) or not req.destination.address:
+            raise HTTPException(422, detail="destination.address is required for time_interval")
+        destination_node = {
+            "type": "custom_location",
+            "custom_location": {"details": {"full_address": str(req.destination.address)}},
+            # CRITICAL: interval_utc required for time_interval
+            "interval_utc": {
+                "from": unix_to_iso_z(req.interval.from_),
+                "to": unix_to_iso_z(req.interval.to),
+            },
+        }
+        last_mile_policy = "time_interval"
+
+    total_kop = int(Decimal(str(req.client_price)) * 100)
+
+    # places -> make barcodes
+    places = []
+    items = []
+    if req.places:
+        for i, pl in enumerate(req.places, start=1):
+            barcode = f"box-{i}"
+            dx = int(pl.physical_dims.dx)
+            dy = int(pl.physical_dims.dy)
+            dz = int(pl.physical_dims.dz)
+            wg = int(pl.physical_dims.weight_gross)
+
+            places.append(
+                {
+                    "barcode": barcode,
+                    "description": f"Box {i}",
+                    "physical_dims": {"dx": dx, "dy": dy, "dz": dz, "weight_gross": wg},
+                }
+            )
+
+            items.append(
+                {
+                    "count": 1,
+                    "name": f"Order item {i}",
+                    "article": f"ITEM-{i}",
+                    "billing_details": {
+                        "unit_price": total_kop,
+                        "assessed_unit_price": total_kop,
+                        "nds": -1,
+                    },
+                    "physical_dims": {"dx": dx, "dy": dy, "dz": dz},
+                    "place_barcode": barcode,
+                }
+            )
+    else:
+        # minimal fallback
+        places = [{"barcode": "box-1", "description": "Box 1", "physical_dims": {"dx": 25, "dy": 15, "dz": 10, "weight_gross": max(1, req.total_weight)}}]
+        items = [
+            {
+                "count": 1,
+                "name": "Order",
+                "article": "ORDER",
+                "billing_details": {"unit_price": total_kop, "assessed_unit_price": total_kop, "nds": -1},
+                "physical_dims": {"dx": 25, "dy": 15, "dz": 10},
+                "place_barcode": "box-1",
+            }
+        ]
+
+    offer_body = {
+        "info": {
+            "operator_request_id": "confirm",
+            "comment": "confirm interval",
+        },
+        "source": {"platform_station": {"platform_id": str(YANDEX_DELIVERY_WAREHOUSE_ID)}},
+        "destination": destination_node,
+        "items": items,
+        "places": places,
+        "billing_info": {"payment_method": req.payment_method},
+        "last_mile_policy": last_mile_policy,
+        "particular_items_refuse": False,
+        "forbid_unboxing": False,
+    }
+
+    request_id = f"confirm-{int(datetime.datetime.now(tz=datetime.timezone.utc).timestamp())}"
+
+    async with httpx.AsyncClient(timeout=25.0) as client:
+        resp = await client.post(
+            f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/offers/create",
+            params={"send_unix": bool(req.send_unix), "request_id": request_id},
+            headers=headers,
+            json=offer_body,
+        )
+        try:
+            resp.raise_for_status()
+        except httpx.HTTPError:
+            raise HTTPException(status_code=502, detail=f"Yandex confirm error: {resp.text}")
+
+        offers_data = resp.json()
+
+    price, days = _extract_price_and_days(offers_data)
+
+    # If API shape differs, still return raw for debugging
+    return {
+        "ok": True,
+        "delivery_mode": req.delivery_mode,
+        "interval": {"from": req.interval.from_, "to": req.interval.to},
+        "price": price or offers_data.get("price"),
+        "delivery_days": days,
+        "raw": offers_data,  # you can remove later when stable
     }
