@@ -131,6 +131,9 @@
 
 .cart-qty-ctrl button {
     padding: 2px 2px 2px 2px !important;
+    background-color: transparent !important;
+    color: black !important;
+
 }
 
 /* (fixed) separate selectors for dec / inc if needed */
