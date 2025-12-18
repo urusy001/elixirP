@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from fastapi import APIRouter, Request, Query, HTTPException
@@ -9,7 +9,7 @@ from fastapi.responses import Response
 from config import CDEK_API_URL, YANDEX_GEOCODER_TOKEN, YANDEX_DELIVERY_TOKEN, YANDEX_DELIVERY_BASE_URL, \
     YANDEX_DELIVERY_WAREHOUSE_ID
 from src.delivery.sdek import client as cdek_client
-from src.webapp.schemas.yadev import PickupPointsResponse, CalcRequest
+from src.webapp.schemas.yadev import CalcRequest
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,6 @@ async def reverse_geocode(
         lat: float = Query(...),
         lon: float = Query(...)
 ):
-    print('getocode')
     """
     1) Yandex Geocoder 1.x -> extract city name from coords
     2) Yandex B2B /location/detect -> return up to 2 variants as
@@ -193,68 +192,33 @@ async def get_pvz(req: dict):
     logger.info("pickup payload: %s", json.dumps(payload, ensure_ascii=False))
     return resp.json()
 
+@yandex_router.get("/get-pvz-all")
+async def get_all_pvz():
+    """
+    Load all PVZ for Russia + Kazakhstan (merged cache or direct Yandex call).
+    This endpoint should respond with:
+        { "points": [ ... ] }
+    """
+    if not YANDEX_DELIVERY_TOKEN: raise HTTPException(500, "Token missing")
 
-@yandex_router.get("/get-pvz-all", response_model=PickupPointsResponse)
-async def get_pvz_all(
-        geo_id: Optional[int] = Query(default=None),
-        lat_from: Optional[float] = Query(default=None),
-        lat_to: Optional[float] = Query(default=None),
-        lon_from: Optional[float] = Query(default=None),
-        lon_to: Optional[float] = Query(default=None),
-):
-    if not YANDEX_DELIVERY_TOKEN: raise HTTPException(status_code=500, detail="YANDEX_DELIVERY_TOKEN is not set")
-
-    url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/pickup-points/list"
-    headers = {
-        "Authorization": f"Bearer {YANDEX_DELIVERY_TOKEN}",
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "Accept-Language": "ru",
+    payload = {
+        "type": "pickup_point",
+        "is_not_branded_partner_station": True,
     }
 
-    common_body: dict[str, Any] = {}
-    if geo_id is not None: common_body["geo_id"] = geo_id
-    if lat_from is not None and lat_to is not None: common_body["latitude"] = {"from": lat_from, "to": lat_to}
-    if lon_from is not None and lon_to is not None: common_body["longitude"] = {"from": lon_from, "to": lon_to}
+    headers = {
+        "Authorization": f"Bearer {YANDEX_DELIVERY_TOKEN}",
+        "Content-Type": "application/json",
+    }
+    url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/pickup-points/list"
 
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        points: list[dict[str, Any]] = []
-        seen: set[str] = set()
-
-        for t in ("pickup_point", "terminal"):
-            body = {**common_body, "type": t}
-            r = await client.post(url, headers=headers, json=body)
-            if r.status_code >= 400: raise HTTPException(status_code=502, detail=f"Yandex pickup-points/list error: {r.text}")
-            data = r.json()
-            for p in (data.get("points") or []):
-                pid = str(p.get("id") or p.get("ID") or "")
-                key = pid if pid else f'{t}:{p.get("operator_station_id")}'
-                if key in seen: continue
-                seen.add(key)
-
-
-                p_out = {
-                    "id": pid or p.get("ID"),  # ВАЖНО: это то, что пойдёт в destination.platform_station_id
-                    "type": p.get("type") or t,
-                    "name": p.get("name"),
-                    "position": p.get("position"),
-                    "address": p.get("address"),
-                    "contact": p.get("contact"),
-                    "schedule": p.get("schedule"),
-                    "dayoffs": p.get("dayoffs"),
-                    "payment_methods": p.get("payment_methods"),
-                    "operator_station_id": p.get("operator_station_id"),
-                }
-                points.append(p_out)
-
-    with open('points.json', 'w') as f:
-        json.dump({"points": points}, f, indent=4, ensure_ascii=False)
-    return {"points": points}
-
+    async with httpx.AsyncClient(timeout=60) as client: resp = await client.post(url, json=payload, headers=headers)
+    if resp.status_code != 200: raise HTTPException(resp.status_code, resp.text)
+    return resp.json()
 
 @yandex_router.post("/calculate")
 async def yandex_calculate(req: CalcRequest):
-    if not YANDEX_DELIVERY_TOKEN: raise HTTPException(status_code=500, detail="YANDEX_DELIVERY_TOKEN is not set")
+    if not YANDEX_DELIVERY_TOKEN: raise HTTPException(status_code=500, detail="YANDEX_NDD_TOKEN is not set")
     if not YANDEX_DELIVERY_WAREHOUSE_ID: raise HTTPException(status_code=500, detail="YANDEX_SOURCE_PLATFORM_STATION_ID is not set")
     if req.delivery_mode == "self_pickup" and not req.destination.platform_station_id: raise HTTPException(status_code=400, detail="destination.platform_station_id is required for self_pickup")
     if req.delivery_mode == "time_interval" and not req.destination.address: raise HTTPException(status_code=400, detail="destination.address is required for time_interval")
