@@ -119,18 +119,17 @@ export class YandexPvzWidget {
         const all = await withLoader(async () => {
             try {
                 const data = await apiGet(this.options.dataUrl);
-                if (data) {alert('yes data'); alert(`${data.points.length}`)} else {alert('no data')}
                 return data ?? { points: [] };
             } catch (e) {
-                alert('1')
-                alert(e)
                 return { points: [] };
             }
         });
 
         const src = Array.isArray(all?.points) ? all.points : Array.isArray(all) ? all : [];
         const points = src.map((p) => this._normalizePoint(p));
-        this._drawPoints(points);
+        try {
+            this._drawPoints(points)
+        } catch (e){alert('2'); alert(e);}
 
         if (points.length) {
             try {
@@ -369,7 +368,7 @@ export class YandexPvzWidget {
                 const info = await r.json();
                 if (info?.formatted) return info.formatted;
             }
-        } catch (e){alert('2'); alert(e);}
+        } catch {}
 
         try {
             const g = await ymaps.geocode(coords, { results: 1 });
