@@ -15,7 +15,7 @@ router = APIRouter(prefix="/cart", tags=["cart"])
 async def get_orders(user_id: int = Query(..., description="Telegram user id"), db = Depends(get_db)):
     carts = await get_user_carts(db, user_id)
     carts = [cart.to_dict() for cart in carts if 'Начальная' not in cart.delivery_string]
-    [print(cart.status or 'no status', cart.id) for cart in carts]
+    [print(cart.get("status", 'no status'), cart.get("id")) for cart in carts]
     print(len(carts))
     return carts
 
