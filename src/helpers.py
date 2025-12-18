@@ -3,34 +3,33 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import hmac
+import html
 import json
 import random
 import re
 import time
-import html
-
+from datetime import datetime, timezone
+from decimal import Decimal
 from functools import wraps
 from logging import Logger
+from typing import Any
 from typing import Optional, Literal
 from urllib.parse import parse_qsl
+
 from aiogram import Bot
 from aiogram.enums import ChatMemberStatus
 from aiogram.types import Message
 from bs4 import BeautifulSoup, Tag
 from fastapi import HTTPException, Request
 from pydantic import BaseModel
-from transliterate import translit
-from datetime import datetime, timezone
-from decimal import Decimal
-from typing import Any
-from sqlalchemy import BigInteger, Integer, String, DateTime, Numeric, Boolean, select, bindparam
+from sqlalchemy import BigInteger, Integer, String, DateTime, Numeric, Boolean, select
 from sqlalchemy.orm.attributes import InstrumentedAttribute
+from transliterate import translit
 
 from config import ELIXIR_CHAT_ID, NEW_BOT_TOKEN, INTERNAL_API_TOKEN, MOSCOW_TZ
-from src.webapp import get_session
-from src.webapp.crud import get_user
-from src.webapp.models.user import User
 from src.ai.bot.texts import user_texts
+from src.webapp import get_session
+from src.webapp.models.user import User
 
 MAX_TG_MSG_LEN = 4096
 _NULLY = {None, "", "null", "None", "NULL"}
