@@ -98,16 +98,16 @@ async def handle_activate_code(message: Message, state: FSMContext):
         print(e)
         return await handle_user_start(message, state)
 
-    order_sum = data.get("order_sum")
+    price = data.get("price")
     email = data.get("email")
     verification_code = data.get("verification_code")
 
     # 3) handle statuses
-    if order_sum == "old":
+    if price == "old":
         await message.answer("Для активации кодов со старого сайта, пожалуйста, обратитесь к администрации.")
         return await handle_user_start(message, state)
 
-    if order_sum == "not_found":
+    if price == "not_found":
         await message.answer(f"Заказ не был найден по коду {code}")
         return await handle_user_start(message, state)
 
@@ -118,13 +118,13 @@ async def handle_activate_code(message: Message, state: FSMContext):
         )
         return await handle_user_start(message, state)
 
-    try: order_sum = float(order_sum)
+    try: price = float(price)
     except ValueError: pass
-    if not isinstance(order_sum, (int, float)):
+    if not isinstance(price, (int, float)):
         await message.answer("Ошибка: сумма заказа некорректна.")
         return await handle_user_start(message, state)
 
-    add_months = int(order_sum) // 5000
+    add_months = int(price) // 5000
     if add_months <= 0:
         await message.answer("Сожалеем, считываются заказы от 5000р. Каждые 5000р = 1 месяц.")
         return await handle_user_start(message, state)
@@ -134,11 +134,10 @@ async def handle_activate_code(message: Message, state: FSMContext):
         add_months=add_months,
         failed=0,
         order_code=code,
-        order_sum=int(order_sum),
+        price=int(price),
         email=email,
     )
     await state.set_state(user_states.Ai.verification_code)
-
     return await message.answer(
         f"На вашу почту {email} был отправлен код подтверждения.\n\n"
         "У вас есть 3 попытки, чтобы ввести его правильно. "
@@ -152,9 +151,9 @@ async def handle_verification_code(message: Message, state: FSMContext):
     verification_code = state_data.get("verification_code", None)
     add_months = state_data.get("add_months", None)
     order_code = state_data.get("order_code", None)
-    order_sum = state_data.get("order_sum", None)
+    price = state_data.get("price", None)
     failed = state_data.get("failed", 0)
-    if not (verification_code and add_months and order_code and order_sum):
+    if not (verification_code and add_months and order_code and price):
         await message.answer("Ошибка, начните заново")
         await handle_user_start(message, state)
 
@@ -166,7 +165,7 @@ async def handle_verification_code(message: Message, state: FSMContext):
             else: premium_until += timedelta(days=add_months)
             user_update = UserUpdate(premium_until=premium_until)
             user = await update_user(session, message.from_user.id, user_update)
-            used_code_create = UsedCodeCreate(user_id=message.from_user.id, code=order_code, price=order_sum)
+            used_code_create = UsedCodeCreate(user_id=message.from_user.id, code=order_code, price=price)
             used_code = await create_used_code(session, used_code_create)
         await message.answer(f'Вам успешно начислено {add_months} месяцев безлимита, он теперь действителен до {premium_until.date()}')
         await handle_user_start(message, state)
