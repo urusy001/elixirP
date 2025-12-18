@@ -20,4 +20,4 @@ class Graph(StatesGroup):
 
 class Ai(StatesGroup):
     activate_code = State()
-    verif_code = State()
+    verification_code = State()
