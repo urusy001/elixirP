@@ -23,7 +23,7 @@ from transliterate import translit
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
-from sqlalchemy import BigInteger, Integer, String, DateTime, Numeric, Boolean
+from sqlalchemy import BigInteger, Integer, String, DateTime, Numeric, Boolean, select, bindparam
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from config import ELIXIR_CHAT_ID, NEW_BOT_TOKEN, INTERNAL_API_TOKEN, MOSCOW_TZ
@@ -553,7 +553,12 @@ def require_internal_token(req: Request) -> None:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 async def check_blocked(message: Message):
-    async with get_session() as session: user = await get_user(session, 'tg_id', message.from_user.id)
+    tg_id = int(message.from_user.id)
+    async with get_session() as session:
+        stmt = select(User).where(User.tg_id == tg_id)
+        result = await session.execute(stmt)
+        user = result.scalar_one_or_none()
+
     if user and user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ):
         await message.answer(user_texts.banned_until.replace("Блокировка до 9999-12-31, п", "П").replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}'))
         return False
