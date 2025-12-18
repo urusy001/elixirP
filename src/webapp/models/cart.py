@@ -42,6 +42,8 @@ class Cart(Base):
         server_default="true",
         index=True,
     )
+
+    status = Column(String, nullable=True, default=None)
     yandex_request_id = Column(String, nullable=True, default=None)
     created_at = Column(
         DateTime(timezone=True),

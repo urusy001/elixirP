@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-import json
 import logging
 import os
 import re
 import secrets
-from email.message import EmailMessage
-
 import aiosmtplib
 import httpx
-from typing import Optional, Tuple, Literal, Union
+
+from email.message import EmailMessage
+from typing import Optional, Tuple, Literal, Union, Any
 from datetime import datetime, timedelta, UTC
 from urllib.parse import urlparse, parse_qs
 from playwright.async_api import async_playwright
@@ -44,6 +43,14 @@ class AsyncAmoCRM:
             "package_sent": 76566302,
             "package_delivered": 76566306,
             "won": 142
+        }
+        self.STATUS_WORDS = {
+            81419122: "Создан",
+            75784946: "Оплачен",
+            75784942: "Укомплектован",
+            76566302: "Отправлен",
+            76566306: "Доставлен",
+            142: "Закрыт"
         }
         self.PIPELINE_ID = 9280278
         self.CF = {
@@ -86,15 +93,12 @@ class AsyncAmoCRM:
             "redirect_uri": self.redirect_uri,
             "grant_type": grant_type,
         }
-        if grant_type == "authorization_code":
-            payload["code"] = code
-        elif grant_type == "refresh_token":
-            payload["refresh_token"] = self.refresh_token
+        if grant_type == "authorization_code": payload["code"] = code
+        elif grant_type == "refresh_token": payload["refresh_token"] = self.refresh_token
 
         async with httpx.AsyncClient(timeout=30) as client:
             res = await client.post(url, json=payload)
-            if res.status_code != 200:
-                raise RuntimeError(f"Token request failed: {res.status_code} {res.text}")
+            if res.status_code != 200: raise RuntimeError(f"Token request failed: {res.status_code} {res.text}")
             data = res.json()
 
         self.access_token = data["access_token"]
@@ -111,23 +115,19 @@ class AsyncAmoCRM:
             f"client_id={self.client_id}&redirect_uri={self.redirect_uri}&response_type=code"
         )
         self.logger.warning("🔁 Launching Playwright to get new AUTH_CODE...")
-
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
             await page.goto(auth_url)
 
-            # Login if prompted
             try:
                 await page.wait_for_selector('input[name="username"]', timeout=5000)
                 await page.fill('input[name="username"]', AMOCRM_LOGIN_EMAIL)
                 await page.fill('input[name="password"]', AMOCRM_LOGIN_PASSWORD)
                 await page.click('button[type="submit"]')
                 self.logger.info("🔐 Logged into AmoCRM")
-            except Exception:
-                self.logger.info("Already logged in (no login form shown).")
+            except Exception: self.logger.info("Already logged in (no login form shown).")
 
-            # Select Slimpeptide account
             await page.wait_for_selector("select.js-accounts-list", timeout=20000)
             await page.select_option("select.js-accounts-list", value="19843447")
             await page.click("button.js-accept")
@@ -141,8 +141,7 @@ class AsyncAmoCRM:
             await browser.close()
 
         code = parse_qs(urlparse(url).query).get("code", [None])[0]
-        if not code:
-            raise RuntimeError("Failed to extract AUTH_CODE from redirect URL.")
+        if not code: raise RuntimeError("Failed to extract AUTH_CODE from redirect URL.")
         self.logger.info("✅ Got new AUTH_CODE")
         return code
 
@@ -151,8 +150,7 @@ class AsyncAmoCRM:
         path = os.path.join(WORKING_DIR, ".env")
         lines = []
         if os.path.exists(path):
-            with open(path, "r") as f:
-                lines = f.readlines()
+            with open(path, "r") as f: lines = f.readlines()
 
         new_lines = []
         found_a, found_r = False, False
@@ -163,27 +161,21 @@ class AsyncAmoCRM:
             elif line.startswith("AMOCRM_REFRESH_TOKEN"):
                 new_lines.append(f'AMOCRM_REFRESH_TOKEN="{refresh_token}"\n')
                 found_r = True
-            else:
-                new_lines.append(line)
-        if not found_a:
-            new_lines.append(f'AMOCRM_ACCESS_TOKEN="{access_token}"\n')
-        if not found_r:
-            new_lines.append(f'AMOCRM_REFRESH_TOKEN="{refresh_token}"\n')
+            else: new_lines.append(line)
+        if not found_a: new_lines.append(f'AMOCRM_ACCESS_TOKEN="{access_token}"\n')
+        if not found_r: new_lines.append(f'AMOCRM_REFRESH_TOKEN="{refresh_token}"\n')
 
-        with open(path, "w") as f:
-            f.writelines(new_lines)
+        with open(path, "w") as f: f.writelines(new_lines)
         self.logger.info("💾 Saved new tokens to .env")
 
     async def authorize(self, code: str | None = None):
         """Get tokens using AUTH_CODE (auto-generate via Playwright if missing)."""
-        if not code:
-            code = await self._get_new_auth_code()
+        if not code: code = await self._get_new_auth_code()
         return await self.__request_token("authorization_code", code)
 
     async def refresh(self):
         """Refresh token, auto reauthorize if refresh revoked."""
-        try:
-            return await self.__request_token("refresh_token")
+        try: return await self.__request_token("refresh_token")
         except Exception as e:
             self.logger.error(f"❌ Refresh failed: {e}, retrying with new AUTH_CODE...")
             return await self.authorize()
@@ -440,7 +432,6 @@ class AsyncAmoCRM:
                     await self._send_verification_code_email(
                         to_email=email,
                         code=verification_code,
-                        lead_name=name,
                         deal_code=code_str,
                     )
 
@@ -451,16 +442,13 @@ class AsyncAmoCRM:
         return ("not_found", None, None)
 
 
-    def _generate_6_digit_code(self) -> str:
-        # cryptographically strong; always 000000-999999 formatted
-        return f"{secrets.randbelow(1_000_000):06d}"
+    def _generate_6_digit_code(self) -> str: return f"{secrets.randbelow(1_000_000):06d}"
 
 
     async def _send_verification_code_email(
             self,
             to_email: str,
             code: str,
-            lead_name: str,
             deal_code: str,
     ) -> None:
         """
@@ -502,56 +490,87 @@ class AsyncAmoCRM:
         """
         embedded = lead.get("_embedded") or {}
         contacts = embedded.get("contacts") or lead.get("contacts") or []
-        print(json.dumps(lead, indent=4, ensure_ascii=False))
-
-        if not isinstance(contacts, list) or not contacts:
-            return None
-
-        # prefer main contact, else first
+        if not isinstance(contacts, list) or not contacts: return None
         ordered = sorted(contacts, key=lambda c: 0 if c.get("is_main") else 1)
-
         for c in ordered:
-            # sometimes amo gives full contact objects; sometimes only {id, is_main}
             if isinstance(c, dict) and c.get("custom_fields_values"):
                 email = self._extract_email_from_contact_obj(c)
-                if email:
-                    return email
+                if email: return email
 
             cid = None
-            if isinstance(c, dict):
-                cid = c.get("id") or c.get("contact_id")
-
+            if isinstance(c, dict): cid = c.get("id") or c.get("contact_id")
             if cid:
                 contact = await self.get(f"/api/v4/contacts/{cid}")
                 email = self._extract_email_from_contact_obj(contact)
-                if email:
-                    return email
+                if email: return email
 
         return None
 
+    async def get_lead_status(self, deal_code: str | int) -> dict[str, Any]:
+        """
+        Find lead by exact token "№{deal_code}<SPACE>" and return its status info.
 
-    def _extract_email_from_contact_obj(self, contact: dict) -> Optional[str]:
+        Returns:
+          {
+            "found": bool,
+            "lead_id": int | None,
+            "name": str | None,
+            "status_id": int | None,
+            "status_key": str | None,   # from self.STATUS_IDS reverse map, if known
+            "is_complete": bool,
+            "price": int | None,
+            "pipeline_id": int | None,
+          }
+        """
+        code_str = str(deal_code).strip()
+        needle = f"№{code_str} "
+        rx = re.compile(rf"№{re.escape(code_str)}\s")
+        page = 1
+        limit = 50
+        max_pages = 20
+
+        while page <= max_pages:
+            data = await self.get(
+                "/api/v4/leads",
+                params={
+                    "query": needle,
+                    "limit": limit,
+                    "page": page,
+                },
+            )
+
+            leads = (data.get("_embedded") or {}).get("leads") or []
+            if not leads: return "Не найден", False
+            for lead in leads:
+                name = lead.get("name") or ""
+                if not rx.search(name): continue
+                pipeline_id = lead.get("pipeline_id")
+                if pipeline_id is not None and pipeline_id != self.PIPELINE_ID: continue
+                status_id = lead.get("status_id")
+                is_complete = bool(status_id in self.COMPLETE_STATUS_IDS)
+                return self.STATUS_WORDS[status_id], is_complete
+
+            page += 1
+
+        return "Не найден", False
+
+    @staticmethod
+    def _extract_email_from_contact_obj(contact: dict) -> Optional[str]:
         cfs = contact.get("custom_fields_values") or []
-        print(json.dumps(cfs, indent=4, ensure_ascii=False))
-        if not isinstance(cfs, list):
-            return None
-
+        if not isinstance(cfs, list): return None
         for cf in cfs:
-            if not isinstance(cf, dict):
-                continue
+            if not isinstance(cf, dict): continue
             code = (cf.get("field_code") or "").upper()
             name = (cf.get("field_name") or "").lower()
-
             if code == "EMAIL" or "email" in name or "почта" in name:
                 values = cf.get("values") or []
-                if not isinstance(values, list):
-                    continue
+                if not isinstance(values, list): continue
                 for v in values:
                     val = (v or {}).get("value")
-                    if isinstance(val, str) and "@" in val:
-                        return val.strip()
+                    if isinstance(val, str) and "@" in val: return val.strip()
 
         return None
+
 # ---------- INSTANCE ----------
 amocrm = AsyncAmoCRM(
     base_domain=AMOCRM_BASE_DOMAIN,

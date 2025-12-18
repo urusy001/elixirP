@@ -189,7 +189,7 @@ function renderOrderCard(cart) {
     btn.className = "order-card";
 
     const statusClass = cart.is_active ? "order-card-status--active" : "order-card-status--processed";
-    const statusText = cart.is_active ? "В обработке" : "Обработан";
+    const statusText = cart.status || cart.is_active ? "В обработке" : "Обработан";
 
     const dateText = cart.created_at ? formatDateTime(cart.created_at) : "—";
     const totalText = formatMoney(cart.sum);
