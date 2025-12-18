@@ -863,10 +863,7 @@ export class YandexPvzWidget {
 
         const confirmed = await withLoader(async () => {
             try {
-                const res = await apiPost(this.options.confirmUrl, confirmBody);
-                const data =
-                    res && typeof res === "object" && typeof res.json === "function" ? await res.json().catch(() => ({})) : res ?? {};
-                if (res?.ok === false) throw new Error(data?.detail || "confirm failed");
+                const data = await apiPost(this.options.confirmUrl, confirmBody);
                 if (!data?.ok) throw new Error(data?.detail || "confirm failed");
                 return data;
             } catch (e) {
@@ -887,8 +884,7 @@ export class YandexPvzWidget {
 
         const finalPriceRub = this._parsePriceRub(confirmed?.price?.pricing_total);
         const days = confirmed?.delivery_days;
-        const daysText =
-            Array.isArray(days) && days.length === 2 ? `${days[0]}–${days[1]} дн.` : typeof days === "number" ? `~${days} дн.` : "";
+        const daysText =  Array.isArray(days) && days.length === 2 ? `${days[0]}–${days[1]} дн.` : typeof days === "number" ? `~${days} дн.` : "";
 
         this.deliveryBodyEl.innerHTML = `
       <div style="display:flex;flex-direction:column;gap:4px;">

@@ -448,7 +448,14 @@ async def yandex_confirm(req: ConfirmRequest):
 
     price, days = _extract_price_and_days(offers_data)
 
-    # If API shape differs, still return raw for debugging
+    print(json.dumps({
+        "ok": True,
+        "delivery_mode": req.delivery_mode,
+        "interval": {"from": req.interval.from_, "to": req.interval.to},
+        "price": price or offers_data.get("price"),
+        "delivery_days": days,
+        "raw": offers_data,  # you can remove later when stable
+    }, indent=4, ensure_ascii=False))
     return {
         "ok": True,
         "delivery_mode": req.delivery_mode,
