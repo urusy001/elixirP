@@ -100,7 +100,7 @@ async def handle_activate_code(message: Message, state: FSMContext):
 
     order_sum = data.get("order_sum")
     email = data.get("email")
-    verif_code = data.get("verif_code")
+    verification_code = data.get("verification_code")
 
     # 3) handle statuses
     if order_sum == "old":
@@ -111,7 +111,7 @@ async def handle_activate_code(message: Message, state: FSMContext):
         await message.answer(f"Заказ не был найден по коду {code}")
         return await handle_user_start(message, state)
 
-    if not email or not verif_code:
+    if not email or not verification_code:
         await message.answer(
             "Заказ найден, но не удалось отправить код на почту. "
             "Проверьте, что в контакте указан Email, либо попробуйте позже."
@@ -128,14 +128,14 @@ async def handle_activate_code(message: Message, state: FSMContext):
         return await handle_user_start(message, state)
 
     await state.update_data(
-        verif_code=verif_code,
+        verification_code=verification_code,
         add_months=add_months,
         failed=0,
         order_code=code,
         order_sum=int(order_sum),
         email=email,
     )
-    await state.set_state(user_states.Ai.verif_code)
+    await state.set_state(user_states.Ai.verification_code)
 
     return await message.answer(
         f"На вашу почту {email} был отправлен код подтверждения.\n\n"
@@ -143,20 +143,20 @@ async def handle_activate_code(message: Message, state: FSMContext):
         "Иначе вы будете заблокированы на один день за попытку отгадать чужой код."
     )
 
-@new_user_router.message(user_states.Ai.verif_code)
-async def handle_verif_code(message: Message, state: FSMContext):
+@new_user_router.message(user_states.Ai.verification_code)
+async def handle_verification_code(message: Message, state: FSMContext):
     state_data = await state.get_data()
     entered_code = message.text.strip()
-    verif_code = state_data.get("verif_code", None)
+    verification_code = state_data.get("verification_code", None)
     add_months = state_data.get("add_months", None)
     order_code = state_data.get("order_code", None)
     order_sum = state_data.get("order_sum", None)
     failed = state_data.get("failed", 0)
-    if not (verif_code and add_months and order_code and order_sum):
+    if not (verification_code and add_months and order_code and order_sum):
         await message.answer("Ошибка, начните заново")
         await handle_user_start(message, state)
 
-    elif entered_code == f"{verif_code}":
+    elif entered_code == f"{verification_code}":
         async with get_session() as session:
             user = await get_user(session, 'tg_id', message.from_user.id)
             premium_until = user.premium_until
