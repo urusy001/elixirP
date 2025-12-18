@@ -125,6 +125,9 @@ export function showBackButton(onClick) { // keep param, do not use it
             setTimeout(() => {
                 const path = getCurrentPathFromHash();
                 updateBottomNavActive(path);
+                if (path.includes("checkout")) {
+                    hideMainButton();
+                }
             }, 0);
         } else navigateTo("/")
     };
