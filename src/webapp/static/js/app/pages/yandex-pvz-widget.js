@@ -368,7 +368,7 @@ export class YandexPvzWidget {
                 const info = await r.json();
                 if (info?.formatted) return info.formatted;
             }
-        } catch {}
+        } catch (e){alert(JSON.stringify(e));}
 
         try {
             const g = await ymaps.geocode(coords, { results: 1 });
