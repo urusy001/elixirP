@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import re
@@ -586,6 +587,7 @@ class AsyncAmoCRM:
         async with get_session() as session: carts = await get_carts(session)
         for cart in carts: await self.update_lead_status(cart.id)
         self.logger.info(f"Finished updating {len(carts)} carts")
+        await asyncio.sleep(24*60*60)
 
 # ---------- INSTANCE ----------
 amocrm = AsyncAmoCRM(
