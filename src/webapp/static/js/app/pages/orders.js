@@ -228,13 +228,15 @@ function renderOrderCard(cart) {
 function normalizeCart(raw) {
     const created = raw.created_at || raw.createdAt || raw.created;
     const updated = raw.updated_at || raw.updatedAt || raw.updated;
-
     const createdTs = created ? Date.parse(created) : 0;
 
     return {
         id: raw.id,
         name: raw.name,
         user_id: raw.user_id ?? raw.userId,
+
+        status: raw.status ?? null,          // ✅ ADD THIS
+
         sum: toNumber(raw.sum),
         delivery_sum: toNumber(raw.delivery_sum),
         delivery_string: raw.delivery_string,
@@ -243,7 +245,7 @@ function normalizeCart(raw) {
         created_at: created,
         updated_at: updated,
         created_ts: Number.isFinite(createdTs) ? createdTs : 0,
-        items: Array.isArray(raw.items) ? raw.items : []
+        items: Array.isArray(raw.items) ? raw.items : [],
     };
 }
 
