@@ -1,5 +1,5 @@
 import { withLoader } from "../ui/loader.js";
-import { apiGet } from "../../services/api.js";
+import {apiGet, apiPost} from "../../services/api.js";
 
 const SUGGEST_ROW_HEIGHT = 36;
 const DEFAULT_CENTER = [55.751, 37.618];
@@ -363,7 +363,7 @@ export class YandexPvzWidget {
     async _resolveAddress(coords) {
         const [lat, lon] = coords;
         try {
-            const r = await fetch(`/delivery/yandex/reverse-geocode?lat=${lat}&lon=${lon}`);
+            const r = await apiGet(`/delivery/yandex/reverse-geocode?lat=${lat}&lon=${lon}`);
             if (r.ok) {
                 const info = await r.json();
                 if (info?.formatted) return info.formatted;
@@ -547,11 +547,7 @@ export class YandexPvzWidget {
 
         const calc = await withLoader(async () => {
             try {
-                const r = await fetch(this.options.calculateUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(reqBody),
-                });
+                const r = await apiPost(this.options.calculateUrl, reqBody);
                 const data = await r.json().catch(() => ({}));
                 if (!r.ok) throw new Error(data?.detail || "calculate failed");
                 return data;
