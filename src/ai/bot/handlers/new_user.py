@@ -161,8 +161,8 @@ async def handle_verification_code(message: Message, state: FSMContext):
         async with get_session() as session:
             user = await get_user(session, 'tg_id', message.from_user.id)
             premium_until = user.premium_until
-            if not user.premium_until or user.premium_until <= datetime.now(tz=MOSCOW_TZ): premium_until = datetime.now(tz=MOSCOW_TZ) + timedelta(days=add_months)
-            else: premium_until += timedelta(days=add_months)
+            if not user.premium_until or user.premium_until <= datetime.now(tz=MOSCOW_TZ): premium_until = datetime.now(tz=MOSCOW_TZ) + timedelta(days=add_months*30)
+            else: premium_until += timedelta(days=add_months*30)
             user_update = UserUpdate(premium_until=premium_until)
             user = await update_user(session, message.from_user.id, user_update)
             used_code_create = UsedCodeCreate(user_id=message.from_user.id, code=order_code, price=price)
