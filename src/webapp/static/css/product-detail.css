@@ -141,8 +141,8 @@
 
 /* Buy button */
 .buy-btn {
-    background-color: #2381cc;
-    color: #fff;
+    background-color: transparent !important;
+    color: black !important;
     border: none;
     padding: 6px 12px;
     border-radius: 4px;
