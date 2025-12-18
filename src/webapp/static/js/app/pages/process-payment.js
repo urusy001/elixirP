@@ -26,7 +26,7 @@ export async function renderProcessPaymentPage(order_number) {
     // Header / nav
     headerTitle.textContent = `Номер заказа ${order_number ?? "—"}`;
     searchBtnEl.style.display = "flex";
-    navBottomEl.style.display = "flex";
+    navBottomEl.style.display = "none";
 
     // Scroll to top so the card is fully visible
     try {

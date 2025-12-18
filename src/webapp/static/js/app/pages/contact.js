@@ -226,6 +226,7 @@ export async function renderContactPage() {
 
             // ✅ success -> clear comment + clear cart
             sessionStorage.removeItem("payment_commentary");
+            sessionStorage.removeItem("delivery_sum");
             clearCartAfterOrder();
 
             // go to next screen
