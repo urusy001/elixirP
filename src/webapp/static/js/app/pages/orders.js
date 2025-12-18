@@ -187,7 +187,6 @@ function renderOrderCard(cart) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "order-card";
-    alert(JSON.stringify(cart));
     const statusClass = cart.is_active ? "order-card-status--active" : "order-card-status--processed";
     const statusText = cart.status;
     const dateText = cart.created_at ? formatDateTime(cart.created_at) : "—";

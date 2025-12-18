@@ -7,18 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.webapp.crud import get_product, get_feature, create_cart, get_user_carts
 from src.webapp.database import get_db
 from src.webapp.models import Feature
-from src.webapp.schemas import CartCreate
+from src.webapp.schemas import CartCreate, CartRead
 
 router = APIRouter(prefix="/cart", tags=["cart"])
 
-@router.get("/")
-async def get_orders(user_id: int = Query(..., description="Telegram user id"), db = Depends(get_db)):
+@router.get("/", response_model=list[CartRead])
+async def get_orders(user_id: int = Query(...), db: AsyncSession = Depends(get_db)):
     carts = await get_user_carts(db, user_id)
-    carts = [cart.to_dict() for cart in carts if 'Начальная' not in cart.delivery_string]
-    [print(cart.get("status", 'no status'), cart.get("id")) for cart in carts]
-    print(len(carts))
+    carts = [c for c in carts if 'Начальная' not in (c.delivery_string or "")]
     return carts
-
 
 @router.get("/product/{onec_id}")
 async def get_cart_product(onec_id: str, feature_id: str = Query("", alias="feature_id"), db: AsyncSession = Depends(get_db)):
