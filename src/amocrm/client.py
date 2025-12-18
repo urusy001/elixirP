@@ -582,7 +582,7 @@ class AsyncAmoCRM:
         self.logger.info(f"Change {cart_id} to {status}")
 
     async def update_carts(self):
-        self.logger.info("Updating carts")
+        self.logger.info("Started updating carts")
         async with get_session() as session: carts = await get_carts(session)
         for cart in carts: await self.update_lead_status(cart.id)
         self.logger.info(f"Finished updating {len(carts)} carts")
