@@ -22,3 +22,14 @@ __all__ = [
     'TgCategoryCreate', 'TgCategoryUpdate', 'TgCategoryBase', 'TgCategoryRead',
     'UsedCodeBase', 'UsedCodeRead', 'UsedCodeCreate', 'UsedCodeUpdate',
 ]
+
+class AvailabilityDestination(BaseModel):
+    platform_station_id: Optional[str] = None
+    full_address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+class AvailabilityRequest(BaseModel):
+    delivery_mode: Literal["self_pickup", "time_interval"]
+    destination: AvailabilityDestination
+    send_unix: bool = True

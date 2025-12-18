@@ -49,7 +49,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     log.info("Create payment payload: %s", ())
     order_number = cart.id
     if delivery_service == "yandex":
-        offers_url = "https://b2b-authproxy.taxi.yandex.net/api/b2b/platform/offers/create"
+        request_create_url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/request/create"
 
         headers = {
             "Authorization": f"Bearer {YANDEX_DELIVERY_TOKEN}",
@@ -62,32 +62,29 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
         weight_g = 100
 
         total_kop = int(Decimal(str(total)) * 100)
-        request_id = f"order-{order_number}"
-
+        request_id_param = f"order-{order_number}"
         pvz_platform_id = delivery_data["address"].get("code", None)
 
         if pvz_platform_id:
             destination_node = {
                 "type": "platform_station",
-                "platform_station": {"platform_id": pvz_platform_id},
+                "platform_station": {"platform_id": str(pvz_platform_id)},
             }
             last_mile_policy = "self_pickup"
         else:
             destination_node = {
                 "type": "custom_location",
-                "custom_location": {
-                    "details": {"full_address": address_str},
-                },
+                "custom_location": {"details": {"full_address": address_str}},
             }
             last_mile_policy = "time_interval"
 
-        offer_body = {
+        request_body = {
             "info": {
                 "operator_request_id": str(order_number),
                 "comment": f"{commentary_text} | promo: {promocode}",
             },
             "source": {
-                "platform_station": {"platform_id": YANDEX_DELIVERY_WAREHOUSE_ID},
+                "platform_station": {"platform_id": str(YANDEX_DELIVERY_WAREHOUSE_ID)},
             },
             "destination": destination_node,
             "items": [
@@ -117,7 +114,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
                 }
             ],
             "billing_info": {
-                "payment_method": "already_paid",
+                "payment_method": "already_paid" if payment_method.lower() in ("paid", "already_paid") else "already_paid",
             },
             "recipient_info": {
                 "first_name": (contact_info.name or "Получатель"),
@@ -132,20 +129,21 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
 
         async with httpx.AsyncClient(timeout=20.0) as client:
             resp = await client.post(
-                offers_url,
-                params={"send_unix": True, "request_id": request_id},
-                json=offer_body,
+                request_create_url,
+                params={"send_unix": True},
+                json=request_body,
                 headers=headers,
             )
-            try:
-                resp.raise_for_status()
+            try: resp.raise_for_status()
             except httpx.HTTPError:
-                log.exception("Yandex NDD offers/create error: %s", resp.text)
-                raise HTTPException(status_code=502, detail="Yandex Delivery offers/create error")
+                log.exception("Yandex NDD request/create error: %s", resp.text)
+                raise HTTPException(status_code=502, detail="Yandex Delivery request/create error")
 
-            offers_data = resp.json()
-            print(json.dumps(offers_data, indent=4, ensure_ascii=False))
+            yandex_data = resp.json()
+            print(json.dumps(yandex_data, indent=4, ensure_ascii=False))
 
+        yandex_request_id = yandex_data.get("request_id")
+        if yandex_request_id: await update_cart(db, cart.id, CartUpdate(yandex_request_id=yandex_request_id))
         delivery_status = "ok"
     elif delivery_service == "cdek":
         delivery_sum = payload.selected_delivery["tariff"]["delivery_sum"]

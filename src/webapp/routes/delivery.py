@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import json
 import logging
+import time
+
 import httpx
 from fastapi import APIRouter, Request, Query, HTTPException
 from fastapi.responses import Response
 
-from config import CDEK_API_URL, YANDEX_GEOCODER_TOKEN, YANDEX_DELIVERY_TOKEN, YANDEX_DELIVERY_BASE_URL
+from config import CDEK_API_URL, YANDEX_GEOCODER_TOKEN, YANDEX_DELIVERY_TOKEN, YANDEX_DELIVERY_BASE_URL, \
+    YANDEX_DELIVERY_WAREHOUSE_ID
 from src.delivery.sdek import client as cdek_client
+from src.webapp.schemas import AvailabilityRequest
 
 logger = logging.getLogger(__name__)
 
@@ -213,3 +217,117 @@ async def get_all_pvz():
     async with httpx.AsyncClient(timeout=60) as client: resp = await client.post(url, json=payload, headers=headers)
     if resp.status_code != 200: raise HTTPException(resp.status_code, resp.text)
     return resp.json()
+
+@yandex_router.post("/availability")
+async def yandex_availability(req: AvailabilityRequest):
+    # ---- destination (ONLY REAL DATA) ----
+    if req.delivery_mode == "self_pickup":
+        pid = req.destination.platform_station_id
+        if not pid:
+            raise HTTPException(422, detail="destination.platform_station_id is required for self_pickup")
+
+        destination_node = {
+            "type": "platform_station",
+            "platform_station": {"platform_id": str(pid)},
+        }
+        last_mile_policy = "self_pickup"
+    else:
+        addr = req.destination.full_address
+        if not addr:
+            raise HTTPException(422, detail="destination.full_address is required for time_interval")
+
+        destination_node = {
+            "type": "custom_location",
+            "custom_location": {"details": {"full_address": str(addr)}},
+        }
+        if req.destination.latitude is not None and req.destination.longitude is not None:
+            destination_node["custom_location"]["latitude"] = float(req.destination.latitude)
+            destination_node["custom_location"]["longitude"] = float(req.destination.longitude)
+
+        last_mile_policy = "time_interval"
+
+    # ---- FULL STUBS (everything else) ----
+    operator_request_id = f"avail-{int(time.time())}"
+    request_id = operator_request_id
+
+    body = {
+        "info": {"operator_request_id": operator_request_id, "comment": "availability-check"},
+        "source": {"platform_station": {"platform_id": str(YANDEX_DELIVERY_WAREHOUSE_ID)}},
+
+        "destination": destination_node,
+
+        "items": [
+            {
+                "count": 1,
+                "name": "Availability check",
+                "article": "AVAIL-TEST",
+                "billing_details": {"unit_price": 100, "assessed_unit_price": 100, "nds": -1},
+                "physical_dims": {"dx": 25, "dy": 15, "dz": 10},
+                "place_barcode": "box-1",
+            }
+        ],
+        "places": [
+            {
+                "barcode": "box-1",
+                "description": "Stub box",
+                "physical_dims": {"dx": 25, "dy": 15, "dz": 10, "weight_gross": 100},
+            }
+        ],
+
+        "billing_info": {"payment_method": "already_paid"},
+        "recipient_info": {
+            "first_name": "Получатель",
+            "last_name": "",
+            "phone": "+79990000000",
+            "email": "no-reply@example.com",
+        },
+
+        "last_mile_policy": last_mile_policy,
+        "particular_items_refuse": False,
+        "forbid_unboxing": False,
+    }
+
+    url = f"{YANDEX_DELIVERY_BASE_URL}/offers/create"
+    headers = {
+        "Authorization": f"Bearer {YANDEX_DELIVERY_TOKEN}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Accept-Language": "ru",
+    }
+
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        r = await client.post(
+            url,
+            params={"send_unix": bool(req.send_unix), "request_id": request_id},
+            json=body,
+            headers=headers,
+        )
+        if r.status_code >= 400:
+            try:
+                raise HTTPException(status_code=400, detail=r.json())
+            except Exception:
+                raise HTTPException(status_code=400, detail={"message": r.text})
+
+        data = r.json()
+
+    offers = data.get("offers") or []
+    slim = []
+    for o in offers:
+        det = o.get("offer_details") or {}
+        di = det.get("delivery_interval") or {}
+        slim.append(
+            {
+                "offer_id": o.get("offer_id"),
+                "expires_at": o.get("expires_at"),
+                "pricing_total": det.get("pricing_total") or det.get("pricing"),
+                "station_id": o.get("station_id"),
+                "interval": {"from": di.get("min"), "to": di.get("max"), "policy": di.get("policy")},
+            }
+        )
+
+    return {
+        "ok": True,
+        "deliverable": len(offers) > 0,
+        "offers_count": len(offers),
+        "offers": slim,
+    }
