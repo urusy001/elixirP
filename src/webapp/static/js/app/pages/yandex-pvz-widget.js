@@ -663,32 +663,21 @@ export class YandexPvzWidget {
     _showDelivery(enriched) {
         if (!this.deliveryEl || !this.deliveryBodyEl) return;
 
-        const calc = enriched?.calc;
-        if (!calc?.ok) {
-            const err = calc?.error || "Не удалось рассчитать доставку";
+        if (!enriched?.ok) {
+            const err = enriched?.error || "Не удалось рассчитать доставку";
             this.deliveryBodyEl.innerHTML = `❌ ${this._escape(err)}`;
             this.deliveryEl.style.display = "block";
             return;
         }
 
-        const priceKop = Number(calc?.price?.pricing_total ?? 0) | 0;
-        const priceRub = (priceKop / 100).toFixed(2);
-
-        const days = calc?.delivery_days;
+        const priceRub = `${(Number(enriched?.price?.pricing_total ?? 0) / 100).toFixed(0) * 100}`;
+        const days = enriched?.delivery_days;
         const daysText =
             Array.isArray(days) && days.length === 2
                 ? `${days[0]}–${days[1]} дн.`
                 : typeof days === "number"
-                    ? `${days} дн.`
+                    ? `~${days} дн.`
                     : "";
-
-        const bi = calc?.best_interval;
-        const intervalText =
-            bi && (bi.from || bi.to)
-                ? `Интервал: ${bi.from ? new Date(bi.from * 1000).toLocaleString("ru-RU") : "—"} — ${
-                    bi.to ? new Date(bi.to * 1000).toLocaleString("ru-RU") : "—"
-                }`
-                : "";
 
         const modeTitle = enriched?.deliveryMode === "self_pickup" ? "Самовывоз (ПВЗ)" : "Курьер";
 
@@ -697,7 +686,6 @@ export class YandexPvzWidget {
             <div><b>${this._escape(modeTitle)}</b></div>
             <div>💰 Цена: <b>${priceRub} ₽</b></div>
             ${daysText ? `<div>📦 Срок: ${this._escape(daysText)}</div>` : ""}
-            ${intervalText ? `<div>🕒 ${this._escape(intervalText)}</div>` : ""}
           </div>
         `;
         this.deliveryEl.style.display = "block";
