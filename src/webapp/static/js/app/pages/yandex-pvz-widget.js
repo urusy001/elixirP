@@ -404,10 +404,8 @@ export class YandexPvzWidget {
         const [lat, lon] = coords;
         try {
             const r = await apiGet(`/delivery/yandex/reverse-geocode?lat=${lat}&lon=${lon}`);
-            // NOTE: если apiGet возвращает JSON, этот блок не сработает — но у тебя "фронт работает", значит ок.
             if (r?.ok) {
-                const info = await r.json();
-                if (info?.formatted) return info.formatted;
+                if (r?.formatted) return r.formatted;
             }
         } catch {}
 
