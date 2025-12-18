@@ -670,7 +670,7 @@ export class YandexPvzWidget {
             return;
         }
 
-        const priceRub = `${(Number(enriched?.price?.pricing_total ?? 0) / 100).toFixed(0) * 100}`;
+        const priceRub = Math.round(Number(enriched?.calc?.price?.pricing_total ?? 0));
         const days = enriched?.delivery_days;
         const daysText =
             Array.isArray(days) && days.length === 2
