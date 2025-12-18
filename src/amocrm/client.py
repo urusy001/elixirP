@@ -13,9 +13,11 @@ from typing import Optional, Tuple, Literal, Union, Any
 from datetime import datetime, timedelta, UTC
 from urllib.parse import urlparse, parse_qs
 from playwright.async_api import async_playwright
+from sqlalchemy import select
 
 from src.webapp import get_session
 from src.webapp.crud import update_cart, get_carts
+from src.webapp.models import Cart
 from src.webapp.schemas import CartUpdate
 
 PriceT = Union[int, None, Literal["old"]]
@@ -582,12 +584,15 @@ class AsyncAmoCRM:
         async with get_session() as session: await update_cart(session, cart_id, cart_update)
         self.logger.info(f"Change {cart_id} to {status}")
 
+
     async def update_carts(self):
-        self.logger.info("Started updating carts")
-        async with get_session() as session: carts = await get_carts(session)
-        for cart in carts: await self.update_lead_status(cart.id)
-        self.logger.info(f"Finished updating {len(carts)} carts")
-        await asyncio.sleep(24*60*60)
+        async with get_session() as session:
+            res = await session.execute(select(Cart.id))  # returns column values
+            cart_ids = res.scalars().all()                # <-- list[int]
+
+        for cart_id in cart_ids:
+            await self.update_lead_status(cart_id)
+            await asyncio.sleep(24*60*60)
 
 # ---------- INSTANCE ----------
 amocrm = AsyncAmoCRM(
