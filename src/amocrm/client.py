@@ -433,7 +433,7 @@ class AsyncAmoCRM:
                         price = int(raw_price) if raw_price else None
 
                     email = await self._extract_lead_email(lead)
-                    return (price, email)
+                    return (price // 5000, email)
 
             page += 1
 
