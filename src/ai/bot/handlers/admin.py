@@ -169,8 +169,7 @@ async def handle_unblock(message: Message):
         )
 
     mode, value = args[0], args[1]
-    low_date = datetime.now().replace(tzinfo=MOSCOW_TZ)-timedelta(days=30)
-    user_update = UserUpdate(blocked_until=low_date)
+    user_update = UserUpdate(blocked_until=None)
     full_name = "Unknown"
 
     # ------------- /unblock id 123456 -------------

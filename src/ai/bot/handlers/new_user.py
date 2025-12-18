@@ -176,6 +176,7 @@ async def handle_verification_code(message: Message, state: FSMContext):
             async with get_session() as session:
                 user_update = UserUpdate(blocked_until=datetime.now(tz=MOSCOW_TZ)+timedelta(days=1))
                 user = await update_user(session, message.from_user.id, user_update)
+                await state.clear()
                 return await handle_user_start(message, state)
         await message.answer(f"Код некорректный, осталось {3-failed} попыток")
         await state.update_data(failed=failed)
