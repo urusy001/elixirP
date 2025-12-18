@@ -684,11 +684,6 @@ export class YandexPvzWidget {
         return Number.isFinite(v) ? Math.round(v) : 0;
     }
 
-    _fmtIntervalUnix(fromUnix, toUnix) {
-        const fmt = (u) => (u ? new Date(u * 1000).toLocaleString("ru-RU") : "—");
-        return `${fmt(fromUnix)} — ${fmt(toUnix)}`;
-    }
-
     _showDelivery(enriched) {
         if (!this.deliveryEl || !this.deliveryBodyEl) return;
 
@@ -711,10 +706,6 @@ export class YandexPvzWidget {
                     ? `~${days} дн.`
                     : "";
 
-        const bi = calc?.best_interval;
-        const intervalText =
-            bi && (bi.from || bi.to) ? this._fmtIntervalUnix(bi.from, bi.to) : "";
-
         const modeTitle = enriched?.deliveryMode === "self_pickup" ? "Самовывоз (ПВЗ)" : "Курьер";
         const pointLine =
             enriched?.deliveryMode === "self_pickup" && enriched?.name
@@ -727,7 +718,6 @@ export class YandexPvzWidget {
         ${pointLine}
         <div>💰 Цена: <b>${priceRub} ₽</b></div>
         ${daysText ? `<div>📦 Срок: ${this._escape(daysText)}</div>` : ""}
-        ${intervalText ? `<div>🕒 Интервал: ${this._escape(intervalText)}</div>` : ""}
       </div>
     `;
         this.deliveryEl.style.display = "block";
