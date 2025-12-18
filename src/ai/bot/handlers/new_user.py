@@ -84,7 +84,7 @@ async def handle_activate_code(message: Message, state: FSMContext):
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
             r = await client.post(
-                f"{WEBAPP_BASE_DOMAIN}",
+                f"{WEBAPP_BASE_DOMAIN}/webhooks/verify-order",
                 json={"code": code},
                 headers={"X-Internal-Token": INTERNAL_API_TOKEN},
             )
