@@ -7,7 +7,7 @@ from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import YANDEX_DELIVERY_TOKEN, YANDEX_WAREHOUSE_ADDRESS_FULLNAME, YANDEX_WAREHOUSE_LAT, YANDEX_WAREHOUSE_LON, \
-    YANDEX_DELIVERY_BASE_URL
+    YANDEX_DELIVERY_BASE_URL, YANDEX_DELIVERY_WAREHOUSE_ID
 from src.delivery.sdek import client as cdek_client
 from src.helpers import format_order_for_amocrm, normalize_address_for_cf
 from src.webapp.crud import upsert_user, add_or_increment_item, create_cart, update_cart
@@ -49,7 +49,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     log.info("Create payment payload: %s", ())
     order_number = cart.id
     if delivery_service == "yandex":
-        claims_url = f"{YANDEX_DELIVERY_BASE_URL}/b2b/cargo/integration/v2/claims/create"
+        offers_url = "https://b2b-authproxy.taxi.yandex.net/api/b2b/platform/offers/create"
 
         headers = {
             "Authorization": f"Bearer {YANDEX_DELIVERY_TOKEN}",
@@ -57,80 +57,96 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
             "Content-Type": "application/json",
             "Accept-Language": "ru",
         }
-        dest_fullname = address_str
 
         dx_cm, dy_cm, dz_cm = 25, 15, 10
         weight_g = 100
 
-        dx_m = float(Decimal(dx_cm) / Decimal("100"))
-        dy_m = float(Decimal(dy_cm) / Decimal("100"))
-        dz_m = float(Decimal(dz_cm) / Decimal("100"))
-        weight_kg = float(Decimal(weight_g) / Decimal("1000"))
+        total_kop = int(Decimal(str(total)) * 100)
+        request_id = f"order-{order_number}"
+
+        pvz_platform_id = delivery_data["address"].get("code", None)
+
+        if pvz_platform_id:
+            destination_node = {
+                "type": "platform_station",
+                "platform_station": {"platform_id": pvz_platform_id},
+            }
+            last_mile_policy = "self_pickup"
+        else:
+            destination_node = {
+                "type": "custom_location",
+                "custom_location": {
+                    "details": {"full_address": address_str},
+                },
+            }
+            last_mile_policy = "time_interval"
+
+        offer_body = {
+            "info": {
+                "operator_request_id": str(order_number),
+                "comment": f"{commentary_text} | promo: {promocode}",
+            },
+            "source": {
+                "platform_station": {"platform_id": YANDEX_DELIVERY_WAREHOUSE_ID},
+            },
+            "destination": destination_node,
+            "items": [
+                {
+                    "count": 1,
+                    "name": f"Order #{order_number}",
+                    "article": f"ORDER-{order_number}",
+                    "billing_details": {
+                        "unit_price": total_kop,
+                        "assessed_unit_price": total_kop,
+                        "nds": -1,
+                    },
+                    "physical_dims": {"dx": dx_cm, "dy": dy_cm, "dz": dz_cm},
+                    "place_barcode": "box-1",
+                }
+            ],
+            "places": [
+                {
+                    "barcode": "box-1",
+                    "description": f"Box for order #{order_number}",
+                    "physical_dims": {
+                        "dx": dx_cm,
+                        "dy": dy_cm,
+                        "dz": dz_cm,
+                        "weight_gross": weight_g,
+                    },
+                }
+            ],
+            "billing_info": {
+                "payment_method": "already_paid",
+            },
+            "recipient_info": {
+                "first_name": (contact_info.name or "Получатель"),
+                "last_name": (contact_info.surname or ""),
+                "phone": contact_info.phone,
+                "email": contact_info.email,
+            },
+            "last_mile_policy": last_mile_policy,
+            "particular_items_refuse": False,
+            "forbid_unboxing": False,
+        }
 
         async with httpx.AsyncClient(timeout=20.0) as client:
-            request_id = f"order-{order_number}"
-
-            claim_body = {
-                "items": [{
-                    "extra_id": str(order_number),
-                    "pickup_point": 1,
-                    "dropoff_point": 2,
-                    "title": f"Order #{order_number}",
-                    "size": {"length": dx_m, "width": dy_m, "height": dz_m},
-                    "weight": weight_kg,
-                    "cost_value": str(total),
-                    "cost_currency": "RUB",
-                    "quantity": 1,
-                }],
-                "route_points": [
-                    {
-                        "point_id": 1,
-                        "visit_order": 1,
-                        "type": "source",
-                        "contact": {
-                            "name": "Elixir Peptide",
-                            "phone": "+79610387977",
-                            "email": "elixirpeptide@yandex.ru",
-                        },
-                        "address": {"fullname": YANDEX_WAREHOUSE_ADDRESS_FULLNAME},
-                        "external_order_id": str(order_number),
-                    },
-                    {
-                        "point_id": 2,
-                        "visit_order": 2,
-                        "type": "destination",
-                        "contact": {
-                            "name": f"{contact_info.name} {contact_info.surname}".strip(),
-                            "phone": contact_info.phone,
-                            "email": contact_info.email,
-                        },
-                        "address": {"fullname": dest_fullname},
-                        "external_order_id": str(order_number),
-                    },
-                ],
-                "comment": f"{commentary_text} | promo: {promocode}",
-                "client_requirements": {
-                    "taxi_class": "courier"
-                }
-            }
-
-            claim_resp = await client.post(
-                claims_url,
-                params={"request_id": request_id},
-                json=claim_body,
+            resp = await client.post(
+                offers_url,
+                params={"send_unix": True, "request_id": request_id},
+                json=offer_body,
                 headers=headers,
             )
-            try: claim_resp.raise_for_status()
+            try:
+                resp.raise_for_status()
             except httpx.HTTPError:
-                log.exception("Yandex claims/create error: %s", claim_resp.text)
-                raise HTTPException(status_code=502, detail="Yandex Delivery claims/create error")
+                log.exception("Yandex NDD offers/create error: %s", resp.text)
+                raise HTTPException(status_code=502, detail="Yandex Delivery offers/create error")
 
-            claim_data = claim_resp.json()
-            print(json.dumps(claim_data, indent=4, ensure_ascii=False))
-
+            offers_data = resp.json()
+            print(json.dumps(offers_data, indent=4, ensure_ascii=False))
 
         delivery_status = "ok"
-
     elif delivery_service == "cdek":
         delivery_sum = payload.selected_delivery["tariff"]["delivery_sum"]
         await update_cart(db, cart.id, CartUpdate(delivery_sum=delivery_sum))
