@@ -5,7 +5,6 @@ import logging
 import os
 import re
 import secrets
-import ssl
 from email.message import EmailMessage
 
 import aiosmtplib
@@ -471,8 +470,11 @@ class AsyncAmoCRM:
           self.GMAIL_APP_PASSWORD (Gmail App Password)
           optional: self.GMAIL_FROM_NAME
         """
+        from_email = SMTP_USER
+        from_name = getattr(self, "GMAIL_FROM_NAME", "ElixirPeptide")
+
         msg = EmailMessage()
-        msg["From"] = SMTP_USER
+        msg["From"] = f"{from_name} <{from_email}>"
         msg["To"] = to_email
         msg["Subject"] = "Код подтверждения"
         msg.set_content(
@@ -480,15 +482,15 @@ class AsyncAmoCRM:
     
 Ваш код подтверждения: {code}
 Заказ: №{deal_code}
-Если Вы не запрашивали код — свяжитесь с поддержкой.""",charset="utf-8")
+Если Вы не запрашивали код — свяжитесь с поддержкой.""")
+
         await aiosmtplib.send(
             msg,
-            hostname="smtp.timeweb.ru",
-            port=465,
-            use_tls=True,
+            hostname="smtp.gmail.com",
+            port=587,
+            start_tls=True,
             username=SMTP_USER,
             password=SMTP_PASSWORD,
-            tls_context=ssl.create_default_context(),
             timeout=20,
         )
 
