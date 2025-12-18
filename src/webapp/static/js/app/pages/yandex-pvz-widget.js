@@ -612,9 +612,8 @@ export class YandexPvzWidget {
 
         const calc = await withLoader(async () => {
             try {
-                const r = await apiPost(this.options.calculateUrl, body);
-                const data = await r.json().catch(() => ({}));
-                if (!r.ok) throw new Error(data?.detail || "calculate failed");
+                const data = await apiPost(this.options.calculateUrl, body);
+                if (!data.ok) throw new Error(data?.detail || "calculate failed");
                 return data;
             } catch (e) {
                 return { ok: false, error: String(e?.message || e) };
