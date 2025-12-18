@@ -159,7 +159,7 @@ def _fmt_int(x):
     except: return str(x)
 
 
-def format_order_for_amocrm(order_number: int | str, payload: dict[str, Any], delivery_service: str, tariff: str | None, commentary_text: str, promocode: str) -> str:
+def format_order_for_amocrm(order_number: int | str, payload: dict[str, Any], delivery_service: str, tariff: str | None, commentary_text: str, promocode: str, delivery_sum: float | int | str) -> str:
     """
     Format Telegram checkout payload into AmoCRM-friendly Russian text.
 
@@ -252,7 +252,8 @@ def format_order_for_amocrm(order_number: int | str, payload: dict[str, Any], de
         f"Дата заказа: {order_date}\n"
         f"Cостав заказа:\n"
         f"{items_block}\n\n"
-        f"{delivery_line}\n\n"
+        f"{delivery_line}\n"
+        f"Стоимость доставки: {delivery_sum}\n\n"
         f"Имя клиента: {full_name}\n"
         f"Номер телефона: {phone}\n"
         f"Email: {email}\n\n"

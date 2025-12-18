@@ -49,6 +49,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     log.info("Create payment payload: %s", ())
     order_number = cart.id
     if delivery_service == "yandex":
+        delivery_sum = payload.selected_delivery["delivery_sum"]
         request_create_url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/request/create"
 
         headers = {
@@ -166,8 +167,9 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
             "delivery_service": delivery_service,
             "price": total,
             "order_number": order_number,
-            "note_text": format_order_for_amocrm(order_number, payload_dict, delivery_service, tariff, commentary_text, promocode),
+            "note_text": format_order_for_amocrm(order_number, payload_dict, delivery_service, tariff, commentary_text, promocode, delivery_sum),
             "payment_method": payment_method.upper(),
+            "delivery_sum": delivery_sum,
         }
 
         result["payment_method"] = payment_method

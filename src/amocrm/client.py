@@ -292,6 +292,7 @@ class AsyncAmoCRM:
             payment_method: str,
             tg_nick: str | None = '',
             status_id: int = None,
+            delivery_sum: float | int | None = None,
     ):
         """
         1) Create lead with custom fields
@@ -304,6 +305,7 @@ class AsyncAmoCRM:
         lead_custom_fields: dict[int, object] = {}
         if address_str: lead_custom_fields[self.CF["address"]] = address_str
         if tg_nick: lead_custom_fields[self.CF["tg_nick"]] = tg_nick
+        if delivery_sum: lead_custom_fields[self.CF["delivery_sum"]] = delivery_sum
         if delivery_service.upper() == "CDEK":
             lead_custom_fields[self.CF["delivery_cdek"]] = "СДЭК"
             lead_custom_fields[self.CF["cdek_number"]] = order_number
