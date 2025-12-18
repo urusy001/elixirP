@@ -199,11 +199,7 @@ async def get_all_pvz():
 
     payload = {
         "type": "pickup_point",
-        "country_codes": ["RU", "KZ"],
-        "is_yandex_branded": True,
-        "is_post_office": True,
         "is_not_branded_partner_station": True,
-        "payment_methods": ["already_paid", "card_on_receipt"],
     }
 
     headers = {
