@@ -233,7 +233,7 @@ async function initCDEKWidget(coords = [55.75, 37.61]) {
             currency: 'RUB',
             hideFilters: {have_cashless: false, have_cash: false, is_dressing_room: false},
             hideDeliveryOptions: {office: false, door: false},
-            goods: [{width: 15, height: 3, length: 15, weight: 240}],
+            goods: [{length: 18, width: 7, height: 24, weight: 357}],
             onReady: () => {
                 container.style.display = "block";
                 hideLoader();

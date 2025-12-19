@@ -211,8 +211,6 @@ class CDEKClientV2:
             sender_phone: str = CDEK_SENDER_PHONE,
             sender_country_code: str = "RU",
             sender_email: str | None = None,
-            default_item_weight_grams: int = 100,
-            package_dims_cm: tuple[int, int, int] = (25, 15, 10),
             delivery_sum: int | float = 295
     ) -> dict[str, Any]:
         """
@@ -305,13 +303,9 @@ class CDEKClientV2:
                 "address": formatted,
             }
 
-        length, width, height = package_dims_cm
-        total_weight = default_item_weight_grams
-
         order_items: list[dict[str, Any]] = []
         for idx, it in enumerate(items, start=1):
             qty = int(it.get("qty", 1))
-            price = int(it.get("price", 0))
             item_id = it.get("id") or str(idx)
             feature_id = it.get("featureId")
             name = it.get("name")
@@ -319,10 +313,10 @@ class CDEKClientV2:
             order_items.append(
                 {
                     "name": name,
-                    "ware_key": item_id,
+                    "ware_key": it.get("code", item_id),
                     "payment": {"value": 0},         # всё уже оплачено
-                    "cost": price,
-                    "weight": default_item_weight_grams,
+                    "cost": 1,
+                    "weight": 179,
                     "amount": qty,
                     "comment": str(feature_id or ""),
                 }
@@ -330,10 +324,10 @@ class CDEKClientV2:
 
         package: dict[str, Any] = {
             "number": "1",
-            "weight": total_weight,
-            "length": length,
-            "width": width,
-            "height": height,
+            "weight": 357,
+            "length": 18,
+            "width": 7,
+            "height": 24,
             "items": order_items,
         }
 
@@ -348,19 +342,11 @@ class CDEKClientV2:
             "to_location": to_location,
             "packages": [package],
         }
-
-        # страховка на сумму заказа (по желанию)
-        if total:
-            order_body["services"] = [
-                {"code": "INSURANCE", "parameter": float(total)}
-            ]
-
         if delivery_point:
             order_body["delivery_point"] = delivery_point
             del order_body["to_location"]
 
         order_body.update({"delivery_recipient_cost": {"value": delivery_sum}})
-
         return order_body
 
     async def create_order_from_payload(self, payload: dict[str, Any], order_number: str, delivery_sum: float | int | None = None) -> dict[str, Any]:
