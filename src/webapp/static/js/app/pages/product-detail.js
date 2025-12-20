@@ -137,6 +137,8 @@ export async function renderProductDetailPage(onec_id) {
     }
 
     const features = data.features || [];
+    const totalBalance = features.reduce((sum, f) => sum + Math.max(0, Number(f.balance ?? 0) || 0), 0);
+    const productInStock = totalBalance > 0;
 
     const featuresTableHtml = `
     <div class="product-features">
@@ -319,6 +321,7 @@ export async function renderProductDetailPage(onec_id) {
     renderTableBody();
 
     // Telegram MainButton + BackButton handling
+    // Telegram MainButton + BackButton handling
     if (isTelegramApp()) {
         let offBack;
 
@@ -328,45 +331,72 @@ export async function renderProductDetailPage(onec_id) {
                 if (sheet.isOpen()) {
                     sheet.close(true);
                 } else {
-                    cleanupProductPage(); // Clean up heart icon
-                    navigateTo('/');
+                    cleanupProductPage();
+                    navigateTo("/");
                 }
             });
         };
 
         setBackForProduct();
 
-        const toggleSheet = () => {
-            if (sheet.isOpen()) {
-                sheet.close(false);
-            } else {
-                sheet.open();
-                hideBackButton();
-                updateMainButton("Скрыть варианты");
-            }
-        };
+        if (!productInStock) {
+            // ✅ Out of stock: main button says "Нет на складе" and does nothing
+            showMainButton("Нет на складе", () => {});
+            // keep back behavior, and do not wire sheet toggles
+            window.addEventListener(
+                "popstate",
+                () => {
+                    offBack?.();
+                    sheet.close(true);
+                    cleanupProductPage();
+                },
+                { once: true }
+            );
+        } else {
+            // ✅ In stock: normal behavior
+            const toggleSheet = () => {
+                if (sheet.isOpen()) {
+                    sheet.close(false);
+                } else {
+                    sheet.open();
+                    hideBackButton();
+                    updateMainButton("Скрыть варианты");
+                }
+            };
 
-        showMainButton("Выбрать дозировку", toggleSheet);
+            showMainButton("Выбрать дозировку", toggleSheet);
 
-        sheet.onClose(() => {
-            updateMainButton("Выбрать дозировку");
-            setBackForProduct();
-        });
+            sheet.onClose(() => {
+                updateMainButton("Выбрать дозировку");
+                setBackForProduct();
+            });
 
-        window.addEventListener(
-            "popstate",
-            () => {
-                offBack?.();
-                sheet.close(true);
-                cleanupProductPage(); // Clean up heart icon
-            },
-            { once: true }
-        );
+            window.addEventListener(
+                "popstate",
+                () => {
+                    offBack?.();
+                    sheet.close(true);
+                    cleanupProductPage();
+                },
+                { once: true }
+            );
+        }
     } else {
+        // non-telegram fallback button
         const openSheetBtn = document.createElement("button");
-        openSheetBtn.textContent = "Выбрать дозировку";
         openSheetBtn.className = "buy-btn";
-        openSheetBtn.onclick = () => sheet.open();
+
+        if (!productInStock) {
+            openSheetBtn.textContent = "Нет на складе";
+            openSheetBtn.disabled = true;
+            openSheetBtn.style.opacity = "0.6";
+            openSheetBtn.style.cursor = "not-allowed";
+            openSheetBtn.style.pointerEvents = "none";
+        } else {
+            openSheetBtn.textContent = "Выбрать дозировку";
+            openSheetBtn.onclick = () => sheet.open();
+        }
+
         detailEl.querySelector(".product-detail-container").appendChild(openSheetBtn);
     }
 }
