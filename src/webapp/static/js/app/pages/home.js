@@ -1,13 +1,8 @@
-import { searchProducts } from "../../services/productService.js";
-import { hideLoader, showLoader, withLoader } from "../ui/loader.js";
-import { navigateTo } from "../router.js";
-import { saveCart, state } from "../state.js";
-import {
-    hideBackButton,
-    hideMainButton,
-    showBackButton,
-    showMainButton,
-} from "../ui/telegram.js";
+import {searchProducts} from "../../services/productService.js";
+import {hideLoader, showLoader, withLoader} from "../ui/loader.js";
+import {navigateTo} from "../router.js";
+import {saveCart, state} from "../state.js";
+import {hideBackButton, hideMainButton, showBackButton, showMainButton,} from "../ui/telegram.js";
 import {
     cartPageEl,
     checkoutPageEl,
@@ -25,7 +20,7 @@ import {
     toolbarEl,
     tosOverlayEl,
 } from "./constants.js";
-import { apiPost, apiGet } from "../../services/api.js";
+import {apiGet, apiPost} from "../../services/api.js";
 
 let page = 0;
 let loading = false;
@@ -440,15 +435,13 @@ function updateCardImage(selectElement) {
     const productImgSrc = img.dataset.productImg;
     const defaultImgSrc = "/static/images/product.png";
 
-    const setFallbackToProduct = () => {
+    img.onerror = () => {
         img.onerror = () => {
             img.onerror = null;
             img.src = defaultImgSrc;
         };
         img.src = productImgSrc;
     };
-
-    img.onerror = setFallbackToProduct;
     img.src = featureImgSrc;
 }
 
@@ -456,34 +449,69 @@ function productCardHTML(p) {
     const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
     const rawFeatures = Array.isArray(p.features) ? p.features : [];
 
-    const availableFeatures = rawFeatures.filter((f) => {
-        const bal = Number(f.balance ?? 0);
-        return bal > 0;
+    const features = rawFeatures.map((f) => ({
+        id: f.id,
+        name: String(f.name ?? ""),
+        price: Number(f.price ?? 0),
+        balance: Number(f.balance ?? 0),
+    }));
+
+    const totalBalance = features.reduce((acc, f) => acc + (Number.isFinite(f.balance) ? f.balance : 0), 0);
+
+    // sort: in-stock first, then by price desc (your old behavior)
+    const sortedFeatures = features.slice().sort((a, b) => {
+        const aOos = a.balance <= 0 ? 1 : 0;
+        const bOos = b.balance <= 0 ? 1 : 0;
+        if (aOos !== bOos) return aOos - bOos;
+        return (b.price || 0) - (a.price || 0);
     });
-
-    const sortedFeatures = availableFeatures.sort((a, b) => b.price - a.price);
-
-    if (!sortedFeatures.length) return "";
 
     const productImgPath = `/static/images/${onecId}.png`;
     const defaultImgPath = "/static/images/product.png";
 
-    const featureSelector = `
-    <select class="feature-select" data-onec-id="${onecId}">
-      ${sortedFeatures
-        .map(
-            (f) => `
-        <option value="${f.id}"
-                data-price="${f.price}"
-                data-balance="${Number(f.balance ?? 0)}"
-                data-feature-img="/static/images/${f.id}.png">
-          ${f.name} - ${f.price} ₽
-        </option>
-      `
-        )
-        .join("")}
-    </select>
-  `;
+    // pick first in-stock feature as default selected (if any)
+    const firstInStockId = sortedFeatures.find((f) => f.balance > 0)?.id ?? null;
+
+    const featureSelector = sortedFeatures.length
+        ? `
+      <select class="feature-select" data-onec-id="${onecId}">
+        ${sortedFeatures
+            .map((f) => {
+                const isOos = Number(f.balance ?? 0) <= 0;
+                const disabled = isOos ? "disabled" : "";
+                const selected = firstInStockId && f.id === firstInStockId ? "selected" : "";
+                const label = isOos
+                    ? `${escapeHtml(f.name)} - ${Number(f.price ?? 0)} ₽ (нет на складе)`
+                    : `${escapeHtml(f.name)} - ${Number(f.price ?? 0)} ₽`;
+
+                return `
+            <option value="${escapeHtml(f.id)}"
+                    ${disabled}
+                    ${selected}
+                    data-price="${Number(f.price ?? 0)}"
+                    data-balance="${Number(f.balance ?? 0)}"
+                    data-feature-img="/static/images/${escapeHtml(f.id)}.png">
+              ${label}
+            </option>
+          `;
+            })
+            .join("")}
+      </select>
+    `
+        : `
+      <select class="feature-select" data-onec-id="${onecId}" disabled>
+        <option value="" selected>Нет вариантов</option>
+      </select>
+    `;
+
+    // Buy area: if totalBalance == 0 -> show disabled "Нет на складе"
+    const buyArea =
+        totalBalance > 0
+            ? `<button class="buy-btn" data-onec-id="${onecId}"></button>`
+            : `<button class="buy-btn buy-btn-oos" data-onec-id="${onecId}" data-disabled="1" disabled
+                 style="opacity:.6; cursor:not-allowed; pointer-events:none;">
+                 Нет на складе
+               </button>`;
 
     return `
     <div class="product-card">
@@ -497,11 +525,13 @@ function productCardHTML(p) {
                onerror="this.onerror=null; this.src='${defaultImgPath}';">
         </div>
       </a>
+
       <div class="product-info">
         <span class="product-name">${escapeHtml(p.name)}</span>
         ${featureSelector}
       </div>
-      <button class="buy-btn" data-onec-id="${onecId}"></button>
+
+      ${buyArea}
     </div>
   `;
 }
@@ -513,11 +543,11 @@ function renderBuyCounter(btn, onecId) {
     const key = selectedFeatureId ? `${onecId}_${selectedFeatureId}` : onecId;
 
     const getMaxBalance = () => {
-        if (!selector) return Infinity;
+        if (!selector) return 0;
         const opt = selector.selectedOptions?.[0];
-        if (!opt) return Infinity;
-        const bal = Number(opt.dataset.balance ?? Infinity);
-        if (!Number.isFinite(bal) || bal <= 0) return Infinity;
+        if (!opt) return 0;
+        const bal = Number(opt.dataset.balance ?? 0);
+        if (!Number.isFinite(bal) || bal <= 0) return 0;
         return bal;
     };
 
@@ -539,7 +569,7 @@ function renderBuyCounter(btn, onecId) {
         add.className = "buy-btn-initial";
         add.onclick = () => {
             const max = getMaxBalance();
-            if (max <= 0) return;
+            if (max <= 0) return; // <-- if OOS selected, do nothing
             state.cart[key] = 1;
             saveCart();
             renderBuyCounter(btn, onecId);
@@ -566,6 +596,7 @@ function renderBuyCounter(btn, onecId) {
         plus.onclick = () => {
             const max = getMaxBalance();
             const cur = state.cart[key] || 0;
+            if (max <= 0) return;
             if (cur >= max) return;
             state.cart[key] = cur + 1;
             saveCart();
@@ -594,6 +625,16 @@ function attachProductInteractions(container) {
 
     container.querySelectorAll(".feature-select").forEach((select) => {
         if (select.dataset.imageBound) return;
+
+        // if current selected option is disabled, move to first enabled option
+        const opt = select.selectedOptions?.[0];
+        if (opt?.disabled) {
+            const firstEnabled = Array.from(select.options).find((o) => !o.disabled);
+            if (firstEnabled) {
+                select.value = firstEnabled.value;
+            }
+        }
+
         updateCardImage(select);
         select.addEventListener("change", () => updateCardImage(select));
         select.dataset.imageBound = "1";
@@ -601,6 +642,13 @@ function attachProductInteractions(container) {
 
     container.querySelectorAll(".buy-btn").forEach((btn) => {
         if (btn.dataset.initialized) return;
+
+        // if product total balance is 0 -> button is disabled label
+        if (btn.dataset.disabled === "1") {
+            btn.dataset.initialized = "1";
+            return;
+        }
+
         renderBuyCounter(btn, btn.dataset.onecId);
         btn.dataset.initialized = "1";
     });
@@ -631,10 +679,8 @@ async function loadMore(container, append = false, useLoader = true) {
                 if (!rawResults.length) break;
 
                 for (const p of rawResults) {
-                    const features = Array.isArray(p.features) ? p.features : [];
-                    const hasStock = features.some((f) => Number(f.balance ?? 0) > 0);
-                    if (!hasStock) continue;
                     collected.push(p);
+                    if (collected.length >= 6) break;
                 }
 
                 localPage += 1;
@@ -780,9 +826,6 @@ async function openFavouritesPage() {
         const all = Array.isArray(data?.results) ? data.results : [];
         return all.filter((p) => {
             const onecId = p.onec_id || (p.url ? p.url.split("/product/")[1] : "0");
-            const features = Array.isArray(p.features) ? p.features : [];
-            const hasStock = features.some((f) => Number(f.balance ?? 0) > 0);
-            if (!hasStock) return false;
             return favSet.has(String(onecId));
         });
     };
