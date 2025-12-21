@@ -38,13 +38,14 @@ async def get_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         if pipeline_id and pipeline_id != amocrm.PIPELINE_ID: return JSONResponse({"ok": True, "ignored": "pipeline mismatch"})
         m = re.search(r"№\s*(\d+)", name)
         if not m:
-            amocrm.log.warning("Lead %s name has no cart id: %r", lead_id, name)
+            amocrm.logger.warning("Lead %s name has no cart id: %r", lead_id, name)
             return JSONResponse({"ok": True, "ignored": "no cart id in lead name"})
 
         cart_id = int(m.group(1))
         status_text = amocrm.STATUS_WORDS.get(status_id, f"Статус {status_id}")
         is_active = bool(status_id in amocrm.COMPLETE_STATUS_IDS)
         await update_cart(db, cart_id, CartUpdate(status=status_text, is_active=is_active))
+        amocrm.logger.info("Lead %s cart updated successfully", lead_id)
         return JSONResponse({"ok": True, "cart_id": cart_id, "lead_id": lead_id, "status_id": status_id})
 
     except Exception:
