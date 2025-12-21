@@ -16,8 +16,8 @@ from src.webapp.schemas import AvailabilityRequest
 
 logger = logging.getLogger(__name__)
 
-cdek_router = APIRouter(prefix="/services/cdek", tags=["cdek"])
-yandex_router = APIRouter(prefix="/services/yandex", tags=["yandex"])
+cdek_router = APIRouter(prefix="/delivery/cdek", tags=["cdek"])
+yandex_router = APIRouter(prefix="/delivery/yandex", tags=["yandex"])
 
 
 @cdek_router.api_route(path="", methods=["GET", "POST"])
