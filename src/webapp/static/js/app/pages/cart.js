@@ -161,58 +161,64 @@ async function applyPromocode() {
 /* =========================
    TOTAL & MAIN BUTTON
    ========================= */
+function formatRUB(n) {
+    // ✅ NBSP before ₽ so it never wraps to next line
+    const s = Number(n || 0).toLocaleString("ru-RU", { maximumFractionDigits: 2 });
+    return `${s}\u00A0₽`;
+}
+
 function updateTotal() {
     const keys = Object.keys(state.cart);
 
     if (!keys.length) {
         cartTotalEl.innerHTML = "";
+        cartTotalEl.classList.remove("cart-summary");
         if (isTelegramApp()) showMainButton("К товарам", () => navigateTo("/"));
         return;
     }
 
-    const rawTotal = getCartTotalRaw();
+    const rawTotal = getCartTotalRaw();      // from your JS (pure)
     const discountPct = getAppliedDiscountPct();
     const finalTotal = getCartTotalFinal();
 
+    cartTotalEl.classList.add("cart-summary");
+
     if (discountPct > 0) {
         cartTotalEl.innerHTML = `
-            <div class="total-line">
-                <span class="total-label">Итого:</span>
-                <span class="total-amount" style="text-decoration:line-through; opacity:.65;">
-                    ${rawTotal.toLocaleString("ru-RU")} ₽
-                </span>
+            <div class="summary-item">
+                <div class="summary-label">Итого</div>
+                <div class="summary-value summary-old">${formatRUB(rawTotal)}</div>
             </div>
-            <div class="total-line">
-                <span class="total-label">Скидка:</span>
-                <span class="total-amount">${discountPct}%</span>
+
+            <div class="summary-item">
+                <div class="summary-label">Скидка</div>
+                <div class="summary-value">${discountPct}%</div>
             </div>
-            <div class="total-line" style="margin-top:6px;">
-                <span class="total-label">К оплате:</span>
-                <span class="total-amount">${finalTotal.toLocaleString("ru-RU")} ₽</span>
+
+            <div class="summary-item">
+                <div class="summary-label">К оплате</div>
+                <div class="summary-value">${formatRUB(finalTotal)}</div>
             </div>
         `;
     } else {
         cartTotalEl.innerHTML = `
-            <span class="total-label">Итого:</span>
-            <span class="total-amount">${rawTotal.toLocaleString("ru-RU")} ₽</span>
+            <div class="summary-item" style="grid-column: 1 / -1;">
+                <div class="summary-label">Итого</div>
+                <div class="summary-value">${formatRUB(rawTotal)}</div>
+            </div>
         `;
     }
 
-    if (!isTelegramApp()) return;
+    if (isTelegramApp()) {
+        const promoInput = getPromoInput();
+        const typed = (promoInput?.value || "").trim();
+        const data = loadPromoDataFromSession();
+        const promoOk = !!(typed && data && data.code === typed);
 
-    const promoInput = getPromoInput();
-    const typed = (promoInput?.value || "").trim();
-    const data = loadPromoDataFromSession();
-    const promoOk = !!(typed && data && data.code === typed);
-
-    // show "apply" if user typed something but it's not validated/applied
-    if (typed && !promoOk) {
-        showMainButton("Применить промокод", () => applyPromocode());
-    } else {
-        showMainButton("Оформить заказ", () => handleCheckout());
+        if (typed && !promoOk) showMainButton("Применить промокод", () => applyPromocode());
+        else showMainButton("Оформить заказ", () => handleCheckout());
     }
 }
-
 /* =========================
    QTY UPDATE
    ========================= */

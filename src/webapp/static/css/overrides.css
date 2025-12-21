@@ -175,3 +175,41 @@ input, textarea {
     -ms-user-select: text;
     user-select: text;
 }
+
+/* Cart summary (top totals) */
+#summary-label.cart-summary{
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    align-items: start;
+}
+
+#summary-label.cart-summary .summary-item{
+    min-width: 0;
+}
+
+#summary-label.cart-summary .summary-label{
+    font-size: 12px;
+    line-height: 1.1;
+    color: #6b7280;
+    margin-bottom: 2px;
+    white-space: nowrap;
+}
+
+#summary-label.cart-summary .summary-value{
+    font-size: 22px;
+    line-height: 1.1;
+    font-weight: 800;
+    white-space: nowrap;      /* never split amount + ₽ */
+}
+
+#summary-label.cart-summary .summary-old{
+    text-decoration: line-through;
+    opacity: .65;
+}
+
+@media (max-width: 420px){
+    #summary-label.cart-summary{
+        grid-template-columns: 1fr; /* stack on tiny screens */
+    }
+}
