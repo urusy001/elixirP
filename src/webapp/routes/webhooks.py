@@ -11,7 +11,6 @@ async def get_webhook(request: Request):
     except: print(await request.body())
 
 
-
 @router.post("/amocrm")
 async def get_webhook(request: Request):
     try: print(await request.json())
