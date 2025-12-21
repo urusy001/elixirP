@@ -14,7 +14,6 @@ from datetime import datetime, timedelta, UTC
 from urllib.parse import urlparse, parse_qs
 from playwright.async_api import async_playwright
 from sqlalchemy import select
-from decimal import Decimal
 
 from src.webapp import get_session
 from src.webapp.crud import update_cart, get_carts
@@ -91,12 +90,6 @@ class AsyncAmoCRM:
         x = list(self.STATUS_IDS.values())
         x.remove(self.STATUS_IDS["main"])
         return x
-
-    def _json_safe(self, obj: Any):
-        if isinstance(obj, Decimal): return float(obj)
-        if isinstance(obj, dict): return {k: self._json_safe(v) for k, v in obj.items()}
-        if isinstance(obj, (list, tuple)): return [self._json_safe(v) for v in obj]
-        return obj
 
     async def __request_token(self, grant_type: str, code: str | None = None):
         """Request new tokens (either via refresh_token or authorization_code)."""
@@ -207,10 +200,6 @@ class AsyncAmoCRM:
         headers["Authorization"] = f"Bearer {self.access_token}"
         url = f"https://{self.base_domain}{endpoint}"
 
-        # ✅ FIX: sanitize json payload (Decimal not serializable otherwise)
-        if "json" in kwargs and kwargs["json"] is not None:
-            kwargs["json"] = self._json_safe(kwargs["json"])
-
         async with httpx.AsyncClient() as client:
             res = await client.request(method, url, headers=headers, **kwargs)
             if res.status_code == 401:
@@ -218,10 +207,9 @@ class AsyncAmoCRM:
                 await self.refresh()
                 headers["Authorization"] = f"Bearer {self.access_token}"
                 res = await client.request(method, url, headers=headers, **kwargs)
-                print(res.text)
+
             res.raise_for_status()
-            if res.text.strip():
-                return res.json()
+            if res.text.strip(): return res.json()
             return {}
 
     async def get(self, endpoint: str, **kwargs):
