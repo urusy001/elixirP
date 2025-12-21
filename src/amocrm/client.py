@@ -270,7 +270,6 @@ class AsyncAmoCRM:
                 body_lead["custom_fields_values"] = cf_list
 
         payload = [body_lead]
-        print(json.dumps(payload, indent=4, ensure_ascii=False))
         data = await self.post("/api/v4/leads", json=payload)
         return data["_embedded"]["leads"][0]
 
