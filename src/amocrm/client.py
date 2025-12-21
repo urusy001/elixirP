@@ -218,7 +218,7 @@ class AsyncAmoCRM:
                 await self.refresh()
                 headers["Authorization"] = f"Bearer {self.access_token}"
                 res = await client.request(method, url, headers=headers, **kwargs)
-
+                print(res.text)
             res.raise_for_status()
             if res.text.strip():
                 return res.json()
