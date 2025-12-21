@@ -67,6 +67,7 @@ function updateTotal() {
             showMainButton("Применить промокод", () => {
                 alert("Промокоды скоро станут доступны");
                 promoInput.value = "";
+                clearPromocodeFromSession();
                 showMainButton("Оформить заказ", () => handleCheckout());
             });
         } else {
@@ -74,6 +75,23 @@ function updateTotal() {
             showMainButton("Оформить заказ", () => handleCheckout());
         }
     }
+}
+
+function savePromocodeToSession(code) {
+    const v = (code || "").trim();
+    sessionStorage.setItem("promocode", JSON.stringify(v || null));
+}
+
+function loadPromocodeFromSession() {
+    try {
+        return JSON.parse(sessionStorage.getItem("promocode") || "null");
+    } catch {
+        return null;
+    }
+}
+
+function clearPromocodeFromSession() {
+    sessionStorage.removeItem("promocode");
 }
 
 function updateQuantity(key, delta) {
@@ -214,18 +232,20 @@ function setupPromoWatcher() {
     const promoInput = getPromoInput();
     if (!promoInput) return;
 
+    // restore once
+    const saved = loadPromocodeFromSession();
+    if (saved && !promoInput.value) promoInput.value = saved;
+
     if (!promoInput.dataset.boundPromoInput) {
         promoInput.addEventListener("input", () => {
+            savePromocodeToSession(promoInput.value);
             if (!Object.keys(state.cart).length) return;
             updateTotal();
         });
         promoInput.dataset.boundPromoInput = "1";
     }
 
-    // при первой отрисовке тоже обновим кнопку
-    if (Object.keys(state.cart).length) {
-        updateTotal();
-    }
+    if (Object.keys(state.cart).length) updateTotal();
 }
 
 // === CHECKOUT ===
