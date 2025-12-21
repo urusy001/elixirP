@@ -34,6 +34,8 @@ function getPromoInput() {
 
 /* =========================
    PROMO SESSION STORAGE
+   - promocode: JSON string or null (typed code)
+   - promocode_data: {code, discount_pct} or null (validated promo)
    ========================= */
 function savePromocodeToSession(code) {
     const v = (code || "").trim();
@@ -69,7 +71,49 @@ function clearPromoDataFromSession() {
 }
 
 /* =========================
-   PROMO APPLY (GET)
+   PRICE HELPERS (PURE JS)
+   ========================= */
+function round2(n) {
+    return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+function getCartTotalRaw() {
+    let total = 0;
+    for (const key in cartRows) {
+        const row = cartRows[key];
+        const qty = state.cart[key] || 0;
+        const unit = parseFloat(row.priceDiv.dataset.unitPrice);
+        total += unit * qty;
+    }
+    return round2(total);
+}
+
+function getAppliedDiscountPct() {
+    const promoInput = getPromoInput();
+    const typed = (promoInput?.value || "").trim();
+
+    const data = loadPromoDataFromSession();
+    if (!data || !data.code || data.code !== typed) return 0;
+
+    let pct = parseFloat(String(data.discount_pct ?? "").replace(",", "."));
+    if (!Number.isFinite(pct)) pct = 0;
+    if (pct < 0) pct = 0;
+    if (pct > 100) pct = 100;
+    return pct;
+}
+
+function getCartTotalFinal() {
+    const raw = getCartTotalRaw();
+    const pct = getAppliedDiscountPct();
+    if (!pct) return raw;
+    return round2(raw * (100 - pct) / 100);
+}
+
+/* =========================
+   APPLY PROMO (VALIDATE ONLY)
+   ✅ calls /promocodes/?code=... to fetch discount_pct
+   ❌ does NOT call calculate-price
+   ❌ does NOT increment times_used / gained (no backend mutation)
    ========================= */
 async function applyPromocode() {
     const promoInput = getPromoInput();
@@ -83,19 +127,17 @@ async function applyPromocode() {
     updateMainButton("Проверка…", true, true);
 
     try {
-        // GET /promocodes/?code=...
         const promo = await apiGet(`/promocodes/?code=${encodeURIComponent(code)}`);
 
-        // expect discount_pct from backend
-        const discountPct = promo?.discount_pct ?? promo?.discountPct ?? promo?.discount ?? null;
+        // expects your response contains discount_pct
+        const discountPct = promo?.discount_pct;
 
-        // save typed code always
-        savePromocodeToSession(code);
-
-        if (discountPct === null || discountPct === undefined) {
+        if (discountPct === undefined || discountPct === null) {
+            alert("Промокод найден, но скидка не указана");
+            savePromocodeToSession(code);
             savePromoDataToSession({code, discount_pct: 0});
-            alert("Промокод найден ✅ (скидка не указана)");
         } else {
+            savePromocodeToSession(code);
             savePromoDataToSession({code, discount_pct: discountPct});
             alert(`Промокод применён ✅ Скидка: ${discountPct}%`);
         }
@@ -106,9 +148,9 @@ async function applyPromocode() {
         console.error(err);
         alert("Промокод не найден ❌");
 
-        // keep input, but remove applied discount
+        // keep typed input, but remove applied discount
         clearPromoDataFromSession();
-        // optional: clear stored code too
+        // optional: also clear stored typed code:
         // clearPromocodeFromSession();
 
         updateTotal();
@@ -117,81 +159,63 @@ async function applyPromocode() {
 }
 
 /* =========================
-   TOTAL & QTY HANDLING
+   TOTAL & MAIN BUTTON
    ========================= */
 function updateTotal() {
     const keys = Object.keys(state.cart);
 
-    // empty cart
     if (!keys.length) {
         cartTotalEl.innerHTML = "";
-        if (isTelegramApp()) {
-            showMainButton("К товарам", () => navigateTo("/"));
-        }
+        if (isTelegramApp()) showMainButton("К товарам", () => navigateTo("/"));
         return;
     }
 
-    let total = 0;
+    const rawTotal = getCartTotalRaw();
+    const discountPct = getAppliedDiscountPct();
+    const finalTotal = getCartTotalFinal();
 
-    for (const key in cartRows) {
-        const row = cartRows[key];
-        const qty = state.cart[key] || 0;
-        const price = parseFloat(row.priceDiv.dataset.unitPrice);
-        total += price * qty;
-    }
-
-    const promoInput = getPromoInput();
-    const typedCode = (promoInput?.value || "").trim();
-    const promoData = loadPromoDataFromSession();
-
-    const promoOk = promoData && promoData.code && promoData.code === typedCode;
-
-    let discountPctNum = 0;
-    let finalTotal = total;
-
-    if (promoOk) {
-        discountPctNum = parseFloat(String(promoData.discount_pct).replace(",", "."));
-        if (!Number.isFinite(discountPctNum)) discountPctNum = 0;
-
-        finalTotal = total * (100 - discountPctNum) / 100;
-    }
-
-    finalTotal = Math.round(finalTotal * 100) / 100;
-
-    cartTotalEl.innerHTML = promoOk && discountPctNum > 0
-        ? `
+    if (discountPct > 0) {
+        cartTotalEl.innerHTML = `
             <div class="total-line">
                 <span class="total-label">Итого:</span>
                 <span class="total-amount" style="text-decoration:line-through; opacity:.65;">
-                    ${total.toLocaleString("ru-RU")} ₽
+                    ${rawTotal.toLocaleString("ru-RU")} ₽
                 </span>
             </div>
             <div class="total-line">
                 <span class="total-label">Скидка:</span>
-                <span class="total-amount">${discountPctNum}%</span>
+                <span class="total-amount">${discountPct}%</span>
             </div>
             <div class="total-line" style="margin-top:6px;">
                 <span class="total-label">К оплате:</span>
                 <span class="total-amount">${finalTotal.toLocaleString("ru-RU")} ₽</span>
             </div>
-        `
-        : `
-            <span class="total-label">Итого:</span>
-            <span class="total-amount">${total.toLocaleString("ru-RU")} ₽</span>
         `;
+    } else {
+        cartTotalEl.innerHTML = `
+            <span class="total-label">Итого:</span>
+            <span class="total-amount">${rawTotal.toLocaleString("ru-RU")} ₽</span>
+        `;
+    }
 
-    if (isTelegramApp()) {
-        const hasPromo = typedCode.length > 0;
-        const needsApply = hasPromo && !promoOk;
+    if (!isTelegramApp()) return;
 
-        if (needsApply) {
-            showMainButton("Применить промокод", () => applyPromocode());
-        } else {
-            showMainButton("Оформить заказ", () => handleCheckout());
-        }
+    const promoInput = getPromoInput();
+    const typed = (promoInput?.value || "").trim();
+    const data = loadPromoDataFromSession();
+    const promoOk = !!(typed && data && data.code === typed);
+
+    // show "apply" if user typed something but it's not validated/applied
+    if (typed && !promoOk) {
+        showMainButton("Применить промокод", () => applyPromocode());
+    } else {
+        showMainButton("Оформить заказ", () => handleCheckout());
     }
 }
 
+/* =========================
+   QTY UPDATE
+   ========================= */
 function updateQuantity(key, delta) {
     state.cart[key] = (state.cart[key] || 0) + delta;
 
@@ -332,7 +356,7 @@ function setupPromoWatcher() {
         promoInput.addEventListener("input", () => {
             savePromocodeToSession(promoInput.value);
 
-            // if user edits code after applying, remove applied discount
+            // if user changed promo after applying, invalidate applied discount
             const data = loadPromoDataFromSession();
             const now = promoInput.value.trim();
             if (data && data.code && data.code !== now) {
@@ -350,6 +374,8 @@ function setupPromoWatcher() {
 
 /* =========================
    CHECKOUT
+   - sends final_total computed in JS
+   - optional: send promo_code for backend to store/display, but backend MUST NOT mutate promo stats here
    ========================= */
 export async function handleCheckout() {
     updateMainButton("Обработка…", true, true);
@@ -361,17 +387,23 @@ export async function handleCheckout() {
     }
 
     try {
-        const payload = Object.entries(state.cart).map(([key, qty]) => {
+        const items = Object.entries(state.cart).map(([key, qty]) => {
             const [id, featureId] = key.split("_");
             const itemName = cartRows[key]?.name || null;
             return {id, featureId: featureId || null, qty, name: itemName};
         });
 
-        const promoCode = (loadPromocodeFromSession() || "").trim() || null;
+        const raw_total = getCartTotalRaw();
+        const discount_pct = getAppliedDiscountPct();
+        const final_total = getCartTotalFinal();
+        const promo_code = (loadPromocodeFromSession() || "").trim() || null;
 
         const data = await apiPost("/cart/json", {
-            items: payload,
-            promo_code: promoCode, // ✅ send to backend (ignore if backend doesn't use)
+            items,
+            promo_code,     // optional for records
+            discount_pct,   // optional
+            raw_total,      // optional
+            final_total,    // ✅ this is your JS-calculated discounted price
         });
 
         setCheckoutData(data);
