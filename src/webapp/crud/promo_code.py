@@ -22,21 +22,10 @@ async def get_promo_by_code(db: AsyncSession, code: str) -> Optional[PromoCode]:
     return res.scalar_one_or_none()
 
 
-async def list_promos(
-        db: AsyncSession,
-        q: Optional[str] = None,
-        offset: int = 0,
-        limit: int = 50,
-):
+async def list_promos(db: AsyncSession):
     stmt = select(PromoCode)
-    if q:
-        qn = f"%{q.strip()}%"
-        stmt = stmt.where(PromoCode.code.ilike(qn))
-    stmt = stmt.order_by(PromoCode.id.desc()).offset(offset).limit(limit)
-
     res = await db.execute(stmt)
     return res.scalars().all()
-
 
 async def create_promo(db: AsyncSession, data: PromoCodeCreate) -> PromoCode:
     obj = PromoCode(**data.model_dump())
