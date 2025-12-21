@@ -49,14 +49,18 @@ async def add_premium(message: Message):
         else: await message.answer("Ошибка команды: пользователь не пользовался ботом или айди неверное")
         return None
 
-@new_admin_router.message(Command('/statistics'))
+@new_admin_router.message(Command('statistics'))
 async def handle_statistics(message: Message):
     async with get_session() as session:
         promos = await list_promos(session)
         carts = await get_carts(session)
 
-    with open('promos.json', 'w') as f: json.dump([promo.to_dict() for promo in promos], f)
-    with open('carts.json', 'w') as f: json.dump([cart.to_dict() for cart in carts], f)
+    x = [promo.to_dict() for promo in promos]
+    print(x)
+    y = [cart.to_dict() for cart in carts]
+    print(y)
+    with open('promos.json', 'w') as f: json.dump(x, f)
+    with open('carts.json', 'w') as f: json.dump(y, f)
     await message.answer_document(FSInputFile('promos.json'))
     await message.answer_document(FSInputFile('carts.json'))
 
