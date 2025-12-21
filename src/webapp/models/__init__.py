@@ -12,6 +12,7 @@ from .cart import Cart
 from .favourite import Favourite
 from .tg_category import TgCategory
 from .used_code import UsedCode
+from .promo_code import PromoCode
 
 __all__ = ['Category', 'Product', 'Unit', 'Feature', 'User', 'UserTokenUsage', 'BotEnum', 'PVZRequest', 'CartItem', 'Cart', 'Favourite', 'TgCategory', 'UsedCode']
 

@@ -11,6 +11,7 @@ from .cart_item import *
 from .favourite import *
 from .tg_category import *
 from .used_code import *
+from .promo_code import *
 
 __all__ = [
     'CategoryUpdate', 'CategoryBase', 'CategoryRead', 'CategoryCreate',
@@ -23,6 +24,8 @@ __all__ = [
     'FavouriteOut', 'FavouriteCreate', 'FavouriteDelete', 'FavouriteBase',
     'TgCategoryCreate', 'TgCategoryUpdate', 'TgCategoryBase', 'TgCategoryRead',
     'UsedCodeBase', 'UsedCodeRead', 'UsedCodeCreate', 'UsedCodeUpdate',
+    'PromoCodeOut', 'PromoCodeCreate', 'PromoCodeUpdate', 'PromoCodeBase',
+    'PriceT', 'AvailabilityDestination', 'AvailabilityRequest', 'VerifyOrderIn', 'VerifyOrderOut',
 ]
 
 class AvailabilityDestination(BaseModel):
