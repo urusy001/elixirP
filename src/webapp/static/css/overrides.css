@@ -163,3 +163,15 @@
         overflow-y: auto;
     }
 }
+
+* {
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+input, textarea {
+    -webkit-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
