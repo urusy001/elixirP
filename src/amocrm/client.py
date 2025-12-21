@@ -6,6 +6,8 @@ import logging
 import os
 import re
 import secrets
+from decimal import Decimal
+
 import aiosmtplib
 import httpx
 
@@ -229,7 +231,7 @@ class AsyncAmoCRM:
             self,
             name: str,
             status_id: int,
-            price: int | float | None = None,
+            price: int | None = None,
             custom_fields: dict[int, object] | None = None,
             responsible_user_id: int | None = None,
 
@@ -297,7 +299,7 @@ class AsyncAmoCRM:
             payment_method: str,
             tg_nick: str | None = '',
             status_id: int = None,
-            delivery_sum: float | int | None = None,
+            delivery_sum: float | int | Decimal | None = None,
     ):
         """
         1) Create lead with custom fields
@@ -321,7 +323,7 @@ class AsyncAmoCRM:
 
         lead = await self.create_lead(
             name=f"Заказ №{order_number} с Приложения ТГ",
-            price=float(price),
+            price=int(price),
             custom_fields=lead_custom_fields,
             status_id=status_id or self.STATUS_IDS["main"]
         )
