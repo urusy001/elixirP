@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime, timedelta
 
@@ -13,7 +14,7 @@ from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
 from src.tg_methods import get_user_id_by_phone, normalize_phone
 from src.webapp import get_session
-from src.webapp.crud import get_usages, get_user, update_user, upsert_user
+from src.webapp.crud import get_usages, get_user, update_user, upsert_user, list_promos, get_carts
 from src.webapp.schemas import UserUpdate, UserCreate
 
 professor_admin_router = Router(name="admin_professor")
@@ -47,6 +48,17 @@ async def add_premium(message: Message):
         if user: await message.answer(f'Премиум запросы для пользователя успешно обновлены на {amount}')
         else: await message.answer("Ошибка команды: пользователь не пользовался ботом или айди неверное")
         return None
+
+@new_admin_router.message(Command('/statistics'))
+async def handle_statistics(message: Message):
+    async with get_session() as session:
+        promos = await list_promos(session)
+        carts = await get_carts(session)
+
+    with open('promos.json', 'w') as f: json.dump([promo.to_dict() for promo in promos], f)
+    with open('carts.json', 'w') as f: json.dump([cart.to_dict() for cart in carts], f)
+    await message.answer_document(FSInputFile('promos.json'))
+    await message.answer_document(FSInputFile('carts.json'))
 
 @professor_admin_router.message(CommandStart())
 @new_admin_router.message(CommandStart(), lambda message: message.from_user.id in OWNER_TG_IDS)
