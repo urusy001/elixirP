@@ -16,3 +16,4 @@ data/
 migrations/versions
 photos/
 *.DS_Store
+.xlsx
