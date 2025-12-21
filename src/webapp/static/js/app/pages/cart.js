@@ -32,11 +32,97 @@ function getPromoInput() {
     return document.getElementById("promo");
 }
 
-// === TOTAL & QTY HANDLING ===
+/* =========================
+   PROMO SESSION STORAGE
+   ========================= */
+function savePromocodeToSession(code) {
+    const v = (code || "").trim();
+    sessionStorage.setItem("promocode", JSON.stringify(v || null));
+}
+
+function loadPromocodeFromSession() {
+    try {
+        return JSON.parse(sessionStorage.getItem("promocode") || "null");
+    } catch {
+        return null;
+    }
+}
+
+function clearPromocodeFromSession() {
+    sessionStorage.removeItem("promocode");
+}
+
+function savePromoDataToSession(data) {
+    sessionStorage.setItem("promocode_data", JSON.stringify(data || null));
+}
+
+function loadPromoDataFromSession() {
+    try {
+        return JSON.parse(sessionStorage.getItem("promocode_data") || "null");
+    } catch {
+        return null;
+    }
+}
+
+function clearPromoDataFromSession() {
+    sessionStorage.removeItem("promocode_data");
+}
+
+/* =========================
+   PROMO APPLY (GET)
+   ========================= */
+async function applyPromocode() {
+    const promoInput = getPromoInput();
+    const code = (promoInput?.value || "").trim();
+
+    if (!code) {
+        alert("Введите промокод");
+        return;
+    }
+
+    updateMainButton("Проверка…", true, true);
+
+    try {
+        // GET /promocodes/?code=...
+        const promo = await apiGet(`/promocodes/?code=${encodeURIComponent(code)}`);
+
+        // expect discount_pct from backend
+        const discountPct = promo?.discount_pct ?? promo?.discountPct ?? promo?.discount ?? null;
+
+        // save typed code always
+        savePromocodeToSession(code);
+
+        if (discountPct === null || discountPct === undefined) {
+            savePromoDataToSession({code, discount_pct: 0});
+            alert("Промокод найден ✅ (скидка не указана)");
+        } else {
+            savePromoDataToSession({code, discount_pct: discountPct});
+            alert(`Промокод применён ✅ Скидка: ${discountPct}%`);
+        }
+
+        updateTotal();
+        if (isTelegramApp()) showMainButton("Оформить заказ", () => handleCheckout());
+    } catch (err) {
+        console.error(err);
+        alert("Промокод не найден ❌");
+
+        // keep input, but remove applied discount
+        clearPromoDataFromSession();
+        // optional: clear stored code too
+        // clearPromocodeFromSession();
+
+        updateTotal();
+        if (isTelegramApp()) showMainButton("Оформить заказ", () => handleCheckout());
+    }
+}
+
+/* =========================
+   TOTAL & QTY HANDLING
+   ========================= */
 function updateTotal() {
     const keys = Object.keys(state.cart);
 
-    // если в корзине вообще нет ключей — показываем "К товарам"
+    // empty cart
     if (!keys.length) {
         cartTotalEl.innerHTML = "";
         if (isTelegramApp()) {
@@ -54,44 +140,56 @@ function updateTotal() {
         total += price * qty;
     }
 
-    cartTotalEl.innerHTML = `
-        <span class="total-label">Итого:</span>
-        <span class="total-amount">${total.toLocaleString("ru-RU")} ₽</span>
-    `;
+    const promoInput = getPromoInput();
+    const typedCode = (promoInput?.value || "").trim();
+    const promoData = loadPromoDataFromSession();
+
+    const promoOk = promoData && promoData.code && promoData.code === typedCode;
+
+    let discountPctNum = 0;
+    let finalTotal = total;
+
+    if (promoOk) {
+        discountPctNum = parseFloat(String(promoData.discount_pct).replace(",", "."));
+        if (!Number.isFinite(discountPctNum)) discountPctNum = 0;
+
+        finalTotal = total * (100 - discountPctNum) / 100;
+    }
+
+    finalTotal = Math.round(finalTotal * 100) / 100;
+
+    cartTotalEl.innerHTML = promoOk && discountPctNum > 0
+        ? `
+            <div class="total-line">
+                <span class="total-label">Итого:</span>
+                <span class="total-amount" style="text-decoration:line-through; opacity:.65;">
+                    ${total.toLocaleString("ru-RU")} ₽
+                </span>
+            </div>
+            <div class="total-line">
+                <span class="total-label">Скидка:</span>
+                <span class="total-amount">${discountPctNum}%</span>
+            </div>
+            <div class="total-line" style="margin-top:6px;">
+                <span class="total-label">К оплате:</span>
+                <span class="total-amount">${finalTotal.toLocaleString("ru-RU")} ₽</span>
+            </div>
+        `
+        : `
+            <span class="total-label">Итого:</span>
+            <span class="total-amount">${total.toLocaleString("ru-RU")} ₽</span>
+        `;
 
     if (isTelegramApp()) {
-        const promoInput = getPromoInput();
-        const hasPromo = promoInput && promoInput.value.trim().length > 0;
+        const hasPromo = typedCode.length > 0;
+        const needsApply = hasPromo && !promoOk;
 
-        if (hasPromo) {
-            showMainButton("Применить промокод", () => {
-                alert("Промокоды скоро станут доступны");
-                promoInput.value = "";
-                clearPromocodeFromSession();
-                showMainButton("Оформить заказ", () => handleCheckout());
-            });
+        if (needsApply) {
+            showMainButton("Применить промокод", () => applyPromocode());
         } else {
-            // 🔹 Обычное поведение — оформление заказа
             showMainButton("Оформить заказ", () => handleCheckout());
         }
     }
-}
-
-function savePromocodeToSession(code) {
-    const v = (code || "").trim();
-    sessionStorage.setItem("promocode", JSON.stringify(v || null));
-}
-
-function loadPromocodeFromSession() {
-    try {
-        return JSON.parse(sessionStorage.getItem("promocode") || "null");
-    } catch {
-        return null;
-    }
-}
-
-function clearPromocodeFromSession() {
-    sessionStorage.removeItem("promocode");
 }
 
 function updateQuantity(key, delta) {
@@ -110,7 +208,6 @@ function updateQuantity(key, delta) {
 
     saveCart();
 
-    // если после изменения корзина стала пустой — перерисуем страницу
     if (!Object.keys(state.cart).length) {
         renderCart();
         return;
@@ -119,7 +216,9 @@ function updateQuantity(key, delta) {
     updateTotal();
 }
 
-// === RENDER CART (WITH RABBY-SHOP LOTTIE) ===
+/* =========================
+   RENDER CART
+   ========================= */
 async function renderCart() {
     const keys = Object.keys(state.cart);
     cartItemsEl.innerHTML = "";
@@ -149,7 +248,6 @@ async function renderCart() {
             </div>
         `;
 
-        // лотти-анимация rabby-shop.json
         const animContainer = document.getElementById("cart-empty-lottie");
         if (animContainer && window.lottie && typeof window.lottie.loadAnimation === "function") {
             window.lottie.loadAnimation({
@@ -158,18 +256,12 @@ async function renderCart() {
                 loop: true,
                 autoplay: true,
                 path: "/static/stickers/rabby-shop.json",
-                rendererSettings: {
-                    preserveAspectRatio: "xMidYMid meet",
-                },
+                rendererSettings: {preserveAspectRatio: "xMidYMid meet"},
             });
         }
 
-        // убираем "Итого" и ставим кнопку "К товарам"
         cartTotalEl.innerHTML = "";
-        if (isTelegramApp()) {
-            showMainButton("К товарам", () => navigateTo("/"));
-        }
-
+        if (isTelegramApp()) showMainButton("К товарам", () => navigateTo("/"));
         return;
     }
 
@@ -219,26 +311,34 @@ async function renderCart() {
         plus.onclick = () => updateQuantity(key, 1);
 
         cartItemsEl.appendChild(row);
-
         cartRows[key] = {row, qtySpan, priceDiv, name};
     });
 
-    // посчитаем сумму и поставим правильную кнопку
     updateTotal();
 }
 
-// === PROMO INPUT WATCHER ===
+/* =========================
+   PROMO INPUT WATCHER
+   ========================= */
 function setupPromoWatcher() {
     const promoInput = getPromoInput();
     if (!promoInput) return;
 
-    // restore once
-    const saved = loadPromocodeFromSession();
-    if (saved && !promoInput.value) promoInput.value = saved;
+    // restore typed code
+    const savedCode = loadPromocodeFromSession();
+    if (savedCode && !promoInput.value) promoInput.value = savedCode;
 
     if (!promoInput.dataset.boundPromoInput) {
         promoInput.addEventListener("input", () => {
             savePromocodeToSession(promoInput.value);
+
+            // if user edits code after applying, remove applied discount
+            const data = loadPromoDataFromSession();
+            const now = promoInput.value.trim();
+            if (data && data.code && data.code !== now) {
+                clearPromoDataFromSession();
+            }
+
             if (!Object.keys(state.cart).length) return;
             updateTotal();
         });
@@ -248,11 +348,12 @@ function setupPromoWatcher() {
     if (Object.keys(state.cart).length) updateTotal();
 }
 
-// === CHECKOUT ===
+/* =========================
+   CHECKOUT
+   ========================= */
 export async function handleCheckout() {
     updateMainButton("Обработка…", true, true);
 
-    // на всякий случай оставляю поддержку checkout-btn
     const checkoutBtn = document.getElementById("checkout-btn");
     if (checkoutBtn) {
         checkoutBtn.disabled = true;
@@ -263,15 +364,16 @@ export async function handleCheckout() {
         const payload = Object.entries(state.cart).map(([key, qty]) => {
             const [id, featureId] = key.split("_");
             const itemName = cartRows[key]?.name || null;
-            return {
-                id,
-                featureId: featureId || null,
-                qty,
-                name: itemName,
-            };
+            return {id, featureId: featureId || null, qty, name: itemName};
         });
 
-        const data = await apiPost("/cart/json", {items: payload});
+        const promoCode = (loadPromocodeFromSession() || "").trim() || null;
+
+        const data = await apiPost("/cart/json", {
+            items: payload,
+            promo_code: promoCode, // ✅ send to backend (ignore if backend doesn't use)
+        });
+
         setCheckoutData(data);
         navigateTo("/checkout");
     } catch (err) {
@@ -285,7 +387,9 @@ export async function handleCheckout() {
     }
 }
 
-// === PAGE ENTRYPOINT ===
+/* =========================
+   PAGE ENTRYPOINT
+   ========================= */
 export async function renderCartPage() {
     toolbarEl.style.display = "none";
     listEl.style.display = "none";
@@ -303,8 +407,6 @@ export async function renderCartPage() {
     orderDetailEl.style.display = "none";
 
     await withLoader(renderCart);
-
-    // вот тут вешаем реакцию на промокод
     setupPromoWatcher();
 
     if (isTelegramApp()) showBackButton();
