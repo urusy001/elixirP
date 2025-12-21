@@ -34,8 +34,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     checkout_data = payload.checkout_data
     total = checkout_data["total"]
     payment_method = payload.payment_method
-    print(payload.promocode)
-    promocode = payload.promocode.code or "Не указан"
+    promocode = payload.promocode or "Не указан"
     if promocode:
         promo_code = await get_promo_by_code(db, promocode.strip())
         if not promo_code: raise HTTPException(status_code=404, detail="Promo code not found")
@@ -193,7 +192,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
             "delivery_service": delivery_service,
             "price": total,
             "order_number": order_number,
-            "note_text": format_order_for_amocrm(order_number, payload_dict, delivery_service, tariff, commentary_text, promo_code.code or None, delivery_sum),
+            "note_text": format_order_for_amocrm(order_number, payload_dict, delivery_service, tariff, commentary_text, promocode, delivery_sum),
             "payment_method": payment_method.upper(),
             "delivery_sum": delivery_sum,
         }
