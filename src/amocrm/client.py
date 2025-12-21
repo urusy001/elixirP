@@ -228,7 +228,7 @@ class AsyncAmoCRM:
             self,
             name: str,
             status_id: int,
-            price: int | None = None,
+            price: int | float | None = None,
             custom_fields: dict[int, object] | None = None,
             responsible_user_id: int | None = None,
 
@@ -308,7 +308,7 @@ class AsyncAmoCRM:
         lead_custom_fields: dict[int, object] = {}
         if address_str: lead_custom_fields[self.CF["address"]] = address_str
         if tg_nick: lead_custom_fields[self.CF["tg_nick"]] = tg_nick
-        if delivery_sum: lead_custom_fields[self.CF["delivery_sum"]] = delivery_sum
+        if delivery_sum: lead_custom_fields[self.CF["delivery_sum"]] = str(delivery_sum)
         if delivery_service.upper() == "CDEK":
             lead_custom_fields[self.CF["delivery_cdek"]] = "СДЭК"
             lead_custom_fields[self.CF["cdek_number"]] = order_number
@@ -319,7 +319,7 @@ class AsyncAmoCRM:
 
         lead = await self.create_lead(
             name=f"Заказ №{order_number} с Приложения ТГ",
-            price=price,
+            price=float(price),
             custom_fields=lead_custom_fields,
             status_id=status_id or self.STATUS_IDS["main"]
         )
