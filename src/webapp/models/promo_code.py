@@ -21,9 +21,8 @@ class PromoCode(Base):
     __tablename__ = "promo_codes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-
-    # code is used as FK target from carts.promo_code
     code = Column(String(80), unique=True, index=True, nullable=False)
+    discount_pct = Column(Numeric(5, 2), nullable=False, default=Decimal("0.00"), server_default="0")
 
     # OWNER level
     owner_name = Column(String(255), nullable=False, index=True)
@@ -67,3 +66,6 @@ class PromoCode(Base):
 
         Index("ix_promo_owner_levels", "owner_name", "lvl1_name", "lvl2_name"),
     )
+
+    def __str__(self):
+        return f"{self.code}: Скидка {self.discount_pct}"

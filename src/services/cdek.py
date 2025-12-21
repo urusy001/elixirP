@@ -7,7 +7,6 @@ import time
 import httpx
 from typing import Any
 from fastapi import HTTPException
-
 from config import CDEK_ACCOUNT, CDEK_SECURE_PASSWORD, CDEK_API_URL, CDEK_SENDER_CITY_CODE, CDEK_SENDER_CITY, \
     CDEK_SENDER_POSTAL_CODE, CDEK_SENDER_ADDRESS, CDEK_SENDER_NAME, CDEK_SENDER_PHONE
 
@@ -293,7 +292,7 @@ class CDEKClientV2:
             if not city or not postal_code:
                 raise HTTPException(
                     status_code=400,
-                    detail="CDEK door delivery: city or postal_code missing",
+                    detail="CDEK door services: city or postal_code missing",
                 )
 
             to_location = {

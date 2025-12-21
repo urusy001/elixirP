@@ -7,7 +7,7 @@ from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import YANDEX_DELIVERY_TOKEN, YANDEX_DELIVERY_BASE_URL, YANDEX_DELIVERY_WAREHOUSE_ID
-from src.delivery.sdek import client as cdek_client
+from src.services.cdek import client as cdek_client
 from src.helpers import format_order_for_amocrm, normalize_address_for_cf
 from src.webapp.crud import upsert_user, add_or_increment_item, create_cart, update_cart
 from src.webapp.database import get_db
@@ -156,7 +156,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
 
         delivery_status = "ok"
 
-    else: raise HTTPException(status_code=400, detail="Unsupported delivery service")
+    else: raise HTTPException(status_code=400, detail="Unsupported services service")
     if delivery_status == "ok":
         order_lead_kwargs = {
             "lead_name": f"{contact_info.name} {contact_info.surname}",

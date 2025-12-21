@@ -11,13 +11,13 @@ from fastapi.responses import Response
 
 from config import CDEK_API_URL, YANDEX_GEOCODER_TOKEN, YANDEX_DELIVERY_TOKEN, YANDEX_DELIVERY_BASE_URL, \
     YANDEX_DELIVERY_WAREHOUSE_ID
-from src.delivery.sdek import client as cdek_client
+from src.services.cdek import client as cdek_client
 from src.webapp.schemas import AvailabilityRequest
 
 logger = logging.getLogger(__name__)
 
-cdek_router = APIRouter(prefix="/delivery/cdek", tags=["cdek"])
-yandex_router = APIRouter(prefix="/delivery/yandex", tags=["yandex"])
+cdek_router = APIRouter(prefix="/services/cdek", tags=["cdek"])
+yandex_router = APIRouter(prefix="/services/yandex", tags=["yandex"])
 
 
 @cdek_router.api_route(path="", methods=["GET", "POST"])

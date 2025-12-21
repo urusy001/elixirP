@@ -10,6 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class PromoCodeBase(BaseModel):
     code: str = Field(..., min_length=1, max_length=80)
 
+    discount_pct: Decimal = Field(default=Decimal("0.00"))
+
     owner_name: str = Field(..., min_length=1, max_length=255)
     owner_pct: Decimal = Field(default=Decimal("0.00"))
     owner_amount_gained: Decimal = Field(default=Decimal("0.00"))
@@ -47,7 +49,7 @@ class PromoCodeBase(BaseModel):
             raise ValueError("times_used must be >= 0")
         return v
 
-    @field_validator("owner_pct", "lvl1_pct", "lvl2_pct")
+    @field_validator("discount_pct", "owner_pct", "lvl1_pct", "lvl2_pct")
     @classmethod
     def pct_range(cls, v: Decimal) -> Decimal:
         if v < 0 or v > 100:
@@ -68,6 +70,8 @@ class PromoCodeCreate(PromoCodeBase):
 
 class PromoCodeUpdate(BaseModel):
     code: Optional[str] = Field(default=None, min_length=1, max_length=80)
+
+    discount_pct: Optional[Decimal] = None
 
     owner_name: Optional[str] = Field(default=None, min_length=1, max_length=255)
     owner_pct: Optional[Decimal] = None
@@ -110,9 +114,9 @@ class PromoCodeUpdate(BaseModel):
             raise ValueError("times_used must be >= 0")
         return v
 
-    @field_validator("owner_pct", "lvl1_pct", "lvl2_pct")
+    @field_validator("discount_pct", "owner_pct", "lvl1_pct", "lvl2_pct")
     @classmethod
-    def pct_range(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+    def pct_range_opt(cls, v: Optional[Decimal]) -> Optional[Decimal]:
         if v is None:
             return None
         if v < 0 or v > 100:
@@ -121,7 +125,7 @@ class PromoCodeUpdate(BaseModel):
 
     @field_validator("owner_amount_gained", "lvl1_amount_gained", "lvl2_amount_gained")
     @classmethod
-    def money_nonneg(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+    def money_nonneg_opt(cls, v: Optional[Decimal]) -> Optional[Decimal]:
         if v is None:
             return None
         if v < 0:
