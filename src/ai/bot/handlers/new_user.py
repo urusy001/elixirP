@@ -75,11 +75,11 @@ async def handle_user_start(message: Message, state: FSMContext):
 @new_user_router.message(user_states.Ai.activate_code)
 async def handle_activate_code(message: Message, state: FSMContext):
     code = (message.text or "").strip()
-    if not code: return await message.answer("Введите код заказа.")
+    if not code: return await message.answer("Введите номер заказа.")
     async with get_session() as session: used_code = await get_used_code_by_code(session, code)
 
     if used_code:
-        await message.answer(f"Код {code} уже использован")
+        await message.answer(f"Номер заказа {code} уже использован")
         return await handle_user_start(message, state)
 
     try:
@@ -105,17 +105,17 @@ async def handle_activate_code(message: Message, state: FSMContext):
 
     # 3) handle statuses
     if price == "old":
-        await message.answer("Для активации кодов со старого сайта, пожалуйста, обратитесь к администрации.")
+        await message.answer("Для активации заказов со старого сайта, пожалуйста, обратитесь к администрации.")
         return await handle_user_start(message, state)
 
     if price == "not_found":
-        await message.answer(f"Заказ не был найден по коду {code}")
+        await message.answer(f"Заказ не был найден по номеру {code}")
         return await handle_user_start(message, state)
 
     if not email or not verification_code:
         await message.answer(
-            "Заказ найден, но не удалось отправить код на почту. "
-            "Проверьте, что в контакте указан Email, либо попробуйте позже."
+            "Заказ найден, но не удалось отправить код подтверждения на почту. "
+            "Обратитесь в поддержку"
         )
         return await handle_user_start(message, state)
 
@@ -142,7 +142,7 @@ async def handle_activate_code(message: Message, state: FSMContext):
     return await message.answer(
         f"На вашу почту {email} был отправлен код подтверждения.\n\n"
         "У вас есть 3 попытки, чтобы ввести его правильно. "
-        "Иначе вы будете заблокированы на один день за попытку отгадать чужой код."
+        "Иначе вы будете заблокированы на один день за попытку активации чужого заказа."
     )
 
 @new_user_router.message(user_states.Ai.verification_code)
@@ -179,7 +179,7 @@ async def handle_verification_code(message: Message, state: FSMContext):
                 user = await update_user(session, message.from_user.id, user_update)
                 await state.clear()
                 return await handle_user_start(message, state)
-        await message.answer(f"Код некорректный, осталось {3-failed} попыток")
+        await message.answer(f"Код подтверждения некорректный, осталось {3-failed} попыток")
         await state.update_data(failed=failed)
 
     return None
