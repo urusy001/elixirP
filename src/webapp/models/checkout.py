@@ -6,6 +6,8 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from src.webapp.schemas import PromoCodeOut
+
 
 async def enrich_cart_items(items: List[dict], db: AsyncSession) -> dict:
     from src.webapp.models import Feature
@@ -113,5 +115,5 @@ class CheckoutData(BaseModel):
     contact_info: Optional[ContactInfo] = None
     source: Optional[str] = None
     payment_method: Optional[str] = None
-    promocode: Optional[str] = None
+    promocode: Optional[PromoCodeOut] = None
     commentary: Optional[str] = None
