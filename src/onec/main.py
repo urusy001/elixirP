@@ -37,6 +37,7 @@ def _dec(v: Any, default: str = "0") -> Decimal:
 
 class OneCEnterprise:
     TG_SOLD_PROP_KEY = "87cfc3b4-defa-11f0-8b75-fa163eccf8af"
+    PARENT_KEY = "63d865c8-5fad-11f0-818d-fa163eccf8af"
 
     @staticmethod
     def _is_truthy(v: Any) -> bool:
@@ -212,12 +213,11 @@ class OneCEnterprise:
         out: dict[str, dict[str, Any]] = {}
         for p in products:
             # базовые фильтры как у тебя
-            if not p.get("КатегорияНоменклатуры_Key"):
-                continue
-            if p.get("Недействителен") == "true":
-                continue
-            if p.get("DeletionMark") in [True, "true"]:
-                continue
+            if not p.get("КатегорияНоменклатуры_Key"): continue
+            if p.get("Недействителен") == "true": continue
+            if p.get("DeletionMark") in [True, "true"]: continue
+            if p.get("ТипНоменклатуры") != "Запас": continue
+            if p.get("Parent_Key", None) != self.PARENT_KEY: continue
 
             extras = p.get("ДополнительныеРеквизиты") or []
 
