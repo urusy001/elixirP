@@ -56,6 +56,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     log.info("Create payment payload: %s", ())
     order_number = cart.id
     if delivery_service == "yandex":
+        print(json.dumps(payload.selected_delivery, indent=4, ensure_ascii=False))
         delivery_sum = payload.selected_delivery["delivery_sum"]
         request_create_url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/request/create"
 
