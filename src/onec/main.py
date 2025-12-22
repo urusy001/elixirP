@@ -10,6 +10,8 @@ import httpx
 from datetime import datetime
 from typing import Any, Literal
 
+from sqlalchemy import text
+
 from config import ENTERPRISE_URL, ENTERPRISE_LOGIN, ENTERPRISE_PASSWORD
 from src.onec import endpoints, keywords
 from src.webapp import get_session
@@ -219,6 +221,27 @@ class OneCEnterprise:
 
         self.log.info(f"✅ Finished inserting {name}.")
 
+    @staticmethod
+    async def clean_catalog_tables() -> None:
+        """
+        Clean catalog tables before inserting fresh data.
+
+        ⚠️ If you have other tables with FKs to these (orders, cart_items, etc.),
+        TRUNCATE ... CASCADE can wipe them too. If you don't want that, use the
+        DELETE variant and ensure no external FKs block deletion.
+        """
+        async with get_session() as db:
+            # FAST OPTION (recommended if these are "pure catalog" tables)
+            await db.execute(text("""
+                                  TRUNCATE TABLE
+                                      features,
+                                      products,
+                                      categories,
+                                      units
+                                      RESTART IDENTITY CASCADE
+                                  """))
+            await db.commit()
+
     async def update_db(self, approach: Literal["json", "postgres"], save: bool = False) -> None:
         # --- 1️⃣ Fetch all data ---
         products_task = self.get_products_1c(save)
@@ -232,6 +255,7 @@ class OneCEnterprise:
 
         # --- 2️⃣ Save ---
         if approach == "postgres":
+            await self.clean_catalog_tables()
             await self.batched_insert(create_unit, [UnitCreate(**u) for u in units.values()], "units")
             await self.batched_insert(create_category, [CategoryCreate(**c) for c in categories.values()], "categories")
             await self.batched_insert(create_product, [ProductCreate(**p) for p in products.values()], "products")
