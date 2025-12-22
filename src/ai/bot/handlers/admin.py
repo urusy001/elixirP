@@ -52,7 +52,6 @@ async def add_premium(message: Message):
 
 @new_admin_router.message(Command("statistics"))
 async def handle_statistics(message: Message):
-    # 1) Load from DB (NO helper funcs, no to_dict)
     async with get_session() as session:
         promos = await list_promos(session)
         carts = await get_carts(session)
@@ -89,7 +88,7 @@ async def handle_statistics(message: Message):
             "Комментарий": getattr(c, "commentary", None),
             "Промокод": getattr(c, "promo_code", None),
             "Статус": getattr(c, "status", None),
-            "Активен": bool(getattr(c, "is_active", False)),
+            "Оплачен": False if bool(getattr(c, "is_active", False)) else True,
             "Создано": getattr(c, "created_at", None),
             "Обновлено": getattr(c, "updated_at", None),
         })
@@ -107,7 +106,7 @@ async def handle_statistics(message: Message):
 
     if applied.empty:
         summary_df = pd.DataFrame(columns=[
-            "Промокод", "Заказов", "Активных заказов",
+            "Промокод", "Заказов", "Неоплаченных заказов",
             "Сумма товаров итого, ₽", "Средняя сумма, ₽", "Доставка итого, ₽",
         ])
     else:
@@ -118,7 +117,7 @@ async def handle_statistics(message: Message):
         summary_df = g.agg(
             **{
                 "Заказов": ("Заказ ID", "count"),
-                "Активных заказов": ("Активен", "sum"),
+                "Оплаченных заказов": ("Оплачен", "sum"),
                 "Сумма товаров итого, ₽": ("Сумма товаров, ₽", "sum"),
                 "Средняя сумма, ₽": ("Сумма товаров, ₽", "mean"),
                 "Доставка итого, ₽": ("Доставка, ₽", "sum"),
