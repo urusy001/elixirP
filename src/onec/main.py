@@ -284,9 +284,17 @@ class OneCEnterprise:
         products, features, categories, units = await asyncio.gather(
             products_task, features_task, categories_task, units_task
         )
-        features = [features[feature_onec_id] for feature_onec_id in features if features[feature_onec_id]["product_onec_id"] in products]
+
+        # ✅ keep only features that belong to TG products (KEEP AS DICT)
+        features = {
+            fid: f
+            for fid, f in features.items()
+            if f.get("product_onec_id") in products
+        }
 
         self.log.info(f"Filtered TG products: {len(products)}")
+        self.log.info(f"Filtered TG features: {len(features)}")
+
         if approach != "postgres":
             self.log.info("🧾 Writing JSON export...")
             await asyncio.gather(
@@ -298,54 +306,30 @@ class OneCEnterprise:
             self.log.info("✅ JSON export completed.")
             return
 
-        # IMPORTANT: adjust these imports if your models live elsewhere
         from src.webapp.models import Unit, Category, Product, Feature
 
         unit_rows = [
-            {
-                "onec_id": u["onec_id"],
-                "name": u.get("name") or "",
-                "description": u.get("description"),
-            }
+            {"onec_id": u["onec_id"], "name": u.get("name") or "", "description": u.get("description")}
             for u in units.values()
             if u.get("onec_id")
         ]
 
         category_rows = [
-            {
-                "onec_id": c["onec_id"],
-                "unit_onec_id": c.get("unit_onec_id"),
-                "name": c.get("name") or "",
-                "code": c.get("code"),
-            }
+            {"onec_id": c["onec_id"], "unit_onec_id": c.get("unit_onec_id"), "name": c.get("name") or "", "code": c.get("code")}
             for c in categories.values()
             if c.get("onec_id")
         ]
 
         product_rows = [
-            {
-                "onec_id": p["onec_id"],
-                "category_onec_id": p.get("category_onec_id"),
-                "name": p.get("name") or "",
-                "code": p.get("code"),
-                "description": p.get("description"),
-                "usage": p.get("usage"),
-                "expiration": p.get("expiration"),
-            }
+            {"onec_id": p["onec_id"], "category_onec_id": p.get("category_onec_id"), "name": p.get("name") or "",
+             "code": p.get("code"), "description": p.get("description"), "usage": p.get("usage"), "expiration": p.get("expiration")}
             for p in products.values()
             if p.get("onec_id")
         ]
 
         feature_rows = [
-            {
-                "onec_id": f["onec_id"],
-                "product_onec_id": f.get("product_onec_id"),
-                "name": f.get("name") or "",
-                "code": f.get("code"),
-                "file_id": f.get("file_id"),
-                "price": _dec(f.get("price")),
-                "balance": _dec(f.get("balance")),
-            }
+            {"onec_id": f["onec_id"], "product_onec_id": f.get("product_onec_id"), "name": f.get("name") or "",
+             "code": f.get("code"), "file_id": f.get("file_id"), "price": _dec(f.get("price")), "balance": _dec(f.get("balance"))}
             for f in features.values()
             if f.get("onec_id")
         ]
@@ -355,41 +339,11 @@ class OneCEnterprise:
             f"products={len(product_rows)} features={len(feature_rows)}"
         )
 
-        # One DB session, one commit => stable + fast
         async with get_session() as db:
-            # order matters if you have FKs
-            await self._upsert_table(
-                db,
-                Unit.__table__,
-                unit_rows,
-                conflict_cols=["onec_id"],
-                update_cols=["name", "description"],
-            )
-
-            await self._upsert_table(
-                db,
-                Category.__table__,
-                category_rows,
-                conflict_cols=["onec_id"],
-                update_cols=["unit_onec_id", "name", "code"],
-            )
-
-            await self._upsert_table(
-                db,
-                Product.__table__,
-                product_rows,
-                conflict_cols=["onec_id"],
-                update_cols=["category_onec_id", "name", "code", "description", "usage", "expiration"],
-            )
-
-            await self._upsert_table(
-                db,
-                Feature.__table__,
-                feature_rows,
-                conflict_cols=["onec_id"],
-                update_cols=["product_onec_id", "name", "code", "file_id", "price", "balance"],
-            )
-
+            await self._upsert_table(db, Unit.__table__, unit_rows, ["onec_id"], ["name", "description"])
+            await self._upsert_table(db, Category.__table__, category_rows, ["onec_id"], ["unit_onec_id", "name", "code"])
+            await self._upsert_table(db, Product.__table__, product_rows, ["onec_id"], ["category_onec_id", "name", "code", "description", "usage", "expiration"])
+            await self._upsert_table(db, Feature.__table__, feature_rows, ["onec_id"], ["product_onec_id", "name", "code", "file_id", "price", "balance"])
             await db.commit()
 
     @staticmethod
