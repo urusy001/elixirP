@@ -36,7 +36,7 @@ def _dec(v: Any, default: str = "0") -> Decimal:
 
 
 class OneCEnterprise:
-    TG_SOLD_PROP_KEY = "87cfc3b4-defa-11f0-8b75-fa163eccf8af"
+    TG_NOT_SOLD_PROP_KEY = "87cfc3b4-defa-11f0-8b75-fa163eccf8af"
     PARENT_KEY = "63d865c8-5fad-11f0-818d-fa163eccf8af"
 
     @staticmethod
@@ -47,13 +47,13 @@ class OneCEnterprise:
         return s in {"true", "1", "yes", "y", "да", "истина"}
 
     @classmethod
-    def _sold_in_tg(cls, extras: Any) -> bool:
+    def _not_sold_in_tg(cls, extras: Any) -> bool:
         if not extras:
             return False
         for r in extras:
             if not isinstance(r, dict):
                 continue
-            if (r.get("Свойство_Key") or "").lower() == cls.TG_SOLD_PROP_KEY.lower():
+            if (r.get("Свойство_Key") or "").lower() == cls.TG_NOT_SOLD_PROP_KEY.lower():
                 return cls._is_truthy(r.get("Значение"))
         return False
 
@@ -221,8 +221,7 @@ class OneCEnterprise:
 
             extras = p.get("ДополнительныеРеквизиты") or []
 
-            # ✅ новый фильтр: только "Продается в тг" = true
-            if not self._sold_in_tg(extras):
+            if self._not_sold_in_tg(extras):
                 continue
 
             out[p.get("Ref_Key")] = {
