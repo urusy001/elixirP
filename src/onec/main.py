@@ -284,6 +284,7 @@ class OneCEnterprise:
         products, features, categories, units = await asyncio.gather(
             products_task, features_task, categories_task, units_task
         )
+        features = [features[feature_onec_id] for feature_onec_id in features if features[feature_onec_id]["product_onec_id"] in products]
 
         self.log.info(f"Filtered TG products: {len(products)}")
         if approach != "postgres":
