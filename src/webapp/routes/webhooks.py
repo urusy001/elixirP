@@ -45,7 +45,7 @@ async def get_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
         cart_id = int(m.group(1))
         status_text = amocrm.STATUS_WORDS.get(status_id, f"Статус {status_id}")
-        is_active = bool(status_id in amocrm.COMPLETE_STATUS_IDS)
+        is_active = bool(status_id not in amocrm.COMPLETE_STATUS_IDS)
         cart = await update_cart(db, cart_id, CartUpdate(status=status_text, is_active=is_active))
         if not cart.is_active and not cart.promo_gains_given:
             code = cart.promo_code

@@ -56,11 +56,13 @@ class AsyncAmoCRM:
         }
         self.STATUS_WORDS = {
             81419122: "Создан",
+            75784938: "Счет отправлен",
             75784946: "Оплачен",
             75784942: "Укомплектован",
             76566302: "Отправлен",
             76566306: "Доставлен",
-            142: "Закрыт"
+            142: "Завершен",
+            143: "Возврат/отказ"
         }
         self.PIPELINE_ID = 9280278
         self.CF = {
@@ -607,3 +609,4 @@ amocrm = AsyncAmoCRM(
     access_token=AMOCRM_ACCESS_TOKEN,
     refresh_token=AMOCRM_REFRESH_TOKEN,
 )
+print(asyncio.run(amocrm.get_main_pipeline_statuses()))
