@@ -20,7 +20,7 @@ __all__ = [
     'FeatureUpdate', 'FeatureBase', 'FeatureRead', 'FeatureCreate',
     'UserUpdate', 'UserBase', 'UserRead', 'UserCreate',
     'UserTokenUsageUpdate', 'UserTokenUsageRead', 'UserTokenUsageBase', 'UserTokenUsageCreate',
-    'CartCreate', 'CartUpdate', 'CartItemCreate', 'CartItemUpdate', 'CartBase', 'CartItemBase', 'CartRead',
+    'CartCreate', 'CartUpdate', 'CartItemCreate', 'CartItemUpdate', 'CartItemBase', 'CartRead',
     'FavouriteOut', 'FavouriteCreate', 'FavouriteDelete', 'FavouriteBase',
     'TgCategoryCreate', 'TgCategoryUpdate', 'TgCategoryBase', 'TgCategoryRead',
     'UsedCodeBase', 'UsedCodeRead', 'UsedCodeCreate', 'UsedCodeUpdate',
@@ -44,7 +44,7 @@ PriceT = Union[int, None, Literal["old", "not_found", "low"]]
 
 class VerifyOrderIn(BaseModel): code: Union[str, int] = Field(..., description="Код заказа/сделки, который ищем в amoCRM (№{code} )")
 class VerifyOrderOut(BaseModel):
-    status: Literal["ok", "not_found", "no_email", "smtp_failed"]
+    status: Literal["ok", "not_found", "no_email", "smtp_failed", "low"]
     price: PriceT
     email: Optional[str] = None
     verification_code: Optional[str] = None
