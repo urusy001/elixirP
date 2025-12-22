@@ -19,7 +19,7 @@ async def get_carts(db: AsyncSession) -> Optional[list[Cart]]:
     result = await db.execute(
         select(Cart)
     )
-    return result.all()
+    return result.scalars().all()
 
 
 async def get_user_carts(db: AsyncSession, user_id: int, is_active: Optional[bool] = None) -> Sequence[Cart]:

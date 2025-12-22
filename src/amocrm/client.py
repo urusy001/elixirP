@@ -19,7 +19,7 @@ from playwright.async_api import async_playwright
 from sqlalchemy import select
 
 from src.webapp import get_session
-from src.webapp.crud import update_cart, get_carts
+from src.webapp.crud import update_cart
 from src.webapp.models import Cart
 from src.webapp.schemas import CartUpdate
 
