@@ -36,6 +36,26 @@ def _dec(v: Any, default: str = "0") -> Decimal:
 
 
 class OneCEnterprise:
+    TG_SOLD_PROP_KEY = "87cfc3b4-defa-11f0-8b75-fa163eccf8af"
+
+    @staticmethod
+    def _is_truthy(v: Any) -> bool:
+        if v is None:
+            return False
+        s = str(v).strip().lower()
+        return s in {"true", "1", "yes", "y", "да", "истина"}
+
+    @classmethod
+    def _sold_in_tg(cls, extras: Any) -> bool:
+        if not extras:
+            return False
+        for r in extras:
+            if not isinstance(r, dict):
+                continue
+            if (r.get("Свойство_Key") or "").lower() == cls.TG_SOLD_PROP_KEY.lower():
+                return cls._is_truthy(r.get("Значение"))
+        return False
+
     NS = {
         "m": "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata",
         "d": "http://schemas.microsoft.com/ado/2007/08/dataservices",
@@ -188,8 +208,24 @@ class OneCEnterprise:
 
     async def get_products_1c(self, save: bool = False) -> dict[str, dict[str, Any]]:
         products = await self.__fetch_odata(endpoints.PRODUCTS, save)
-        return {
-            p.get("Ref_Key"): {
+
+        out: dict[str, dict[str, Any]] = {}
+        for p in products:
+            # базовые фильтры как у тебя
+            if not p.get("КатегорияНоменклатуры_Key"):
+                continue
+            if p.get("Недействителен") == "true":
+                continue
+            if p.get("DeletionMark") in [True, "true"]:
+                continue
+
+            extras = p.get("ДополнительныеРеквизиты") or []
+
+            # ✅ новый фильтр: только "Продается в тг" = true
+            if not self._sold_in_tg(extras):
+                continue
+
+            out[p.get("Ref_Key")] = {
                 "onec_id": p.get("Ref_Key"),
                 "category_onec_id": p.get("КатегорияНоменклатуры_Key"),
                 "name": p.get("Description"),
@@ -198,7 +234,7 @@ class OneCEnterprise:
                 "usage": next(
                     (
                         t.get("ТекстоваяСтрока", None)
-                        for t in (p.get("ДополнительныеРеквизиты") or [])
+                        for t in extras
                         if any(k in (t.get("ТекстоваяСтрока", "") or "") for k in keywords.use)
                     ),
                     None,
@@ -206,17 +242,14 @@ class OneCEnterprise:
                 "expiration": next(
                     (
                         t.get("ТекстоваяСтрока", None)
-                        for t in (p.get("ДополнительныеРеквизиты") or [])
+                        for t in extras
                         if any(k in (t.get("ТекстоваяСтрока", "") or "") for k in keywords.expire)
                     ),
                     None,
                 ),
             }
-            for p in products
-            if p.get("КатегорияНоменклатуры_Key")
-               and p.get("Недействителен") != "true"
-               and p.get("DeletionMark") not in [True, "true"]
-        }
+
+        return out
 
     # --------------------------------------------------------------------------
     #                             DATABASE UPSERT
@@ -252,6 +285,7 @@ class OneCEnterprise:
             products_task, features_task, categories_task, units_task
         )
 
+        self.log.info(f"Filtered TG products: {len(products)}")
         if approach != "postgres":
             self.log.info("🧾 Writing JSON export...")
             await asyncio.gather(
@@ -375,3 +409,6 @@ class OneCEnterprise:
 
     async def close(self):
         await self.__client.aclose()
+
+    async def test(self):
+        await self.__fetch_odata(endpoints.PRODUCTS, save=True)
