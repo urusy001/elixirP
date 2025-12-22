@@ -593,14 +593,15 @@ class AsyncAmoCRM:
 
 
     async def update_carts(self):
-        self.logger.info("Started updating carts")
-        async with get_session() as session:
-            res = await session.execute(select(Cart.id))  # returns column values
-            cart_ids = res.scalars().all()                # <-- list[int]
+        while True:
+            self.logger.info("Started updating carts")
+            async with get_session() as session:
+                res = await session.execute(select(Cart.id))  # returns column values
+                cart_ids = res.scalars().all()                # <-- list[int]
 
-        for cart_id in cart_ids: await self.update_lead_status(cart_id)
-        self.logger.info(f"Finished updating carts: {len(cart_ids)} updated")
-        await asyncio.sleep(24*60*60)
+            for cart_id in cart_ids: await self.update_lead_status(cart_id)
+            self.logger.info(f"Finished updating carts: {len(cart_ids)} updated")
+            await asyncio.sleep(24*60*60)
 
 # ---------- INSTANCE ----------
 amocrm = AsyncAmoCRM(
@@ -611,4 +612,3 @@ amocrm = AsyncAmoCRM(
     access_token=AMOCRM_ACCESS_TOKEN,
     refresh_token=AMOCRM_REFRESH_TOKEN,
 )
-print(asyncio.run(amocrm.get_main_pipeline_statuses()))

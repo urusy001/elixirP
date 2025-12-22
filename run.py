@@ -2,8 +2,11 @@ import logging
 import asyncio
 import signal
 
-from src.ai.bot.main import run_new_bot, run_dose_bot, run_professor_bot
-from src.tg_methods import client as tg_client
+from src.services.cdek import client as cdek_client
+from src.amocrm.client import amocrm
+from src.onec import OneCEnterprise
+from src.services.yandex import promo_codes_worker
+from src.webapp.main import run_app
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,11 +19,12 @@ logger = logging.getLogger("main")
 
 
 async def main():
-    await tg_client.start()
     tasks = [
-        asyncio.create_task(run_new_bot()),
-        asyncio.create_task(run_dose_bot()),
-        asyncio.create_task(run_professor_bot()),
+        asyncio.create_task(run_app()),
+        asyncio.create_task(cdek_client.token_worker()),
+        asyncio.create_task(promo_codes_worker()),
+        asyncio.create_task(OneCEnterprise().postgres_worker()),
+        asyncio.create_task(amocrm.update_carts())
     ]
 
     async def shutdown():
