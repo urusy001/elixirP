@@ -328,7 +328,7 @@ class OneCEnterprise:
 
         feature_rows = [
             {"onec_id": f["onec_id"], "product_onec_id": f.get("product_onec_id"), "name": f.get("name") or "",
-             "code": f.get("code"), "file_id": f.get("file_id"), "price": _dec(f.get("price")), "balance": _dec(f.get("balance"))}
+             "code": f.get("code"), "file_id": f.get("file_id"), "price": _dec(f.get("price")), "balance": _dec(int(f.get("balance")) - 3 if int(f.get("balance")) >= 3 else 0)}
             for f in features.values()
             if f.get("onec_id")
         ]
