@@ -16,6 +16,7 @@ from typing import Any
 from typing import Optional, Literal
 from urllib.parse import parse_qsl
 
+import pandas as pd
 from aiogram import Bot
 from aiogram.enums import ChatMemberStatus
 from aiogram.types import Message
@@ -562,3 +563,18 @@ async def check_blocked(message: Message):
         await message.answer(user_texts.banned_until.replace("Блокировка до 9999-12-31, п", "П").replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}'))
         return False
     return True
+
+def make_excel_safe(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+
+    # 1) Any datetime64[ns, tz] columns -> remove tz (keep same wall time)
+    tz_cols = df.select_dtypes(include=["datetimetz"]).columns
+    for c in tz_cols:
+        df[c] = df[c].dt.tz_localize(None)
+
+    # 2) If you have datetime objects inside "object" columns, strip tzinfo too
+    for c in df.columns:
+        if df[c].dtype == "object":
+            df[c] = df[c].apply(lambda x: x.replace(tzinfo=None) if hasattr(x, "tzinfo") and x.tzinfo else x)
+
+    return df

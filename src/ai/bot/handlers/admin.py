@@ -95,8 +95,14 @@ async def handle_statistics(message: Message):
 
     promos_df = pd.DataFrame(promos_rows)
     carts_df = pd.DataFrame(carts_rows)
-    if not carts_df.empty and "Промокод" in carts_df.columns: applied = carts_df[carts_df["Промокод"].notna() & (carts_df["Промокод"].astype(str).str.strip() != "")]
-    else: applied = pd.DataFrame(columns=carts_df.columns if not carts_df.empty else ["Промокод"])
+
+    if not carts_df.empty and "Промокод" in carts_df.columns:
+        applied = carts_df[
+            carts_df["Промокод"].notna() &
+            (carts_df["Промокод"].astype(str).str.strip() != "")
+            ].copy()
+    else:
+        applied = pd.DataFrame(columns=carts_df.columns if not carts_df.empty else ["Промокод"])
 
     if applied.empty:
         summary_df = pd.DataFrame(columns=[
@@ -104,7 +110,6 @@ async def handle_statistics(message: Message):
             "Сумма товаров итого, ₽", "Средняя сумма, ₽", "Доставка итого, ₽",
         ])
     else:
-        # make sure numeric cols are numeric
         applied["Сумма товаров, ₽"] = pd.to_numeric(applied["Сумма товаров, ₽"], errors="coerce").fillna(0.0)
         applied["Доставка, ₽"] = pd.to_numeric(applied["Доставка, ₽"], errors="coerce").fillna(0.0)
 
@@ -119,13 +124,15 @@ async def handle_statistics(message: Message):
             }
         )
 
-        # prettier rounding
         summary_df["Сумма товаров итого, ₽"] = summary_df["Сумма товаров итого, ₽"].round(2)
         summary_df["Средняя сумма, ₽"] = summary_df["Средняя сумма, ₽"].round(2)
         summary_df["Доставка итого, ₽"] = summary_df["Доставка итого, ₽"].round(2)
-
-        # sort: most orders first
         summary_df = summary_df.sort_values(by=["Заказов", "Промокод"], ascending=[False, True])
+
+    # ✅ Excel-safe datetimes (timezone-naive etc.)
+    promos_df = make_excel_safe(promos_df)
+    carts_df = make_excel_safe(carts_df)
+    summary_df = make_excel_safe(summary_df)
 
     # 4) Write Excel (3 sheets) + basic styling
     ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -141,43 +148,57 @@ async def handle_statistics(message: Message):
             ws = wb[sheet_name]
             ws.freeze_panes = "A2"
             if ws.max_row >= 1:
-                for cell in ws[1]: cell.font = cell.font.copy(bold=True)
+                for cell in ws[1]:
+                    cell.font = cell.font.copy(bold=True)
 
             for col in ws.columns:
                 max_len = 0
                 col_letter = col[0].column_letter
                 for cell in col:
                     v = cell.value
-                    if v is None: continue
+                    if v is None:
+                        continue
                     s = str(v)
-                    if len(s) > max_len: max_len = len(s)
-
+                    if len(s) > max_len:
+                        max_len = len(s)
                 ws.column_dimensions[col_letter].width = min(max(10, max_len + 2), 55)
 
-            money_cols = {"Сумма товаров, ₽", "Доставка, ₽", "Начислено владельцу, ₽", "Уровень 1 (начислено), ₽", "Уровень 2 (начислено), ₽",
-                          "Сумма товаров итого, ₽", "Средняя сумма, ₽", "Доставка итого, ₽"}
+            money_cols = {
+                "Сумма товаров, ₽", "Доставка, ₽", "Начислено владельцу, ₽",
+                "Уровень 1 (начислено), ₽", "Уровень 2 (начислено), ₽",
+                "Сумма товаров итого, ₽", "Средняя сумма, ₽", "Доставка итого, ₽",
+            }
+
             header_map = {}
             for j in range(1, ws.max_column + 1):
                 header_map[ws.cell(row=1, column=j).value] = j
 
             for name in money_cols:
                 j = header_map.get(name)
-                if not j: continue
-                for i in range(2, ws.max_row + 1): ws.cell(row=i, column=j).number_format = '#,##0.00'
+                if not j:
+                    continue
+                for i in range(2, ws.max_row + 1):
+                    ws.cell(row=i, column=j).number_format = "#,##0.00"
 
-            pct_cols = {"Скидка, %", "Процент владельца, %", "Уровень 1 (процент), %", "Уровень 2 (процент), %"}
+            pct_cols = {
+                "Скидка, %", "Процент владельца, %", "Уровень 1 (процент), %", "Уровень 2 (процент), %",
+            }
             for name in pct_cols:
                 j = header_map.get(name)
-                if not j: continue
-                for i in range(2, ws.max_row + 1): ws.cell(row=i, column=j).number_format = '0.00'
+                if not j:
+                    continue
+                for i in range(2, ws.max_row + 1):
+                    ws.cell(row=i, column=j).number_format = "0.00"
 
     await message.answer_document(
         FSInputFile(path),
-        caption=f"📊 Статистика (Excel)\nСформировано: {ts.replace('_', ' ')}"
+        caption=f"📊 Статистика (Excel)\nСформировано: {ts.replace('_', ' ')}",
     )
 
-    try: os.remove(path)
-    except Exception: pass
+    try:
+        os.remove(path)
+    except Exception:
+        pass
 
 @professor_admin_router.message(CommandStart())
 @new_admin_router.message(CommandStart(), lambda message: message.from_user.id in OWNER_TG_IDS)
