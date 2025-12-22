@@ -40,7 +40,7 @@ class AvailabilityRequest(BaseModel):
     send_unix: bool = True
 
 
-PriceT = Union[int, None, Literal["old", "not_found"]]
+PriceT = Union[int, None, Literal["old", "not_found", "low"]]
 
 class VerifyOrderIn(BaseModel): code: Union[str, int] = Field(..., description="Код заказа/сделки, который ищем в amoCRM (№{code} )")
 class VerifyOrderOut(BaseModel):
