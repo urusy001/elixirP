@@ -172,6 +172,7 @@ async def handle_verification_code(message: Message, state: FSMContext):
             user = await update_user(session, message.from_user.id, user_update)
             used_code_create = UsedCodeCreate(user_id=message.from_user.id, code=order_code, price=price)
             used_code = await create_used_code(session, used_code_create)
+        await state.clear()
         await message.answer(f'Вам успешно начислено {add_months} месяцев безлимита, он теперь действителен до {premium_until.date()}')
         await handle_user_start(message, state)
 
@@ -179,6 +180,7 @@ async def handle_verification_code(message: Message, state: FSMContext):
         failed += 1
         if failed >= 3:
             async with get_session() as session:
+                await message.answer("Некорректных попыток: 3. Вы были заблокированы на 1 день")
                 user_update = UserUpdate(blocked_until=datetime.now(tz=MOSCOW_TZ)+timedelta(days=1))
                 user = await update_user(session, message.from_user.id, user_update)
                 await state.clear()
