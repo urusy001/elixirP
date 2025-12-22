@@ -48,20 +48,23 @@ async def get_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         is_active = bool(status_id not in amocrm.COMPLETE_STATUS_IDS)
         cart = await update_cart(db, cart_id, CartUpdate(status=status_text, is_active=is_active))
         if not cart.is_active and not cart.promo_gains_given:
+            print(cart.to_dict())
             code = cart.promo_code
+            print(code)
             promo_code = await get_promo_by_code(db, code)
-            owner_pct = Decimal(promo_code.owner_pct or 0)
-            lvl1_pct = Decimal(promo_code.lvl1_pct or 0)
-            lvl2_pct = Decimal(promo_code.lvl2_pct or 0)
+            if promo_code:
+                owner_pct = Decimal(promo_code.owner_pct or 0)
+                lvl1_pct = Decimal(promo_code.lvl1_pct or 0)
+                lvl2_pct = Decimal(promo_code.lvl2_pct or 0)
 
-            new_owner_gained = (Decimal(promo_code.owner_amount_gained or 0) + (cart.sum * owner_pct / D100)).quantize(Q2, rounding=ROUND_HALF_UP)
-            new_lvl1_gained  = (Decimal(promo_code.lvl1_amount_gained  or 0) + (cart.sum * lvl1_pct  / D100)).quantize(Q2, rounding=ROUND_HALF_UP)
-            new_lvl2_gained  = (Decimal(promo_code.lvl2_amount_gained  or 0) + (cart.sum * lvl2_pct  / D100)).quantize(Q2, rounding=ROUND_HALF_UP)
-            promo_code = await update_promo(db, promo_code.id, PromoCodeUpdate(owner_amount_gained=new_owner_gained, lvl1_amount_gained=new_lvl1_gained, lvl2_amount_gained=new_lvl2_gained))
-            amocrm.logger.info(f"Promo code {promo_code.code} gains updated:\n"
-                               f"{promo_code.owner_name} — {promo_code.owner_amount_gained}\n"
-                               f"{promo_code.lvl1_name} — {promo_code.lvl1_amount_gained}\n"
-                               f"{promo_code.lvl2_name} — {promo_code.lvl2_amount_gained}\n")
+                new_owner_gained = (Decimal(promo_code.owner_amount_gained or 0) + (cart.sum * owner_pct / D100)).quantize(Q2, rounding=ROUND_HALF_UP)
+                new_lvl1_gained  = (Decimal(promo_code.lvl1_amount_gained  or 0) + (cart.sum * lvl1_pct  / D100)).quantize(Q2, rounding=ROUND_HALF_UP)
+                new_lvl2_gained  = (Decimal(promo_code.lvl2_amount_gained  or 0) + (cart.sum * lvl2_pct  / D100)).quantize(Q2, rounding=ROUND_HALF_UP)
+                promo_code = await update_promo(db, promo_code.id, PromoCodeUpdate(owner_amount_gained=new_owner_gained, lvl1_amount_gained=new_lvl1_gained, lvl2_amount_gained=new_lvl2_gained))
+                amocrm.logger.info(f"Promo code {promo_code.code} gains updated:\n"
+                                   f"{promo_code.owner_name} — {promo_code.owner_amount_gained}\n"
+                                   f"{promo_code.lvl1_name} — {promo_code.lvl1_amount_gained}\n"
+                                   f"{promo_code.lvl2_name} — {promo_code.lvl2_amount_gained}\n")
 
         amocrm.logger.info("Lead %s cart updated successfully", lead_id)
         return JSONResponse({"ok": True, "cart_id": cart_id, "lead_id": lead_id, "status_id": status_id})
