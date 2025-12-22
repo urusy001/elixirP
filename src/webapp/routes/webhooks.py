@@ -50,9 +50,9 @@ async def get_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         if not cart.is_active and not cart.promo_gains_given:
             print(cart.to_dict())
             code = cart.promo_code
-            print(code)
             promo_code = await get_promo_by_code(db, code)
             if promo_code:
+                print(promo_code.code)
                 owner_pct = Decimal(promo_code.owner_pct or 0)
                 lvl1_pct = Decimal(promo_code.lvl1_pct or 0)
                 lvl2_pct = Decimal(promo_code.lvl2_pct or 0)

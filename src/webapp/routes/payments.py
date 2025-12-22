@@ -14,7 +14,6 @@ from src.webapp.crud import upsert_user, add_or_increment_item, create_cart, upd
 from src.webapp.database import get_db
 from src.webapp.models.checkout import CheckoutData
 from src.webapp.routes.cart import cart_json
-from src.webapp.routes.promocodes import Q2, D100
 from src.webapp.schemas import UserCreate, CartCreate, CartItemCreate, CartUpdate, PromoCodeUpdate
 
 router = APIRouter(prefix="/payments", tags=["payments"])
@@ -45,7 +44,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     commentary_text = payload.commentary or "Не указан"
     address_str = normalize_address_for_cf(delivery_data["address"])
     payload_dict = payload.model_dump()
-    cart_create = CartCreate(is_active=True, user_id=user_id, sum=total, delivery_sum=0, commentary=commentary_text, delivery_string=f"{delivery_service.upper()}: {address_str}")
+    cart_create = CartCreate(is_active=True, user_id=user_id, sum=total, delivery_sum=0, promo_code=promocode, commentary=commentary_text, delivery_string=f"{delivery_service.upper()}: {address_str}")
     cart = await create_cart(db, cart_create)
     for item in enriched_cart.get("items", []):
         cart_item_create = CartItemCreate(product_onec_id=item["id"], feature_onec_id=item["featureId"], quantity=item["qty"])
