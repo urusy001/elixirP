@@ -4,23 +4,35 @@ import asyncio
 import json
 import logging
 import xml.etree.ElementTree as ET
-import aiofiles
-import httpx
-
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, Literal
 
-from sqlalchemy import text
+import aiofiles
+import httpx
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from config import ENTERPRISE_URL, ENTERPRISE_LOGIN, ENTERPRISE_PASSWORD
 from src.onec import endpoints, keywords
 from src.webapp import get_session
-from src.webapp.crud import create_feature, create_unit, create_product, create_category
 from src.webapp.database import get_db_items
-from src.webapp.schemas import CategoryCreate, ProductCreate, UnitCreate, FeatureCreate
 
-BATCH_SIZE = 50  # how many rows per commit
-SLEEP_INTERVAL = 900  # seconds between syncs (15 min)
+UPSERT_BATCH_SIZE = 500
+SLEEP_INTERVAL = 900  # 15 min
+
+
+def _dec(v: Any, default: str = "0") -> Decimal:
+    if v is None:
+        return Decimal(default)
+    s = str(v).strip()
+    if not s:
+        return Decimal(default)
+    # 1C can return comma decimals sometimes
+    s = s.replace(",", ".")
+    try:
+        return Decimal(s)
+    except Exception:
+        return Decimal(default)
 
 
 class OneCEnterprise:
@@ -33,7 +45,9 @@ class OneCEnterprise:
     def __init__(self, url=ENTERPRISE_URL, username=ENTERPRISE_LOGIN, password=ENTERPRISE_PASSWORD):
         limits = httpx.Limits(max_connections=20, max_keepalive_connections=10)
         self.__client = httpx.AsyncClient(
-            auth=(username, password), limits=limits, timeout=httpx.Timeout(30.0)
+            auth=(username, password),
+            limits=limits,
+            timeout=httpx.Timeout(30.0),
         )
         self.__url = url
         self.log = logging.getLogger(self.__class__.__name__)
@@ -43,9 +57,9 @@ class OneCEnterprise:
     # --------------------------------------------------------------------------
 
     async def __fetch_odata(self, endpoint: str, save: bool = False) -> list[dict[str, Any]]:
-        """Fetch OData XML feed and parse <entry> records including ДополнительныеРеквизиты."""
         url = f"{self.__url}{endpoint}"
         response = None
+
         for attempt in range(3):
             try:
                 response = await self.__client.get(url)
@@ -57,7 +71,7 @@ class OneCEnterprise:
                 await asyncio.sleep(3)
 
         if not response:
-            raise Exception(f"❌ Failed to fetch {url} after 3 attempts")
+            raise RuntimeError(f"❌ Failed to fetch {url} after 3 attempts")
 
         root = ET.fromstring(response.content)
         entries: list[dict[str, Any]] = []
@@ -83,9 +97,10 @@ class OneCEnterprise:
             entries.append(record)
 
         if save:
-            print(f"{endpoint.split('?')[0]}.json")
-            async with aiofiles.open(f"{endpoint.split('?')[0]}.json", "w", encoding="utf-8") as f:
+            fname = f"{endpoint.split('?')[0]}.json"
+            async with aiofiles.open(fname, "w", encoding="utf-8") as f:
                 await f.write(json.dumps(entries, ensure_ascii=False, indent=4))
+            self.log.info(f"🧾 Saved {fname}")
 
         return entries
 
@@ -97,7 +112,8 @@ class OneCEnterprise:
                 "name": u.get("Description"),
                 "description": u.get("НаименованиеПолное"),
             }
-            for u in units if u.get("DeletionMark") not in [True, "true"]
+            for u in units
+            if u.get("DeletionMark") not in [True, "true"]
         }
 
     async def get_categories_1c(self, save: bool = False) -> dict[str, dict[str, Any]]:
@@ -113,12 +129,14 @@ class OneCEnterprise:
                 "name": c.get("Description", "Без категории"),
                 "code": c.get("Code"),
             }
-            for c in cats if c.get("DeletionMark") not in [True, "true"]
+            for c in cats
+            if c.get("DeletionMark") not in [True, "true"]
         }
 
     async def get_prices_1c(self, save: bool = False) -> dict[str, dict[str, Any]]:
         prices = await self.__fetch_odata(endpoints.PRICES, save)
         latest: dict[tuple[str, str], dict[str, Any]] = {}
+
         for entry in prices:
             key = (entry["Номенклатура_Key"], entry["Характеристика_Key"])
             entry_period = datetime.fromisoformat(entry["Period"])
@@ -149,6 +167,7 @@ class OneCEnterprise:
         features_task = self.__fetch_odata(endpoints.FEATURES, save)
         prices_task = self.get_prices_1c(save)
         balances_task = self.get_balances_1c(save)
+
         features, prices_map, balances_map = await asyncio.gather(
             features_task, prices_task, balances_task
         )
@@ -163,7 +182,8 @@ class OneCEnterprise:
                 "price": prices_map.get(f"{f.get('Owner')}_{f.get('Ref_Key')}", {}).get("price", "0"),
                 "balance": balances_map.get(f"{f.get('Owner')}_{f.get('Ref_Key')}", {}).get("balance", "0"),
             }
-            for f in features if f.get("DeletionMark") not in [True, "true"]
+            for f in features
+            if f.get("DeletionMark") not in [True, "true"]
         }
 
     async def get_products_1c(self, save: bool = False) -> dict[str, dict[str, Any]]:
@@ -178,72 +198,51 @@ class OneCEnterprise:
                 "usage": next(
                     (
                         t.get("ТекстоваяСтрока", None)
-                        for t in p.get("ДополнительныеРеквизиты", {})
-                        if any(k in t.get("ТекстоваяСтрока", "") for k in keywords.use)
+                        for t in (p.get("ДополнительныеРеквизиты") or [])
+                        if any(k in (t.get("ТекстоваяСтрока", "") or "") for k in keywords.use)
                     ),
                     None,
                 ),
                 "expiration": next(
                     (
                         t.get("ТекстоваяСтрока", None)
-                        for t in p.get("ДополнительныеРеквизиты", {})
-                        if any(k in t.get("ТекстоваяСтрока", "") for k in keywords.expire)
+                        for t in (p.get("ДополнительныеРеквизиты") or [])
+                        if any(k in (t.get("ТекстоваяСтрока", "") or "") for k in keywords.expire)
                     ),
                     None,
                 ),
             }
             for p in products
-            if p.get("КатегорияНоменклатуры_Key") and p.get("Недействителен") != "true" and p.get("DeletionMark") not in [True, "true"]
+            if p.get("КатегорияНоменклатуры_Key")
+               and p.get("Недействителен") != "true"
+               and p.get("DeletionMark") not in [True, "true"]
         }
 
     # --------------------------------------------------------------------------
-    #                             DATABASE SYNC
+    #                             DATABASE UPSERT
     # --------------------------------------------------------------------------
 
-    async def batched_insert(self, create_func, schema_list, name: str):
-        """Insert objects in small batches to prevent asyncpg disconnections."""
-        if not schema_list:
-            self.log.info(f"No {name} to insert.")
+    async def _upsert_table(
+            self,
+            db,
+            table,
+            rows: list[dict[str, Any]],
+            conflict_cols: list[str],
+            update_cols: list[str],
+    ) -> None:
+        if not rows:
             return
 
-        self.log.info(f"🟢 Inserting {len(schema_list)} {name}...")
-
-        async def __task(obj):
-            async with get_session() as db:
-                await create_func(db, obj)
-
-        for i in range(0, len(schema_list), BATCH_SIZE):
-            batch = schema_list[i: i + BATCH_SIZE]
-            try:
-                await asyncio.gather(*[__task(obj) for obj in batch])
-            except Exception as e:
-                self.log.error(e)
-
-        self.log.info(f"✅ Finished inserting {name}.")
-
-    @staticmethod
-    async def clean_catalog_tables() -> None:
-        """
-        Clean catalog tables before inserting fresh data.
-
-        ⚠️ If you have other tables with FKs to these (orders, cart_items, etc.),
-        TRUNCATE ... CASCADE can wipe them too. If you don't want that, use the
-        DELETE variant and ensure no external FKs block deletion.
-        """
-        async with get_session() as db:
-            # FAST OPTION (recommended if these are "pure catalog" tables)
-            await db.execute(text("""
-                                  TRUNCATE TABLE
-                                      features,
-                                      products,
-                                      categories,
-                                      units
-                                      RESTART IDENTITY CASCADE
-                                  """))
-            await db.commit()
+        for i in range(0, len(rows), UPSERT_BATCH_SIZE):
+            chunk = rows[i : i + UPSERT_BATCH_SIZE]
+            stmt = pg_insert(table).values(chunk)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=[getattr(table.c, c) for c in conflict_cols],
+                set_={c: getattr(stmt.excluded, c) for c in update_cols},
+            )
+            await db.execute(stmt)
 
     async def update_db(self, approach: Literal["json", "postgres"], save: bool = False) -> None:
-        # --- 1️⃣ Fetch all data ---
         products_task = self.get_products_1c(save)
         features_task = self.get_features_1c(save)
         categories_task = self.get_categories_1c(save)
@@ -253,15 +252,7 @@ class OneCEnterprise:
             products_task, features_task, categories_task, units_task
         )
 
-        # --- 2️⃣ Save ---
-        if approach == "postgres":
-            await self.clean_catalog_tables()
-            await self.batched_insert(create_unit, [UnitCreate(**u) for u in units.values()], "units")
-            await self.batched_insert(create_category, [CategoryCreate(**c) for c in categories.values()], "categories")
-            await self.batched_insert(create_product, [ProductCreate(**p) for p in products.values()], "products")
-            await self.batched_insert(create_feature, [FeatureCreate(**f) for f in features.values()], "features")
-
-        else:
+        if approach != "postgres":
             self.log.info("🧾 Writing JSON export...")
             await asyncio.gather(
                 self._write_json("products.json", products),
@@ -270,6 +261,101 @@ class OneCEnterprise:
                 self._write_json("units.json", units),
             )
             self.log.info("✅ JSON export completed.")
+            return
+
+        # IMPORTANT: adjust these imports if your models live elsewhere
+        from src.webapp.models import Unit, Category, Product, Feature
+
+        unit_rows = [
+            {
+                "onec_id": u["onec_id"],
+                "name": u.get("name") or "",
+                "description": u.get("description"),
+            }
+            for u in units.values()
+            if u.get("onec_id")
+        ]
+
+        category_rows = [
+            {
+                "onec_id": c["onec_id"],
+                "unit_onec_id": c.get("unit_onec_id"),
+                "name": c.get("name") or "",
+                "code": c.get("code"),
+            }
+            for c in categories.values()
+            if c.get("onec_id")
+        ]
+
+        product_rows = [
+            {
+                "onec_id": p["onec_id"],
+                "category_onec_id": p.get("category_onec_id"),
+                "name": p.get("name") or "",
+                "code": p.get("code"),
+                "description": p.get("description"),
+                "usage": p.get("usage"),
+                "expiration": p.get("expiration"),
+            }
+            for p in products.values()
+            if p.get("onec_id")
+        ]
+
+        feature_rows = [
+            {
+                "onec_id": f["onec_id"],
+                "product_onec_id": f.get("product_onec_id"),
+                "name": f.get("name") or "",
+                "code": f.get("code"),
+                "file_id": f.get("file_id"),
+                "price": _dec(f.get("price")),
+                "balance": _dec(f.get("balance")),
+            }
+            for f in features.values()
+            if f.get("onec_id")
+        ]
+
+        self.log.info(
+            f"🔁 UPSERT: units={len(unit_rows)} categories={len(category_rows)} "
+            f"products={len(product_rows)} features={len(feature_rows)}"
+        )
+
+        # One DB session, one commit => stable + fast
+        async with get_session() as db:
+            # order matters if you have FKs
+            await self._upsert_table(
+                db,
+                Unit.__table__,
+                unit_rows,
+                conflict_cols=["onec_id"],
+                update_cols=["name", "description"],
+            )
+
+            await self._upsert_table(
+                db,
+                Category.__table__,
+                category_rows,
+                conflict_cols=["onec_id"],
+                update_cols=["unit_onec_id", "name", "code"],
+            )
+
+            await self._upsert_table(
+                db,
+                Product.__table__,
+                product_rows,
+                conflict_cols=["onec_id"],
+                update_cols=["category_onec_id", "name", "code", "description", "usage", "expiration"],
+            )
+
+            await self._upsert_table(
+                db,
+                Feature.__table__,
+                feature_rows,
+                conflict_cols=["onec_id"],
+                update_cols=["product_onec_id", "name", "code", "file_id", "price", "balance"],
+            )
+
+            await db.commit()
 
     @staticmethod
     async def _write_json(file, data):
@@ -277,15 +363,14 @@ class OneCEnterprise:
             await f.write(json.dumps(data, ensure_ascii=False, indent=4))
 
     async def postgres_worker(self):
-        """Periodic DB sync every 15 minutes."""
         while True:
-            self.log.info("🔁 PostgreSQL sync started...")
+            self.log.info("🔁 PostgreSQL upsert started...")
             try:
                 await self.update_db("postgres", False)
-                self.log.info("✅ PostgreSQL DB updated successfully.")
+                self.log.info("✅ PostgreSQL updated successfully (upsert).")
                 await get_db_items(self.log)
             except Exception as e:
-                self.log.error(f"❌ Worker failed: {e}")
+                self.log.exception(f"❌ Worker failed: {e}")
             await asyncio.sleep(SLEEP_INTERVAL)
 
     async def close(self):
