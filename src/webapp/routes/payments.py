@@ -178,6 +178,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
             "note_text": format_order_for_amocrm(order_number, payload_dict, delivery_service, tariff, commentary_text, promocode, delivery_sum),
             "payment_method": payment_method.upper(),
             "delivery_sum": delivery_sum,
+            "promo_code": promocode,
         }
 
         result["payment_method"] = payment_method

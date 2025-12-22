@@ -301,6 +301,7 @@ class AsyncAmoCRM:
             tg_nick: str | None = '',
             status_id: int = None,
             delivery_sum: float | int | Decimal | None = None,
+            promo_code: str | None = None,
     ):
         """
         1) Create lead with custom fields
@@ -321,6 +322,7 @@ class AsyncAmoCRM:
 
         elif delivery_service.upper() == "YANDEX": lead_custom_fields[self.CF["delivery_yandex"]] = "Яндекс"
         lead_custom_fields[self.CF["payment"]] = payment_method
+        if promo_code: lead_custom_fields[self.CF["promo_code"]] = promo_code
 
         lead = await self.create_lead(
             name=f"Заказ №{order_number} с Приложения ТГ",
