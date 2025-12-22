@@ -12,6 +12,7 @@ from aiogram.types import Message, CallbackQuery, FSInputFile
 from config import OWNER_TG_IDS, SPENDS_DIR, PROFESSOR_BOT_TOKEN, DOSE_BOT_TOKEN, MOSCOW_TZ
 from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
+from src.helpers import make_excel_safe
 from src.tg_methods import get_user_id_by_phone, normalize_phone
 from src.webapp import get_session
 from src.webapp.crud import get_usages, get_user, update_user, upsert_user, list_promos, get_carts
