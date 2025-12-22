@@ -49,20 +49,135 @@ async def add_premium(message: Message):
         else: await message.answer("Ошибка команды: пользователь не пользовался ботом или айди неверное")
         return None
 
-@new_admin_router.message(Command('statistics'))
+@new_admin_router.message(Command("statistics"))
 async def handle_statistics(message: Message):
+    # 1) Load from DB (NO helper funcs, no to_dict)
     async with get_session() as session:
         promos = await list_promos(session)
         carts = await get_carts(session)
 
-    x = [promo.to_dict() for promo in promos]
-    print(x)
-    y = [cart.to_dict() for cart in carts]
-    print(y)
-    with open('promos.json', 'w') as f: json.dump(x, f)
-    with open('carts.json', 'w') as f: json.dump(y, f)
-    await message.answer_document(FSInputFile('promos.json'))
-    await message.answer_document(FSInputFile('carts.json'))
+    promos_rows = []
+    for p in promos:
+        promos_rows.append({
+            "ID": getattr(p, "id", None),
+            "Промокод": getattr(p, "code", None),
+            "Скидка, %": float(getattr(p, "discount_pct", 0) or 0),
+            "Владелец": getattr(p, "owner_name", None),
+            "Процент владельца, %": float(getattr(p, "owner_pct", 0) or 0),
+            "Начислено владельцу, ₽": float(getattr(p, "owner_amount_gained", 0) or 0),
+            "Уровень 1 (имя)": getattr(p, "lvl1_name", None),
+            "Уровень 1 (процент), %": float(getattr(p, "lvl1_pct", 0) or 0),
+            "Уровень 1 (начислено), ₽": float(getattr(p, "lvl1_amount_gained", 0) or 0),
+            "Уровень 2 (имя)": getattr(p, "lvl2_name", None),
+            "Уровень 2 (процент), %": float(getattr(p, "lvl2_pct", 0) or 0),
+            "Уровень 2 (начислено), ₽": float(getattr(p, "lvl2_amount_gained", 0) or 0),
+            "Использований": int(getattr(p, "times_used", 0) or 0),
+            "Создано": getattr(p, "created_at", None),
+            "Обновлено": getattr(p, "updated_at", None),
+        })
+
+    carts_rows = []
+    for c in carts:
+        carts_rows.append({
+            "Заказ ID": getattr(c, "id", None),
+            "Пользователь ID": getattr(c, "user_id", None),
+            "Название": getattr(c, "name", None),
+            "Сумма товаров, ₽": float(getattr(c, "sum", 0) or 0),
+            "Доставка, ₽": float(getattr(c, "delivery_sum", 0) or 0),
+            "Доставка (текст)": getattr(c, "delivery_string", None),
+            "Комментарий": getattr(c, "commentary", None),
+            "Промокод": getattr(c, "promo_code", None),
+            "Статус": getattr(c, "status", None),
+            "Активен": bool(getattr(c, "is_active", False)),
+            "Создано": getattr(c, "created_at", None),
+            "Обновлено": getattr(c, "updated_at", None),
+        })
+
+    promos_df = pd.DataFrame(promos_rows)
+    carts_df = pd.DataFrame(carts_rows)
+    if not carts_df.empty and "Промокод" in carts_df.columns: applied = carts_df[carts_df["Промокод"].notna() & (carts_df["Промокод"].astype(str).str.strip() != "")]
+    else: applied = pd.DataFrame(columns=carts_df.columns if not carts_df.empty else ["Промокод"])
+
+    if applied.empty:
+        summary_df = pd.DataFrame(columns=[
+            "Промокод", "Заказов", "Активных заказов",
+            "Сумма товаров итого, ₽", "Средняя сумма, ₽", "Доставка итого, ₽",
+        ])
+    else:
+        # make sure numeric cols are numeric
+        applied["Сумма товаров, ₽"] = pd.to_numeric(applied["Сумма товаров, ₽"], errors="coerce").fillna(0.0)
+        applied["Доставка, ₽"] = pd.to_numeric(applied["Доставка, ₽"], errors="coerce").fillna(0.0)
+
+        g = applied.groupby("Промокод", as_index=False)
+        summary_df = g.agg(
+            **{
+                "Заказов": ("Заказ ID", "count"),
+                "Активных заказов": ("Активен", "sum"),
+                "Сумма товаров итого, ₽": ("Сумма товаров, ₽", "sum"),
+                "Средняя сумма, ₽": ("Сумма товаров, ₽", "mean"),
+                "Доставка итого, ₽": ("Доставка, ₽", "sum"),
+            }
+        )
+
+        # prettier rounding
+        summary_df["Сумма товаров итого, ₽"] = summary_df["Сумма товаров итого, ₽"].round(2)
+        summary_df["Средняя сумма, ₽"] = summary_df["Средняя сумма, ₽"].round(2)
+        summary_df["Доставка итого, ₽"] = summary_df["Доставка итого, ₽"].round(2)
+
+        # sort: most orders first
+        summary_df = summary_df.sort_values(by=["Заказов", "Промокод"], ascending=[False, True])
+
+    # 4) Write Excel (3 sheets) + basic styling
+    ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    path = f"/tmp/statistics_{ts}.xlsx"
+
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        summary_df.to_excel(writer, index=False, sheet_name="Сводка по промокодам")
+        promos_df.to_excel(writer, index=False, sheet_name="Промокоды")
+        carts_df.to_excel(writer, index=False, sheet_name="Заказы")
+
+        wb = writer.book
+        for sheet_name in wb.sheetnames:
+            ws = wb[sheet_name]
+            ws.freeze_panes = "A2"
+            if ws.max_row >= 1:
+                for cell in ws[1]: cell.font = cell.font.copy(bold=True)
+
+            for col in ws.columns:
+                max_len = 0
+                col_letter = col[0].column_letter
+                for cell in col:
+                    v = cell.value
+                    if v is None: continue
+                    s = str(v)
+                    if len(s) > max_len: max_len = len(s)
+
+                ws.column_dimensions[col_letter].width = min(max(10, max_len + 2), 55)
+
+            money_cols = {"Сумма товаров, ₽", "Доставка, ₽", "Начислено владельцу, ₽", "Уровень 1 (начислено), ₽", "Уровень 2 (начислено), ₽",
+                          "Сумма товаров итого, ₽", "Средняя сумма, ₽", "Доставка итого, ₽"}
+            header_map = {}
+            for j in range(1, ws.max_column + 1):
+                header_map[ws.cell(row=1, column=j).value] = j
+
+            for name in money_cols:
+                j = header_map.get(name)
+                if not j: continue
+                for i in range(2, ws.max_row + 1): ws.cell(row=i, column=j).number_format = '#,##0.00'
+
+            pct_cols = {"Скидка, %", "Процент владельца, %", "Уровень 1 (процент), %", "Уровень 2 (процент), %"}
+            for name in pct_cols:
+                j = header_map.get(name)
+                if not j: continue
+                for i in range(2, ws.max_row + 1): ws.cell(row=i, column=j).number_format = '0.00'
+
+    await message.answer_document(
+        FSInputFile(path),
+        caption=f"📊 Статистика (Excel)\nСформировано: {ts.replace('_', ' ')}"
+    )
+
+    try: os.remove(path)
+    except Exception: pass
 
 @professor_admin_router.message(CommandStart())
 @new_admin_router.message(CommandStart(), lambda message: message.from_user.id in OWNER_TG_IDS)
