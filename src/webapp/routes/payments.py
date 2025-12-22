@@ -33,9 +33,8 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     total = checkout_data["total"]
     payment_method = payload.payment_method
     promocode = payload.promocode or "Не указан"
-    if promocode:
-        promo_code = await get_promo_by_code(db, promocode.strip())
-        if not promo_code: raise HTTPException(status_code=404, detail="Promo code not found")
+    promo_code = await get_promo_by_code(db, promocode.strip())
+    if promo_code:
         if total <= 0: raise HTTPException(status_code=400, detail="Price must be greater than 0")
         discount_pct = float(promo_code.discount_pct)
         total = round(total * (1 - discount_pct/100), 2)
