@@ -42,15 +42,14 @@ class Cart(Base):
     sum = Column(Numeric(8, 2), nullable=False, default=0, server_default="0")
     delivery_sum = Column(Numeric(8, 2), nullable=False, default=0, server_default="0")
 
-    # ✅ FK to promo_codes.code
     promo_code = Column(
-        String(80),
+        String,
         ForeignKey("promo_codes.code", ondelete="SET NULL"),
         nullable=True,
         default=None,
         index=True,
     )
-
+    promo_gains_given = Column(Boolean, nullable=False, default=False, server_default="FALSE")
     delivery_string = Column(String, nullable=False, default="Не указан", server_default="Не указан")
     commentary = Column(String, nullable=True)
 

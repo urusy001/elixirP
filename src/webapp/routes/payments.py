@@ -38,25 +38,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
         promo_code = await get_promo_by_code(db, promocode.strip())
         if not promo_code: raise HTTPException(status_code=404, detail="Promo code not found")
         if total <= 0: raise HTTPException(status_code=400, detail="Price must be greater than 0")
-
-        discount_pct = Decimal(promo_code.discount_pct or 0)
-        owner_pct = Decimal(promo_code.owner_pct or 0)
-        lvl1_pct = Decimal(promo_code.lvl1_pct or 0)
-        lvl2_pct = Decimal(promo_code.lvl2_pct or 0)
-
-        total = (total * (D100 - discount_pct) / D100).quantize(Q2, rounding=ROUND_HALF_UP)
-
-        new_owner_gained = (Decimal(promo_code.owner_amount_gained or 0) + (total * owner_pct / D100)).quantize(Q2, rounding=ROUND_HALF_UP)
-        new_lvl1_gained  = (Decimal(promo_code.lvl1_amount_gained  or 0) + (total * lvl1_pct  / D100)).quantize(Q2, rounding=ROUND_HALF_UP)
-        new_lvl2_gained  = (Decimal(promo_code.lvl2_amount_gained  or 0) + (total * lvl2_pct  / D100)).quantize(Q2, rounding=ROUND_HALF_UP)
-
-        promo_code_update = PromoCodeUpdate(
-            owner_amount_gained=new_owner_gained,
-            lvl1_amount_gained=new_lvl1_gained,
-            lvl2_amount_gained=new_lvl2_gained,
-            times_used=(promo_code.times_used or 0) + 1,
-        )
-
+        promo_code_update = PromoCodeUpdate(times_used=(promo_code.times_used or 0) + 1)
         await update_promo(db, promo_code.id, promo_code_update)
     commentary_text = payload.commentary or "Не указан"
     address_str = normalize_address_for_cf(delivery_data["address"])

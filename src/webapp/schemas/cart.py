@@ -32,6 +32,7 @@ class CartCreate(BaseModel):
     sum: Decimal = Field(default=ZERO_MONEY)
     delivery_sum: Decimal = Field(default=ZERO_MONEY)
 
+    promo_gains_given: bool = Field(default=False)
     promo_code: Optional[str] = Field(default=None, max_length=80)
 
     delivery_string: str = Field(default="Не указан")
@@ -49,6 +50,7 @@ class CartUpdate(BaseModel):
     delivery_sum: Optional[Decimal] = None
 
     promo_code: Optional[str] = Field(default=None, max_length=80)
+    promo_gains_given: bool = Field(default=False)
 
     delivery_string: Optional[str] = None
     commentary: Optional[str] = None
@@ -70,6 +72,7 @@ class CartRead(BaseModel):
     sum: Decimal
     delivery_sum: Decimal
     promo_code: Optional[str] = None
+    promo_gains_given: bool = False
 
     # nested promo if relationship is loaded; else None
     promo: Optional[PromoCodeRef] = None
