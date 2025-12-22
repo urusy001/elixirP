@@ -108,7 +108,11 @@ async def handle_activate_code(message: Message, state: FSMContext):
         await message.answer("Для активации заказов со старого сайта, пожалуйста, обратитесь к администрации.")
         return await handle_user_start(message, state)
 
-    if price == "not_found":
+    elif price == "low":
+        await message.answer("Сожалеем, считываются заказы от 5000р. Каждые 5000р = 1 месяц.")
+        return await handle_user_start(message, state)
+
+    elif price == "not_found":
         await message.answer(f"Заказ не был найден по номеру {code}")
         return await handle_user_start(message, state)
 

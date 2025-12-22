@@ -100,5 +100,6 @@ async def verify_order(payload: VerifyOrderIn) -> VerifyOrderOut:
         )
 
     if price == "not_found": return VerifyOrderOut(status="not_found", price="not_found", email=None, verification_code=None)
+    elif price == "low": return VerifyOrderOut(status="low", price="low", email=None, verification_code=None)
     if not email or not verif_code: return VerifyOrderOut(status="no_email", price=price, email=email, verification_code=None)
     return VerifyOrderOut(status="ok", price=price, email=email, verification_code=verif_code)

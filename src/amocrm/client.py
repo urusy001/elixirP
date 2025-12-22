@@ -79,7 +79,7 @@ class AsyncAmoCRM:
             "delivery_sum": 752929,
             "ai": 753181,
         }
-        
+
         self.logger = logging.getLogger(self.__class__.__name__)
         self.base_domain = base_domain
         self.client_id = client_id
@@ -439,17 +439,19 @@ class AsyncAmoCRM:
                     if "ElixirPeptide" in name and not raw_price: price: PriceT = "old"
                     else: price = int(raw_price) if raw_price else None
 
-                    email = await self._extract_lead_email(lead)
-                    if not email: return (price, None, None)
+                    if price and price > 5000:
+                        email = await self._extract_lead_email(lead)
+                        if not email: return (price, None, None)
 
-                    verification_code = self._generate_6_digit_code()
-                    await self._send_verification_code_email(
-                        to_email=email,
-                        code=verification_code,
-                        deal_code=code_str,
-                    )
+                        verification_code = self._generate_6_digit_code()
+                        await self._send_verification_code_email(
+                            to_email=email,
+                            code=verification_code,
+                            deal_code=code_str,
+                        )
 
-                    return (price, email, verification_code)
+                        return (price, email, verification_code)
+                    else: return ('low', None, None)
 
             page += 1
 
