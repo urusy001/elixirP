@@ -12,5 +12,5 @@ spend_times = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 open_test = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="Открыть", web_app=WebAppInfo(url="https://www.devsivanschostakov.org"))]
+    [InlineKeyboardButton(text="Магазин", web_app=WebAppInfo(url="https://elixirpeptides.devsivanschostakov.org"))]
 ])

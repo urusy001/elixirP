@@ -25,7 +25,7 @@ from src.ai.bot.middleware import ContextMiddleware
 from src.ai.client import ProfessorClient
 from src.helpers import split_text, MAX_TG_MSG_LEN
 from src.webapp import get_session
-from src.webapp.crud import get_users, create_user, update_user, update_premium_requests
+from src.webapp.crud import get_users, create_user, update_user, update_premium_requests, upsert_user
 from src.webapp.schemas import UserUpdate, UserCreate
 
 
@@ -63,7 +63,7 @@ class ProfessorBot(Bot):
         user_create = UserCreate(tg_id=user_id, tg_phone=phone, thread_id=thread_id)
 
         async with get_session() as session:
-            user = await create_user(session, user_create)
+            user = await upsert_user(session, user_create)
 
         self.__logger.info("Created new user: %s, phone=%s", user_id, phone)
         return thread_id

@@ -1,6 +1,5 @@
-import json
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pandas as pd
 from aiogram import Router
@@ -28,6 +27,12 @@ new_admin_router.message.filter(lambda message: message.from_user.id in OWNER_TG
 new_admin_router.callback_query.filter(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
 dose_admin_router.message.filter(lambda message: message.from_user.id in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE)
 dose_admin_router.callback_query.filter(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
+
+@new_admin_router.message(Command('edit_and_pin'))
+async def handle_pin(message: Message):
+    forwarded_id = message.forward_from_message_id if message.forward_from_message_id else None
+    forwarded_chat = message.forward_from_chat.id if message.forward_from_chat and message.forward_from_chat.id else None
+    await message.bot.edit_message_reply_markup(chat_id=forwarded_chat, message_id=forwarded_id, reply_markup=admin_keyboards.open_test)
 
 @new_admin_router.message(Command('set_premium'))
 async def add_premium(message: Message):
