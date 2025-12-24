@@ -21,9 +21,8 @@
     <label>Доза (mg)<input id="dose" value="2.5"></label>
     <label>Курс (weeks)<input id="weeks" value="8"></label>
     <label>Интервал (days)<input id="interval" value="7"></label>
-    <label>dt base (days)<input id="dtBase" value="0.1"></label>
-    <label>dt dense (days)<input id="dtDense" value="0.02"></label>
-    <label>dense window (days)<input id="denseWin" value="3"></label>
+
+
     <button id="run">Run</button>
     <button id="download">Download SVG</button>
 </div>
@@ -31,6 +30,16 @@
 <div id="wrap"><div id="chart"></div></div>
 
 <script>
+    const DEFAULT_DT_BASE = 0.1;
+    const DEFAULT_DT_DENSE = 0.02;
+    const DEFAULT_DENSE_WIN = 2.5;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("dtBase").value = String(DEFAULT_DT_BASE);
+        document.getElementById("dtDense").value = String(DEFAULT_DT_DENSE);
+        document.getElementById("denseWin").value = String(DEFAULT_DENSE_WIN);
+    });
+
     const PEPTIDE_DATA = {
         semaglutide: { name: "Семаглутид", t_half_days: 7.0, F: 0.89, tmax_h: 48.0 },
         tirzepatide: { name: "Тирзепатид", t_half_days: 5.5, F: 0.80, tmax_h: 36.0 },
@@ -143,7 +152,7 @@
         return Math.max(1, Math.ceil(totalDays / intervalDays));
     }
 
-    function simulateCourseAmountOnly(drugKey, doseMg, weeks, intervalDays, dtBase=0.1, dtDense=0.02, denseWindowDays=3.0){
+    function simulateCourseAmountOnly(drugKey, doseMg, weeks, intervalDays, dtBase=DEFAULT_DT_BASE, dtDense=DEFAULT_DT_DENSE, denseWindowDays=DEFAULT_DENSE_WIN){
         if (!(doseMg > 0)) throw new Error("dose_mg must be > 0");
         const drug = PEPTIDE_DATA[drugKey];
         if (!drug) throw new Error(`Unknown drug: ${drugKey}`);
@@ -232,7 +241,7 @@
     }
     function fmt(n, d=2){ return Number.isFinite(n) ? n.toFixed(d) : "NaN"; }
 
-    function plotSeriesSVG(host, x, y, {title, yLabel, legendLabel, info}){
+    function plotSeriesSVG(host, x, y, {title, yLabel, info}){
         host.innerHTML = "";
 
         const W = 1200, H = 600;
@@ -360,13 +369,9 @@
         const dose = num("dose");
         const weeks = num("weeks");
         const interval = num("interval");
-        const dtBase = num("dtBase");
-        const dtDense = num("dtDense");
-        const denseWin = num("denseWin");
 
-        const {times, amounts, baseLabel, info, drugName} = simulateCourseAmountOnly(
-            drugKey, dose, weeks, interval, dtBase, dtDense, denseWin
-        );
+        const {times, amounts, baseLabel, info, drugName} =
+            simulateCourseAmountOnly(drugKey, dose, weeks, interval, DEFAULT_DT_BASE, DEFAULT_DT_DENSE, DEFAULT_DENSE_WIN);
 
         lastSvg = plotSeriesSVG(chartHost, times, amounts, {
             title: `Содержание вещества в организме (мг) — ${drugName}`,

@@ -80,6 +80,7 @@ async def handle_activate_code(message: Message, state: FSMContext):
 
     if used_code:
         await message.answer(f"Номер заказа {code} уже использован")
+        await state.clear()
         return await handle_user_start(message, state)
 
     try:
@@ -93,10 +94,12 @@ async def handle_activate_code(message: Message, state: FSMContext):
             data = r.json()
     except httpx.HTTPStatusError as e:
         await message.answer("Не удалось проверить заказ (ошибка сервера). Попробуйте позже.")
+        await state.clear()
         return await handle_user_start(message, state)
     except Exception as e:
         await message.answer("Не удалось проверить заказ (ошибка сети). Попробуйте позже.")
         print(e)
+        await state.clear()
         return await handle_user_start(message, state)
 
     price = data.get("price")
@@ -106,14 +109,17 @@ async def handle_activate_code(message: Message, state: FSMContext):
     # 3) handle statuses
     if price == "old":
         await message.answer("Для активации заказов со старого сайта, пожалуйста, обратитесь к администрации.")
+        await state.clear()
         return await handle_user_start(message, state)
 
     elif price == "low":
         await message.answer("Сожалеем, считываются заказы от 5000р. Каждые 5000р = 1 месяц.")
+        await state.clear()
         return await handle_user_start(message, state)
 
     elif price == "not_found":
         await message.answer(f"Заказ не был найден по номеру {code}")
+        await state.clear()
         return await handle_user_start(message, state)
 
     if not email or not verification_code:
@@ -121,17 +127,20 @@ async def handle_activate_code(message: Message, state: FSMContext):
             "Заказ найден, но не удалось отправить код подтверждения на почту. "
             "Обратитесь в поддержку"
         )
+        await state.clear()
         return await handle_user_start(message, state)
 
     try: price = float(price)
     except ValueError: pass
     if not isinstance(price, (int, float)):
         await message.answer("Ошибка: сумма заказа некорректна.")
+        await state.clear()
         return await handle_user_start(message, state)
 
     add_months = int(price) // 5000
     if add_months <= 0:
         await message.answer("Сожалеем, считываются заказы от 5000р. Каждые 5000р = 1 месяц.")
+        await state.clear()
         return await handle_user_start(message, state)
 
     await state.update_data(
