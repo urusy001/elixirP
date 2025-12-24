@@ -30,9 +30,10 @@ dose_admin_router.callback_query.filter(lambda call: call.data.startswith("admin
 
 @new_admin_router.message(Command('edit_and_pin'))
 async def handle_pin(message: Message):
-    forwarded_id = message.forward_from_message_id if message.forward_from_message_id else None
-    forwarded_chat = message.forward_from_chat.id if message.forward_from_chat and message.forward_from_chat.id else None
-    await message.bot.edit_message_reply_markup(chat_id=forwarded_chat, message_id=forwarded_id, reply_markup=admin_keyboards.open_test)
+    forwarded_id = message.forward_from_message_id
+    forwarded_chat = message.forward_from_chat.id
+    print(forwarded_id)
+    print(forwarded_chat)
 
 @new_admin_router.message(Command('set_premium'))
 async def add_premium(message: Message):
