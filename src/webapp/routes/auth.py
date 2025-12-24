@@ -36,6 +36,6 @@ async def auth(payload: TelegramAuthPayload, db: AsyncSession = Depends(get_db))
 
     user_dict["accepted_terms"] = bool(carts)
     user_dict["favourites"] = [fav.onec_id for fav in favourites]
-    print(json.dumps(user_dict, indent=4, ensure_ascii=False))
+
 
     return {"user": user_dict}

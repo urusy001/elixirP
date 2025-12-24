@@ -55,7 +55,6 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     log.info("Create payment payload: %s", ())
     order_number = cart.id
     if delivery_service == "yandex":
-        print(json.dumps(payload.selected_delivery, indent=4, ensure_ascii=False))
         delivery_sum = payload.selected_delivery.get("delivery_sum", 0)
         if delivery_sum: await update_cart(db, cart.id, CartUpdate(delivery_sum=delivery_sum))
         request_create_url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/request/create"
@@ -149,7 +148,6 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
                 raise HTTPException(status_code=502, detail="Yandex Delivery request/create error")
 
             yandex_data = resp.json()
-            print(json.dumps(yandex_data, indent=4, ensure_ascii=False))
 
         yandex_request_id = yandex_data.get("request_id")
         if yandex_request_id: await update_cart(db, cart.id, CartUpdate(yandex_request_id=yandex_request_id))

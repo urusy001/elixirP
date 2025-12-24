@@ -226,7 +226,6 @@ class CDEKClientV2:
           "source": "telegram"
         }
         """
-        print(json.dumps(payload, indent=4, ensure_ascii=False))
         checkout = payload["checkout_data"]
         delivery = payload["selected_delivery"]
         contact = payload["contact_info"]
