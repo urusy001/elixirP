@@ -437,8 +437,8 @@ class AsyncAmoCRM:
                 if status_id in self.COMPLETE_STATUS_IDS and rx.search(name):
                     raw_price = lead.get("price", None)
                     print(raw_price or 'no raw price')
-                    if "ElixirPeptide" in name and not isinstance(raw_price, (int, float)): price: PriceT = "old"
-                    else: price = int(raw_price) if raw_price else None
+                    if not raw_price: return("old", None, None)
+                    else: price = int(raw_price) if raw_price else 0
 
                     if isinstance(price, (int, float)) and price > 5000:
                         email = await self._extract_lead_email(lead)
