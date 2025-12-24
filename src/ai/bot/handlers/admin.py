@@ -31,10 +31,9 @@ dose_admin_router.callback_query.filter(lambda call: call.data.startswith("admin
 @new_admin_router.message(Command('edit_and_pin'), lambda message: message.reply_to_message)
 async def handle_pin(message: Message):
     forwarded_message = message.reply_to_message
-    print(forwarded_message.md_text)
-    m_id = forwarded_message.forward_from_message_id
+    print(forwarded_message.html_text)
     c_id = forwarded_message.forward_from_chat.id
-    await message.bot.edit_message_text(text=forwarded_message.md_text, chat_id=c_id, message_id=m_id, reply_markup=admin_keyboards.open_test)
+    await message.bot.send_message(text=forwarded_message.md_text, chat_id=c_id, reply_markup=admin_keyboards.open_test, parse_mode='HTML')
 
 @new_admin_router.message(Command('set_premium'))
 async def add_premium(message: Message):
