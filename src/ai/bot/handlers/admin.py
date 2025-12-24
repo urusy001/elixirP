@@ -33,8 +33,8 @@ async def handle_pin(message: Message):
     forwarded_message = message.reply_to_message
     print(forwarded_message.html_text)
     c_id = forwarded_message.forward_from_chat.id
-    await message.bot.send_message(chat_id=-1003002316616, text=forwarded_message.html_text, reply_markup=admin_keyboards.open_test, parse_mode='HTML')
-    await message.bot.send_message(text=forwarded_message.html_text, chat_id=c_id, reply_markup=admin_keyboards.open_test, parse_mode='HTML')
+    m_id = forwarded_message.forward_from_message_id
+    await message.bot.edit_message_reply_markup(message_id=m_id,  chat_id=c_id, reply_markup=admin_keyboards.open_test)
 
 @new_admin_router.message(Command('set_premium'))
 async def add_premium(message: Message):

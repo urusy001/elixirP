@@ -1,642 +1,387 @@
 <!doctype html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Orders Page Test</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>2-comp + depot course (SVG)</title>
     <style>
-        /* ======= BASE ======= */
-        :root {
-            --bg-page: #f3f4f6;
-            --bg-card: #ffffff;
-            --radius-md: 12px;
-            --shadow-card: 0 1px 4px rgba(15, 23, 42, 0.06);
-            --border-subtle: #e5e7eb;
-            --text-main: #111827;
-            --text-muted: #6b7280;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        html, body {
-            margin: 0;
-            padding: 0;
-            background: var(--bg-page);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
-            color: var(--text-main);
-        }
-
-        body {
-            padding: 0.75rem;
-        }
-
-        /* just for demo wrapper */
-        .demo-wrapper {
-            max-width: 900px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .demo-heading {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin: 0 0 0.25rem;
-        }
-
-        /* =========================
-           ORDERS LIST PAGE
-           ========================= */
-
-        #orders-page {
-            /* in real app: display: none; */
-            display: block;
-        }
-
-        .orders-page {
-            max-width: 900px;
-            margin: 0.25rem auto;
-            padding: 0.5rem;
-            background: var(--bg-card);
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-card);
-            box-sizing: border-box;
-        }
-
-        .orders-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin: 0 0 0.75rem;
-            color: #111827;
-        }
-
-        .orders-section {
-            margin-bottom: 0.75rem;
-        }
-
-        .orders-section:last-of-type {
-            margin-bottom: 0;
-        }
-
-        .orders-section-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 0.3rem;
-        }
-
-        .orders-section-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #111827;
-        }
-
-        .orders-section-counter {
-            min-width: 1.8em;
-            padding: 0.1rem 0.5rem;
-            border-radius: 999px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-align: center;
-            background: #f3f4f6;
-            color: #4b5563;
-        }
-
-        .orders-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
-        }
-
-        .orders-empty {
-            margin: 0.25rem 0 0.1rem;
-            padding: 0.5rem 0.4rem;
-            font-size: 0.85rem;
-            color: #9ca3af;
-            text-align: left;
-        }
-
-        .order-card {
-            width: 100%;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            padding: 0.5rem 0.6rem;
-            background: #fff;
-            text-align: left;
-            cursor: pointer;
-
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-
-            font: inherit;
-            color: inherit;
-            outline: none;
-        }
-
-        .order-card:active {
-            background: #f3f4ff;
-        }
-
-        .order-card-top {
-            display: flex;
-            flex-direction: column;
-            gap: 0.2rem;
-        }
-
-        .order-card-id-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.4rem;
-        }
-
-        .order-card-id {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #111827;
-        }
-
-        .order-card-status {
-            padding: 0.1rem 0.45rem;
-            border-radius: 999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .order-card-status--active {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .order-card-status--processed {
-            background: #e5e7eb;
-            color: #374151;
-        }
-
-        .order-card-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.4rem;
-            font-size: 0.8rem;
-            color: #6b7280;
-        }
-
-        .order-card-date::after {
-            content: "•";
-            margin: 0 0.25rem;
-            color: #d1d5db;
-        }
-
-        .order-card-total {
-            font-weight: 500;
-        }
-
-        .order-card-bottom {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 0.8rem;
-            color: #4b5563;
-            margin-top: 0.15rem;
-        }
-
-        .order-card-delivery {
-            flex: 1;
-            min-width: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .order-card-chevron {
-            margin-left: 0.4rem;
-            font-size: 1.1rem;
-            color: #9ca3af;
-        }
-
-        /* =========================
-           ORDER DETAIL PAGE
-           ========================= */
-
-        #order-detail-page {
-            /* in real app: display: none; */
-            display: block;
-        }
-
-        .order-detail {
-            max-width: 900px;
-            margin: 0.25rem auto;
-            padding: 0.5rem;
-            background: var(--bg-card);
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-card);
-            box-sizing: border-box;
-        }
-
-        .order-detail-header {
-            margin-bottom: 0.6rem;
-        }
-
-        .order-detail-id-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.5rem;
-        }
-
-        .order-detail-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin: 0;
-            color: #111827;
-        }
-
-        .order-detail-status {
-            padding: 0.15rem 0.6rem;
-            border-radius: 999px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .order-detail-status--active {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .order-detail-status--processed {
-            background: #e5e7eb;
-            color: #374151;
-        }
-
-        .order-detail-date {
-            margin: 0.25rem 0 0;
-            font-size: 0.8rem;
-            color: #6b7280;
-        }
-
-        .order-detail-section {
-            padding-top: 0.5rem;
-            margin-top: 0.4rem;
-            border-top: 1px solid #f3f4f6;
-        }
-
-        .order-detail-section:first-of-type {
-            border-top: none;
-            padding-top: 0;
-            margin-top: 0;
-        }
-
-        .order-detail-section-title {
-            margin: 0 0 0.25rem;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #111827;
-        }
-
-        .order-detail-text {
-            margin: 0;
-            font-size: 0.85rem;
-            color: #4b5563;
-            line-height: 1.4;
-        }
-
-        .order-items {
-            display: flex;
-            flex-direction: column;
-            gap: 0.35rem;
-        }
-
-        .order-item {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 0.5rem;
-            padding: 0.35rem 0;
-            border-bottom: 1px dashed #e5e7eb;
-        }
-
-        .order-item:last-child {
-            border-bottom: none;
-        }
-
-        .order-item-main {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .order-item-name {
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: #111827;
-            margin-bottom: 0.15rem;
-        }
-
-        .order-item-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.35rem;
-            font-size: 0.8rem;
-            color: #6b7280;
-        }
-
-        .order-item-qty {
-            font-weight: 500;
-        }
-
-        .order-item-price {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #111827;
-            white-space: nowrap;
-        }
-
-        .order-detail-summary {
-            margin-top: 0.6rem;
-        }
-
-        .order-summary-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 0.9rem;
-            color: #374151;
-            margin-bottom: 0.15rem;
-        }
-
-        .order-summary-row-total {
-            margin-top: 0.25rem;
-            padding-top: 0.35rem;
-            border-top: 1px solid #e5e7eb;
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-
-        @media (max-width: 600px) {
-            body {
-                padding: 0.5rem;
-            }
-
-            .orders-page,
-            .order-detail {
-                margin: 0.25rem;
-                padding: 0.5rem;
-            }
-
-            .order-card {
-                padding: 0.45rem 0.5rem;
-            }
-
-            .order-detail-title {
-                font-size: 1.02rem;
-            }
-
-            .order-item-name {
-                font-size: 0.88rem;
-            }
-
-            .order-item-price {
-                font-size: 0.88rem;
-            }
-        }
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 16px; }
+        .row { display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
+        label { display:grid; gap:6px; font-size:13px; }
+        input, select { padding:8px 10px; border:1px solid #ddd; border-radius:10px; }
+        button { padding:9px 12px; border:0; border-radius:10px; cursor:pointer; }
+        #wrap { margin-top: 14px; padding: 12px; border: 1px solid #eee; border-radius: 14px; }
+        #chart svg { width: 100%; height: auto; display:block; }
     </style>
 </head>
 <body>
-<div class="demo-wrapper">
-    <div>
-        <p class="demo-heading">Список заказов</p>
-        <!-- ========== ORDERS LIST PAGE ========== -->
-        <div id="orders-page">
-            <div class="orders-page">
-                <h2 class="orders-title">Мои заказы</h2>
 
-                <!-- Активные -->
-                <section class="orders-section">
-                    <header class="orders-section-header">
-                        <h3 class="orders-section-title">Активные</h3>
-                        <span class="orders-section-counter" id="orders-active-count">2</span>
-                    </header>
-                    <div class="orders-list" id="orders-active-list">
-                        <button class="order-card" type="button" data-order-id="1001">
-                            <div class="order-card-top">
-                                <div class="order-card-id-row">
-                                    <span class="order-card-id">Заказ №1001</span>
-                                    <span class="order-card-status order-card-status--active">
-                                        Активен
-                                    </span>
-                                </div>
-                                <div class="order-card-meta">
-                                    <span class="order-card-date">12.12.2025</span>
-                                    <span class="order-card-total">3 товара • 7 990 ₽</span>
-                                </div>
-                            </div>
-                            <div class="order-card-bottom">
-                                <span class="order-card-delivery">
-                                    ПВЗ Яндекс, Москва, Тверская 7
-                                </span>
-                                <span class="order-card-chevron">›</span>
-                            </div>
-                        </button>
-
-                        <button class="order-card" type="button" data-order-id="1002">
-                            <div class="order-card-top">
-                                <div class="order-card-id-row">
-                                    <span class="order-card-id">Заказ №1002</span>
-                                    <span class="order-card-status order-card-status--active">
-                                        Активен
-                                    </span>
-                                </div>
-                                <div class="order-card-meta">
-                                    <span class="order-card-date">11.12.2025</span>
-                                    <span class="order-card-total">1 товар • 3 500 ₽</span>
-                                </div>
-                            </div>
-                            <div class="order-card-bottom">
-                                <span class="order-card-delivery">
-                                    Курьер, Санкт-Петербург
-                                </span>
-                                <span class="order-card-chevron">›</span>
-                            </div>
-                        </button>
-                    </div>
-                </section>
-
-                <!-- Обработанные -->
-                <section class="orders-section">
-                    <header class="orders-section-header">
-                        <h3 class="orders-section-title">Обработанные</h3>
-                        <span class="orders-section-counter" id="orders-processed-count">1</span>
-                    </header>
-                    <div class="orders-list" id="orders-processed-list">
-                        <button class="order-card" type="button" data-order-id="999">
-                            <div class="order-card-top">
-                                <div class="order-card-id-row">
-                                    <span class="order-card-id">Заказ №999</span>
-                                    <span class="order-card-status order-card-status--processed">
-                                        Обработан
-                                    </span>
-                                </div>
-                                <div class="order-card-meta">
-                                    <span class="order-card-date">05.12.2025</span>
-                                    <span class="order-card-total">2 товара • 5 990 ₽</span>
-                                </div>
-                            </div>
-                            <div class="order-card-bottom">
-                                <span class="order-card-delivery">
-                                    ПВЗ СДЭК, Казань
-                                </span>
-                                <span class="order-card-chevron">›</span>
-                            </div>
-                        </button>
-                    </div>
-                </section>
-            </div>
-        </div>
-    </div>
-
-    <div>
-        <p class="demo-heading">Страница одного заказа</p>
-        <!-- ========== SINGLE ORDER PAGE ========== -->
-        <div id="order-detail-page">
-            <div class="order-detail">
-                <header class="order-detail-header">
-                    <div class="order-detail-id-row">
-                        <h2 class="order-detail-title">
-                            Заказ №<span id="order-detail-id">1001</span>
-                        </h2>
-                        <span id="order-detail-status"
-                              class="order-detail-status order-detail-status--active">
-                            Активен
-                        </span>
-                    </div>
-                    <p class="order-detail-date" id="order-detail-date">
-                        Оформлен: 12.12.2025, 14:32
-                    </p>
-                </header>
-
-                <!-- Товары -->
-                <section class="order-detail-section">
-                    <h3 class="order-detail-section-title">Товары</h3>
-                    <div class="order-items" id="order-items-list">
-                        <div class="order-item">
-                            <div class="order-item-main">
-                                <div class="order-item-name">
-                                    Семавик — 2.0 мг / 1.5 мл
-                                </div>
-                                <div class="order-item-meta">
-                                    <span class="order-item-variant">0.5 мг • 30 дней</span>
-                                    <span class="order-item-qty">× 2</span>
-                                </div>
-                            </div>
-                            <div class="order-item-price">
-                                3 500 ₽
-                            </div>
-                        </div>
-
-                        <div class="order-item">
-                            <div class="order-item-main">
-                                <div class="order-item-name">
-                                    Тирзепатид — 5 мг / 0.5 мл
-                                </div>
-                                <div class="order-item-meta">
-                                    <span class="order-item-variant">Курс 4 недели</span>
-                                    <span class="order-item-qty">× 1</span>
-                                </div>
-                            </div>
-                            <div class="order-item-price">
-                                4 490 ₽
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Доставка -->
-                <section class="order-detail-section">
-                    <h3 class="order-detail-section-title">Доставка</h3>
-                    <p class="order-detail-text" id="order-delivery-summary">
-                        ПВЗ Яндекс, Москва, Тверская 7
-                    </p>
-                </section>
-
-                <!-- Оплата -->
-                <section class="order-detail-section">
-                    <h3 class="order-detail-section-title">Оплата</h3>
-                    <p class="order-detail-text" id="order-payment-method">
-                        Оплата позже (по договорённости)
-                    </p>
-                </section>
-
-                <!-- Комментарий -->
-                <section class="order-detail-section">
-                    <h3 class="order-detail-section-title">Комментарий</h3>
-                    <p class="order-detail-text" id="order-comment-text">
-                        Пожалуйста, упаковать максимально незаметно, без упоминания содержания.
-                    </p>
-                </section>
-
-                <!-- Итоги -->
-                <section class="order-detail-section order-detail-summary">
-                    <div class="order-summary-row">
-                        <span>Товары</span>
-                        <span id="order-subtotal">7 990 ₽</span>
-                    </div>
-                    <div class="order-summary-row">
-                        <span>Доставка</span>
-                        <span id="order-delivery-price">0 ₽</span>
-                    </div>
-                    <div class="order-summary-row order-summary-row-total">
-                        <span>Итого</span>
-                        <span id="order-total">7 990 ₽</span>
-                    </div>
-                </section>
-            </div>
-        </div>
-    </div>
-
-    <!-- Template (for when you wire JS later) -->
-    <template id="order-card-template">
-        <button class="order-card" type="button" data-order-id="">
-            <div class="order-card-top">
-                <div class="order-card-id-row">
-                    <span class="order-card-id">Заказ №12345</span>
-                    <span class="order-card-status order-card-status--active">
-                        Активен
-                    </span>
-                </div>
-                <div class="order-card-meta">
-                    <span class="order-card-date">12.12.2025</span>
-                    <span class="order-card-total">3 товара • 7 990 ₽</span>
-                </div>
-            </div>
-            <div class="order-card-bottom">
-                <span class="order-card-delivery">
-                    Доставка: ПВЗ Яндекс, Москва
-                </span>
-                <span class="order-card-chevron">›</span>
-            </div>
-        </button>
-    </template>
-
-    <template id="order-item-template">
-        <div class="order-item">
-            <div class="order-item-main">
-                <div class="order-item-name">Название продукта</div>
-                <div class="order-item-meta">
-                    <span class="order-item-variant">30 мг / 3 мл</span>
-                    <span class="order-item-qty">× 2</span>
-                </div>
-            </div>
-            <div class="order-item-price">
-                3 500 ₽
-            </div>
-        </div>
-    </template>
+<div class="row">
+    <label>Препарат<select id="drug"></select></label>
+    <label>Доза (mg)<input id="dose" value="2.5"></label>
+    <label>Курс (weeks)<input id="weeks" value="8"></label>
+    <label>Интервал (days)<input id="interval" value="7"></label>
+    <label>dt base (days)<input id="dtBase" value="0.1"></label>
+    <label>dt dense (days)<input id="dtDense" value="0.02"></label>
+    <label>dense window (days)<input id="denseWin" value="3"></label>
+    <button id="run">Run</button>
+    <button id="download">Download SVG</button>
 </div>
+
+<div id="wrap"><div id="chart"></div></div>
+
+<script>
+    const PEPTIDE_DATA = {
+        semaglutide: { name: "Семаглутид", t_half_days: 7.0, F: 0.89, tmax_h: 48.0 },
+        tirzepatide: { name: "Тирзепатид", t_half_days: 5.5, F: 0.80, tmax_h: 36.0 },
+        retatrutide: { name: "Ретатрутид", t_half_days: 6.0, F: 0.80, tmax_h: 24.0 },
+        cagrilintide: { name: "Кагрилинтид", t_half_days: 8.0, F: 0.80, tmax_h: 48.0 },
+        survodutide: { name: "Сурводутид", t_half_days: 6.0, F: 0.80, tmax_h: 30.0 },
+        mazdutide: { name: "Маздутид", t_half_days: 8.0, F: 0.80, tmax_h: 72.0 },
+    };
+
+    function getParam(obj, key, defVal=null){ return (obj && obj[key] != null) ? obj[key] : defVal; }
+    function requirePositiveFloat(obj, ...keys){
+        for (const k of keys){
+            const v = obj[k];
+            if (v != null){
+                const f = Number(v);
+                if (Number.isFinite(f) && f > 0) return f;
+            }
+        }
+        throw new Error(`Missing required positive float: one of ${keys.join(", ")}`);
+    }
+
+    function betaFromMicro(k10, k12, k21){
+        const S = k10 + k12 + k21;
+        let disc = S*S - 4.0*k10*k21;
+        if (disc < 0) disc = 0;
+        return 0.5*(S - Math.sqrt(disc));
+    }
+
+    function k10FromTerminalHalfLife(tHalfDays, k12, k21){
+        if (!(tHalfDays > 0)) throw new Error("t_half_days must be > 0");
+        const betaTarget = Math.log(2) / tHalfDays;
+        if (k21 <= betaTarget * 1.000001) k21 = betaTarget * 1.5;
+        const num = betaTarget*(k12 + k21) - betaTarget*betaTarget;
+        const den = (k21 - betaTarget);
+        let k10 = num / den;
+
+        if (!Number.isFinite(k10) || k10 <= 0){
+            let lo = 1e-6, hi = 100.0;
+            for (let i=0;i<80;i++){
+                const mid = 0.5*(lo+hi);
+                const b = betaFromMicro(mid, k12, k21);
+                if (b > betaTarget) hi = mid;
+                else lo = mid;
+            }
+            k10 = 0.5*(lo+hi);
+        }
+        return k10;
+    }
+
+    function rk4Step(Adep, Ac, Ap, dt, ka, k10, k12, k21){
+        function deriv(dep,c,p){
+            const ddep = -ka*dep;
+            const dc = ka*dep - (k10+k12)*c + k21*p;
+            const dp = k12*c - k21*p;
+            return [ddep, dc, dp];
+        }
+        const k1 = deriv(Adep,Ac,Ap);
+        const k2 = deriv(Adep + 0.5*dt*k1[0], Ac + 0.5*dt*k1[1], Ap + 0.5*dt*k1[2]);
+        const k3 = deriv(Adep + 0.5*dt*k2[0], Ac + 0.5*dt*k2[1], Ap + 0.5*dt*k2[2]);
+        const k4 = deriv(Adep + dt*k3[0],     Ac + dt*k3[1],     Ap + dt*k3[2]);
+
+        let AdepN = Adep + (dt/6.0)*(k1[0] + 2*k2[0] + 2*k3[0] + k4[0]);
+        let AcN   = Ac   + (dt/6.0)*(k1[1] + 2*k2[1] + 2*k3[1] + k4[1]);
+        let ApN   = Ap   + (dt/6.0)*(k1[2] + 2*k2[2] + 2*k3[2] + k4[2]);
+
+        if (AdepN < 0) AdepN = 0;
+        if (AcN < 0)   AcN = 0;
+        if (ApN < 0)   ApN = 0;
+        return [AdepN, AcN, ApN];
+    }
+
+    function tPeakForKa(ka, doseToDepot, k10,k12,k21, dt, tEnd){
+        let Adep = doseToDepot, Ac = 0, Ap = 0;
+        let bestT = 0, bestVal = -1;
+        let t = 0;
+        while (t <= tEnd + 1e-12){
+            const val = Ac + Ap;
+            if (val > bestVal){ bestVal = val; bestT = t; }
+            [Adep,Ac,Ap] = rk4Step(Adep,Ac,Ap, dt, ka, k10,k12,k21);
+            t += dt;
+        }
+        return bestT;
+    }
+
+    function solveKaByTargetTmax(targetTmaxDays, doseToDepot, k10,k12,k21, dt=0.005){
+        if (!(targetTmaxDays > 0)) throw new Error("target_tmax_days must be > 0");
+        if (!(doseToDepot > 0)) throw new Error("dose_to_depot must be > 0");
+        const tEnd = Math.max(10.0, 6.0*targetTmaxDays);
+
+        let lo = 1e-4, hi = 50.0;
+        const tLo = tPeakForKa(lo, doseToDepot, k10,k12,k21, dt, tEnd);
+        const tHi = tPeakForKa(hi, doseToDepot, k10,k12,k21, dt, tEnd);
+
+        if (tHi > targetTmaxDays) return hi;
+        if (tLo < targetTmaxDays) return lo;
+
+        for (let i=0;i<40;i++){
+            const mid = 0.5*(lo+hi);
+            const tm = tPeakForKa(mid, doseToDepot, k10,k12,k21, dt, tEnd);
+            if (tm > targetTmaxDays) lo = mid;
+            else hi = mid;
+        }
+        return 0.5*(lo+hi);
+    }
+
+    function nDosesFromCourse(weeks, intervalDays){
+        if (!(weeks > 0)) throw new Error("weeks must be > 0");
+        if (!(intervalDays > 0)) throw new Error("interval_days must be > 0");
+        const totalDays = weeks * 7.0;
+        return Math.max(1, Math.ceil(totalDays / intervalDays));
+    }
+
+    function simulateCourseAmountOnly(drugKey, doseMg, weeks, intervalDays, dtBase=0.1, dtDense=0.02, denseWindowDays=3.0){
+        if (!(doseMg > 0)) throw new Error("dose_mg must be > 0");
+        const drug = PEPTIDE_DATA[drugKey];
+        if (!drug) throw new Error(`Unknown drug: ${drugKey}`);
+
+        const tHalfDays = requirePositiveFloat(drug, "t_half_days");
+        const F = Number(getParam(drug, "F", 1.0));
+        if (!(F > 0 && F <= 1)) throw new Error(`Invalid F: ${F}`);
+
+        const tlagH = Number(getParam(drug, "tlag_h", 0.0));
+        const tlagDays = Math.max(0, tlagH) / 24.0;
+
+        let k12 = Number(getParam(drug, "k12_per_day", 1.2));
+        let k21 = Number(getParam(drug, "k21_per_day", 0.8));
+        if (!(k12 > 0)) k12 = 1.2;
+        if (!(k21 > 0)) k21 = 0.8;
+
+        const k10 = k10FromTerminalHalfLife(tHalfDays, k12, k21);
+        const beta = betaFromMicro(k10, k12, k21);
+
+        const doseToDepot = F * doseMg;
+        const tmaxH = getParam(drug, "tmax_h", null);
+
+        let ka;
+        if (tmaxH != null && Number(tmaxH) > 0){
+            const targetTmaxDays = Number(tmaxH) / 24.0;
+            ka = solveKaByTargetTmax(targetTmaxDays, doseToDepot, k10,k12,k21, 0.005);
+        } else {
+            ka = Math.max(0.3, 3.0*beta);
+        }
+
+        const nDoses = nDosesFromCourse(weeks, intervalDays);
+        const injTimes = Array.from({length:nDoses}, (_,i)=> i*intervalDays);
+        const doseEventTimes = injTimes.map(t => t + tlagDays);
+        const tEnd = doseEventTimes[doseEventTimes.length-1] + 5.0*tHalfDays;
+
+        const times = [];
+        const amounts = [];
+
+        let Adep=0, Ac=0, Ap=0;
+        let eventIdx=0;
+        let t=0;
+
+        while (t <= tEnd + 1e-12){
+            while (eventIdx < doseEventTimes.length && t >= doseEventTimes[eventIdx] - 1e-12){
+                Adep += doseToDepot;
+                eventIdx += 1;
+            }
+
+            times.push(t);
+            amounts.push(Ac + Ap);
+
+            let dt = dtBase;
+
+            if (eventIdx < doseEventTimes.length){
+                if (Math.abs(doseEventTimes[eventIdx] - t) < denseWindowDays) dt = Math.min(dt, dtDense);
+            }
+            if (eventIdx > 0){
+                if ((t - doseEventTimes[eventIdx-1]) < denseWindowDays) dt = Math.min(dt, dtDense);
+            }
+
+            if (eventIdx < doseEventTimes.length){
+                const nextEvent = doseEventTimes[eventIdx];
+                if (t < nextEvent && t + dt > nextEvent) dt = Math.max(1e-6, nextEvent - t);
+            }
+
+            if (t + dt > tEnd){
+                dt = tEnd - t;
+                if (dt <= 1e-12) break;
+            }
+
+            [Adep,Ac,Ap] = rk4Step(Adep,Ac,Ap, dt, ka, k10,k12,k21);
+            t += dt;
+        }
+
+        const baseLabel = `${drug.name}: ${doseMg}мг каждые ${intervalDays}д`;
+        const info = { F, t_half_days: tHalfDays, ka, weeks, interval_days: intervalDays, dose_mg: doseMg };
+        return {times, amounts, baseLabel, info, drugName: drug.name};
+    }
+
+    const NS = "http://www.w3.org/2000/svg";
+    function svgEl(name, attrs = {}, text=null){
+        const n = document.createElementNS(NS, name);
+        for (const [k,v] of Object.entries(attrs)) n.setAttribute(k, String(v));
+        if (text != null) n.textContent = text;
+        return n;
+    }
+    function fmt(n, d=2){ return Number.isFinite(n) ? n.toFixed(d) : "NaN"; }
+
+    function plotSeriesSVG(host, x, y, {title, yLabel, legendLabel, info}){
+        host.innerHTML = "";
+
+        const W = 1200, H = 600;
+        const padL = 80, padR = 24, padT = 56, padB = 64;
+        const plotW = W - padL - padR;
+        const plotH = H - padT - padB;
+
+        const xMin = x.length ? x[0] : 0;
+        const xMax = x.length ? x[x.length-1] : 1;
+
+        let yMax = 0;
+        for (const v of y) if (v > yMax) yMax = v;
+        const yTop = Math.max(1e-9, 2.0 * yMax);
+
+        const svg = svgEl("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}` });
+        svg.appendChild(svgEl("rect", { x:0, y:0, width:W, height:H, fill:"white" }));
+
+        const defs = svgEl("defs");
+        const clipId = "clip_plot_" + Math.random().toString(16).slice(2);
+        const clip = svgEl("clipPath", { id: clipId });
+        clip.appendChild(svgEl("rect", { x:padL, y:padT, width:plotW, height:plotH }));
+        defs.appendChild(clip);
+        svg.appendChild(defs);
+
+        const X = (v)=> padL + (v - xMin) * (plotW / (xMax - xMin || 1));
+        const Y = (v)=> padT + (1 - (v / yTop)) * plotH;
+
+        const grid = svgEl("g");
+        const startTick = Math.floor(xMin / 2) * 2;
+        const endTick = Math.ceil(xMax / 2) * 2;
+
+        for (let t = startTick; t <= endTick + 1e-9; t += 2){
+            const xx = X(t);
+            grid.appendChild(svgEl("line", { x1:xx, y1:padT, x2:xx, y2:padT+plotH, stroke:"#000", "stroke-width":1, opacity:0.08 }));
+            grid.appendChild(svgEl("text", { x:xx, y:padT+plotH+26, "font-size":12, fill:"#000", opacity:0.65, "text-anchor":"middle" }, String(t)));
+        }
+
+        const ySteps = 5;
+        for (let i=0;i<=ySteps;i++){
+            const val = (yTop/ySteps)*i;
+            const yy = Y(val);
+            grid.appendChild(svgEl("line", { x1:padL, y1:yy, x2:padL+plotW, y2:yy, stroke:"#000", "stroke-width":1, opacity:0.08 }));
+            grid.appendChild(svgEl("text", { x:padL-10, y:yy+4, "font-size":12, fill:"#000", opacity:0.65, "text-anchor":"end" }, fmt(val, 0)));
+        }
+        svg.appendChild(grid);
+
+        svg.appendChild(svgEl("line", { x1:padL, y1:padT, x2:padL, y2:padT+plotH, stroke:"#000", "stroke-width":1, opacity:0.25 }));
+        svg.appendChild(svgEl("line", { x1:padL, y1:padT+plotH, x2:padL+plotW, y2:padT+plotH, stroke:"#000", "stroke-width":1, opacity:0.25 }));
+
+        let d = "";
+        for (let i=0;i<x.length;i++){
+            const px = X(x[i]);
+            const py = Y(y[i]);
+            d += (i===0 ? `M ${px} ${py}` : ` L ${px} ${py}`);
+        }
+
+        const baseY = Y(0);
+        const dFill = `${d} L ${X(xMax)} ${baseY} L ${X(xMin)} ${baseY} Z`;
+
+        const series = svgEl("g", { "clip-path": `url(#${clipId})` });
+        series.appendChild(svgEl("path", { d: dFill, fill:"#000", opacity:0.12 }));
+        series.appendChild(svgEl("path", { d, fill:"none", stroke:"#000", "stroke-width":2.2, opacity:0.9 }));
+        svg.appendChild(series);
+
+        svg.appendChild(svgEl("text", { x:W/2, y:32, "font-size":16, fill:"#000", "text-anchor":"middle" }, title));
+        svg.appendChild(svgEl("text", { x:W/2, y:H-18, "font-size":12, fill:"#000", opacity:0.7, "text-anchor":"middle" }, "Дни от начала"));
+        svg.appendChild(svgEl("text", { x:22, y:H/2, "font-size":12, fill:"#000", opacity:0.7, transform:`rotate(-90 22 ${H/2})`, "text-anchor":"middle" }, yLabel));
+
+        if (info){
+            const boxW = 270, boxH = 110;
+            const boxX = padL + 12, boxY = padT + 12;
+            svg.appendChild(svgEl("rect", { x:boxX, y:boxY, width:boxW, height:boxH, rx:12, ry:12, fill:"#fff", stroke:"#000", "stroke-width":1, opacity:0.18 }));
+            const lines = [
+                `Доза: ${info.dose_mg}мг`,
+                `Интервал: ${info.interval_days}д`,
+                `Курс: ${info.weeks}нед`,
+                `Усвоение: ${fmt(info.F*100,2)}%`,
+                `t½: ${fmt(info.t_half_days,2)}д`,
+            ];
+            lines.forEach((s, idx)=>{
+                svg.appendChild(svgEl("text", { x:boxX+12, y:boxY+22+idx*18, "font-size":12, fill:"#000", opacity:0.85 }, s));
+            });
+        }
+
+        host.appendChild(svg);
+        return svg;
+    }
+
+    function downloadSvg(svg, filename="drug_amount_plot.svg"){
+        const xml = new XMLSerializer().serializeToString(svg);
+        const blob = new Blob([xml], { type:"image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = filename;
+        document.body.appendChild(a);
+        a.click(); a.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    const chartHost = document.getElementById("chart");
+    const selectEl = document.getElementById("drug");
+    let lastSvg = null;
+
+    function fillSelect(){
+        const keys = Object.keys(PEPTIDE_DATA).sort((a,b)=> (PEPTIDE_DATA[a].name || a).localeCompare(PEPTIDE_DATA[b].name || b, "ru"));
+        selectEl.innerHTML = "";
+        for (const k of keys){
+            const opt = document.createElement("option");
+            opt.value = k;
+            opt.textContent = PEPTIDE_DATA[k].name;
+            selectEl.appendChild(opt);
+        }
+        selectEl.value = "semaglutide";
+    }
+
+    function num(id){
+        const v = document.getElementById(id).value.trim().replace(",", ".");
+        const n = Number(v);
+        if (!Number.isFinite(n)) throw new Error(`Bad number in ${id}`);
+        return n;
+    }
+
+    function run(){
+        const drugKey = selectEl.value;
+        const dose = num("dose");
+        const weeks = num("weeks");
+        const interval = num("interval");
+        const dtBase = num("dtBase");
+        const dtDense = num("dtDense");
+        const denseWin = num("denseWin");
+
+        const {times, amounts, baseLabel, info, drugName} = simulateCourseAmountOnly(
+            drugKey, dose, weeks, interval, dtBase, dtDense, denseWin
+        );
+
+        lastSvg = plotSeriesSVG(chartHost, times, amounts, {
+            title: `Содержание вещества в организме (мг) — ${drugName}`,
+            yLabel: "Содержание, мг",
+            legendLabel: baseLabel,
+            info
+        });
+    }
+
+    document.getElementById("run").addEventListener("click", ()=>{ try { run(); } catch (e){ alert(e?.message || String(e)); }});
+    document.getElementById("download").addEventListener("click", ()=>{ if (lastSvg) downloadSvg(lastSvg, "drug_amount_plot.svg"); });
+    selectEl.addEventListener("change", ()=>{ try { run(); } catch {} });
+
+    fillSelect();
+    run();
+</script>
 </body>
 </html>
