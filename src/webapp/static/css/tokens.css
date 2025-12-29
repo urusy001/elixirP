@@ -1,9 +1,33 @@
-:root {
-    --color-bg: var(--tg-bg-color, #ffffff);
-    --color-text: var(--tg-text-color, #222222);
-    --color-muted: var(--tg-hint-color, #888888);
-    --color-brand: var(--tg-button-color, #2381cc);
-    --button-fg: var(--tg-button-text-color, #ffffff);
+/* =========================
+   TG bind vars -> app tokens
+   ========================= */
+
+/* Telegram WebApp bindCssVars() обычно создаёт:
+   --tg-theme-bg-color
+   --tg-theme-text-color
+   --tg-theme-hint-color
+   --tg-theme-secondary-bg-color
+   --tg-theme-button-color
+   --tg-theme-button-text-color
+   --tg-theme-link-color
+*/
+
+:root{
+    --font-size-xs: 0.85rem;
+    --line-height: 1.5;
+
+    /* MAPPING: app vars -> TG vars (with fallback) */
+    --color-bg: var(--tg-theme-bg-color, #ffffff);
+    --color-text: var(--tg-theme-text-color, #222222);
+    --color-muted: var(--tg-theme-hint-color, #888888);
+
+    --color-surface: var(--tg-theme-secondary-bg-color, #f6f6f6);
+    --color-surface-2: color-mix(in srgb, var(--color-surface) 70%, var(--color-bg));
+
+    --color-brand: var(--tg-theme-button-color, #2381cc);
+    --color-brand-text: var(--tg-theme-button-text-color, #ffffff);
+    --color-link: var(--tg-theme-link-color, #2381cc);
+
     --color-border: color-mix(in srgb, var(--color-text) 12%, transparent);
-    --color-surface: var(--tg-secondary-bg-color, #f9f9f9);
+    --color-border-2: color-mix(in srgb, var(--color-text) 20%, transparent);
 }
