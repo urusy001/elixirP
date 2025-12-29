@@ -36,6 +36,7 @@ from config import (
     AMOCRM_BASE_DOMAIN, WORKING_DIR, SMTP_USER, SMTP_PASSWORD,
 )
 
+
 class AsyncAmoCRM:
     def __init__(
             self,
@@ -105,8 +106,10 @@ class AsyncAmoCRM:
             "redirect_uri": self.redirect_uri,
             "grant_type": grant_type,
         }
-        if grant_type == "authorization_code": payload["code"] = code
-        elif grant_type == "refresh_token": payload["refresh_token"] = self.refresh_token
+        if grant_type == "authorization_code":
+            payload["code"] = code
+        elif grant_type == "refresh_token":
+            payload["refresh_token"] = self.refresh_token
 
         async with httpx.AsyncClient(timeout=30) as client:
             res = await client.post(url, json=payload)
@@ -138,7 +141,8 @@ class AsyncAmoCRM:
                 await page.fill('input[name="password"]', AMOCRM_LOGIN_PASSWORD)
                 await page.click('button[type="submit"]')
                 self.logger.info("🔐 Logged into AmoCRM")
-            except Exception: self.logger.info("Already logged in (no login form shown).")
+            except Exception:
+                self.logger.info("Already logged in (no login form shown).")
 
             await page.wait_for_selector("select.js-accounts-list", timeout=20000)
             await page.select_option("select.js-accounts-list", value="19843447")
@@ -173,11 +177,13 @@ class AsyncAmoCRM:
             elif line.startswith("AMOCRM_REFRESH_TOKEN"):
                 new_lines.append(f'AMOCRM_REFRESH_TOKEN="{refresh_token}"\n')
                 found_r = True
-            else: new_lines.append(line)
+            else:
+                new_lines.append(line)
         if not found_a: new_lines.append(f'AMOCRM_ACCESS_TOKEN="{access_token}"\n')
         if not found_r: new_lines.append(f'AMOCRM_REFRESH_TOKEN="{refresh_token}"\n')
 
-        with open(path, "w") as f: f.writelines(new_lines)
+        with open(path, "w") as f:
+            f.writelines(new_lines)
         self.logger.info("💾 Saved new tokens to .env")
 
     async def authorize(self, code: str | None = None):
@@ -187,7 +193,8 @@ class AsyncAmoCRM:
 
     async def refresh(self):
         """Refresh token, auto reauthorize if refresh revoked."""
-        try: return await self.__request_token("refresh_token")
+        try:
+            return await self.__request_token("refresh_token")
         except Exception as e:
             self.logger.error(f"❌ Refresh failed: {e}, retrying with new AUTH_CODE...")
             return await self.authorize()
@@ -318,9 +325,11 @@ class AsyncAmoCRM:
         if delivery_service.upper() == "CDEK":
             lead_custom_fields[self.CF["delivery_cdek"]] = "СДЭК"
             lead_custom_fields[self.CF["cdek_number"]] = order_number
-            lead_custom_fields[self.CF["cdek_tracking_url"]] = f'https://www.cdek.ru/ru/tracking/?order_id={order_number}'
+            lead_custom_fields[
+                self.CF["cdek_tracking_url"]] = f'https://www.cdek.ru/ru/tracking/?order_id={order_number}'
 
-        elif delivery_service.upper() == "YANDEX": lead_custom_fields[self.CF["delivery_yandex"]] = "Яндекс"
+        elif delivery_service.upper() == "YANDEX":
+            lead_custom_fields[self.CF["delivery_yandex"]] = "Яндекс"
         lead_custom_fields[self.CF["payment"]] = payment_method
         if promo_code: lead_custom_fields[self.CF["promo_code"]] = promo_code
 
@@ -394,7 +403,6 @@ class AsyncAmoCRM:
 
         return result
 
-
     async def get_valid_deal_price_and_email_verification_code_for_ai(
             self,
             code: str | int,
@@ -465,161 +473,161 @@ class AsyncAmoCRM:
 
         return ("not_found", None, None)
 
+    def _generate_6_digit_code(self) -> str:
+        return f"{secrets.randbelow(1_000_000):06d}"
 
-        def _generate_6_digit_code(self) -> str: return f"{secrets.randbelow(1_000_000):06d}"
+    async def _send_verification_code_email(
+            self,
+            to_email: str,
+            code: str,
+            deal_code: str,
+    ) -> None:
+        """
+        Sends verification code from Gmail via SMTP.
+        Requires:
+          self.GMAIL_SMTP_USER (your gmail address)
+          self.GMAIL_APP_PASSWORD (Gmail App Password)
+          optional: self.GMAIL_FROM_NAME
+        """
+        from_email = SMTP_USER
+        from_name = getattr(self, "GMAIL_FROM_NAME", "ElixirPeptide")
 
-
-        async def _send_verification_code_email(
-                self,
-                to_email: str,
-                code: str,
-                deal_code: str,
-        ) -> None:
-            """
-            Sends verification code from Gmail via SMTP.
-            Requires:
-              self.GMAIL_SMTP_USER (your gmail address)
-              self.GMAIL_APP_PASSWORD (Gmail App Password)
-              optional: self.GMAIL_FROM_NAME
-            """
-            from_email = SMTP_USER
-            from_name = getattr(self, "GMAIL_FROM_NAME", "ElixirPeptide")
-
-            msg = EmailMessage()
-            msg["From"] = f"{from_name} <{from_email}>"
-            msg["To"] = to_email
-            msg["Subject"] = "Код подтверждения"
-            msg.set_content(
-                f"""Здравствуйте!
+        msg = EmailMessage()
+        msg["From"] = f"{from_name} <{from_email}>"
+        msg["To"] = to_email
+        msg["Subject"] = "Код подтверждения"
+        msg.set_content(
+            f"""Здравствуйте!
         
-    Ваш код подтверждения: {code}
-    Заказ: №{deal_code}
-    Если Вы не запрашивали код — свяжитесь с поддержкой.""")
+Ваш код подтверждения: {code}    
+Заказ: №{deal_code}
+Если Вы не запрашивали код — свяжитесь с поддержкой.""")
 
-            await aiosmtplib.send(
-                msg,
-                hostname="smtp.gmail.com",
-                port=587,
-                start_tls=True,
-                username=SMTP_USER,
-                password=SMTP_PASSWORD,
-                timeout=20,
+        await aiosmtplib.send(
+            msg,
+            hostname="smtp.gmail.com",
+            port=587,
+            start_tls=True,
+            username=SMTP_USER,
+            password=SMTP_PASSWORD,
+            timeout=20,
+        )
+
+    async def _extract_lead_email(self, lead: dict) -> Optional[str]:
+        """
+        Tries to get email from linked contacts:
+          1) if lead already contains embedded contact data -> parse it
+          2) else fetch /api/v4/contacts/{id} and parse custom_fields_values
+        """
+        embedded = lead.get("_embedded") or {}
+        contacts = embedded.get("contacts") or lead.get("contacts") or []
+        if not isinstance(contacts, list) or not contacts: return None
+        ordered = sorted(contacts, key=lambda c: 0 if c.get("is_main") else 1)
+        for c in ordered:
+            if isinstance(c, dict) and c.get("custom_fields_values"):
+                email = self._extract_email_from_contact_obj(c)
+                if email: return email
+
+            cid = None
+            if isinstance(c, dict): cid = c.get("id") or c.get("contact_id")
+            if cid:
+                contact = await self.get(f"/api/v4/contacts/{cid}")
+                email = self._extract_email_from_contact_obj(contact)
+                if email: return email
+
+        return None
+
+    async def get_lead_status(self, deal_code: str | int) -> dict[str, Any]:
+        """
+        Find lead by exact token "№{deal_code}<SPACE>" and return its status info.
+
+        Returns:
+          {
+            "found": bool,
+            "lead_id": int | None,
+            "name": str | None,
+            "status_id": int | None,
+            "status_key": str | None,   # from self.STATUS_IDS reverse map, if known
+            "is_complete": bool,
+            "price": int | None,
+            "pipeline_id": int | None,
+          }
+        """
+        code_str = str(deal_code).strip()
+        needle = f"№{code_str} "
+        rx = re.compile(rf"№{re.escape(code_str)}\s")
+        page = 1
+        limit = 50
+        max_pages = 20
+
+        while page <= max_pages:
+            data = await self.get(
+                "/api/v4/leads",
+                params={
+                    "query": needle,
+                    "limit": limit,
+                    "page": page,
+                },
             )
 
-        async def _extract_lead_email(self, lead: dict) -> Optional[str]:
-            """
-            Tries to get email from linked contacts:
-              1) if lead already contains embedded contact data -> parse it
-              2) else fetch /api/v4/contacts/{id} and parse custom_fields_values
-            """
-            embedded = lead.get("_embedded") or {}
-            contacts = embedded.get("contacts") or lead.get("contacts") or []
-            if not isinstance(contacts, list) or not contacts: return None
-            ordered = sorted(contacts, key=lambda c: 0 if c.get("is_main") else 1)
-            for c in ordered:
-                if isinstance(c, dict) and c.get("custom_fields_values"):
-                    email = self._extract_email_from_contact_obj(c)
-                    if email: return email
+            leads = (data.get("_embedded") or {}).get("leads") or []
+            if not leads: return "Не найден", False
+            for lead in leads:
+                name = lead.get("name") or ""
+                if not rx.search(name): continue
+                pipeline_id = lead.get("pipeline_id")
+                if pipeline_id is not None and pipeline_id != self.PIPELINE_ID: continue
+                status_id = lead.get("status_id")
+                is_complete = bool(status_id in self.COMPLETE_STATUS_IDS)
+                status_name = self.STATUS_WORDS.get(status_id)
+                if status_name is None:
+                    self.logger.warning("Unknown amoCRM status_id=%s (lead/deal_code=%s)", status_id, deal_code)
+                    status_name = f"UNKNOWN({status_id})"
 
-                cid = None
-                if isinstance(c, dict): cid = c.get("id") or c.get("contact_id")
-                if cid:
-                    contact = await self.get(f"/api/v4/contacts/{cid}")
-                    email = self._extract_email_from_contact_obj(contact)
-                    if email: return email
+                return status_name, is_complete
+            page += 1
 
-            return None
+        return "Не найден", False
 
-        async def get_lead_status(self, deal_code: str | int) -> dict[str, Any]:
-            """
-            Find lead by exact token "№{deal_code}<SPACE>" and return its status info.
+    @staticmethod
+    def _extract_email_from_contact_obj(contact: dict) -> Optional[str]:
+        cfs = contact.get("custom_fields_values") or []
+        if not isinstance(cfs, list): return None
+        for cf in cfs:
+            if not isinstance(cf, dict): continue
+            code = (cf.get("field_code") or "").upper()
+            name = (cf.get("field_name") or "").lower()
+            if code == "EMAIL" or "email" in name or "почта" in name:
+                values = cf.get("values") or []
+                if not isinstance(values, list): continue
+                for v in values:
+                    val = (v or {}).get("value")
+                    if isinstance(val, str) and "@" in val: return val.strip()
 
-            Returns:
-              {
-                "found": bool,
-                "lead_id": int | None,
-                "name": str | None,
-                "status_id": int | None,
-                "status_key": str | None,   # from self.STATUS_IDS reverse map, if known
-                "is_complete": bool,
-                "price": int | None,
-                "pipeline_id": int | None,
-              }
-            """
-            code_str = str(deal_code).strip()
-            needle = f"№{code_str} "
-            rx = re.compile(rf"№{re.escape(code_str)}\s")
-            page = 1
-            limit = 50
-            max_pages = 20
+        return None
 
-            while page <= max_pages:
-                data = await self.get(
-                    "/api/v4/leads",
-                    params={
-                        "query": needle,
-                        "limit": limit,
-                        "page": page,
-                    },
-                )
+    async def update_lead_status(self, cart_id: str | int):
+        status, is_active = await self.get_lead_status(cart_id)
+        cart_update = CartUpdate(status=status, is_active=is_active)
+        async with get_session() as session: await update_cart(session, cart_id, cart_update)
+        self.logger.info(f"Change {cart_id} to {status}")
 
-                leads = (data.get("_embedded") or {}).get("leads") or []
-                if not leads: return "Не найден", False
-                for lead in leads:
-                    name = lead.get("name") or ""
-                    if not rx.search(name): continue
-                    pipeline_id = lead.get("pipeline_id")
-                    if pipeline_id is not None and pipeline_id != self.PIPELINE_ID: continue
-                    status_id = lead.get("status_id")
-                    is_complete = bool(status_id in self.COMPLETE_STATUS_IDS)
-                    status_name = self.STATUS_WORDS.get(status_id)
-                    if status_name is None:
-                        self.logger.warning("Unknown amoCRM status_id=%s (lead/deal_code=%s)", status_id, deal_code)
-                        status_name = f"UNKNOWN({status_id})"
+    async def update_carts(self):
+        while True:
+            self.logger.info("Started updating carts")
+            async with get_session() as session:
+                res = await session.execute(select(Cart.id))  # returns column values
+                cart_ids = res.scalars().all()  # <-- list[int]
 
-                    return status_name, is_complete
-                page += 1
+            for cart_id in cart_ids:
+                try:
+                    await self.update_lead_status(cart_id)
+                except Exception:
+                    self.logger.exception("Failed to update lead status for cart_id=%s", cart_id)
+                    continue
+            self.logger.info(f"Finished updating carts: {len(cart_ids)} updated")
+            await asyncio.sleep(24 * 60 * 60)
 
-            return "Не найден", False
-
-        @staticmethod
-        def _extract_email_from_contact_obj(contact: dict) -> Optional[str]:
-            cfs = contact.get("custom_fields_values") or []
-            if not isinstance(cfs, list): return None
-            for cf in cfs:
-                if not isinstance(cf, dict): continue
-                code = (cf.get("field_code") or "").upper()
-                name = (cf.get("field_name") or "").lower()
-                if code == "EMAIL" or "email" in name or "почта" in name:
-                    values = cf.get("values") or []
-                    if not isinstance(values, list): continue
-                    for v in values:
-                        val = (v or {}).get("value")
-                        if isinstance(val, str) and "@" in val: return val.strip()
-
-            return None
-
-        async def update_lead_status(self, cart_id: str | int):
-            status, is_active = await self.get_lead_status(cart_id)
-            cart_update = CartUpdate(status=status, is_active=is_active)
-            async with get_session() as session: await update_cart(session, cart_id, cart_update)
-            self.logger.info(f"Change {cart_id} to {status}")
-
-
-        async def update_carts(self):
-            while True:
-                self.logger.info("Started updating carts")
-                async with get_session() as session:
-                    res = await session.execute(select(Cart.id))  # returns column values
-                    cart_ids = res.scalars().all()                # <-- list[int]
-
-                for cart_id in cart_ids:
-                    try: await self.update_lead_status(cart_id)
-                    except Exception:
-                        self.logger.exception("Failed to update lead status for cart_id=%s", cart_id)
-                        continue
-                self.logger.info(f"Finished updating carts: {len(cart_ids)} updated")
-                await asyncio.sleep(24*60*60)
 
 # ---------- INSTANCE ----------
 amocrm = AsyncAmoCRM(
