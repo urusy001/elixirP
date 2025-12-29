@@ -1,208 +1,194 @@
 /* ---------------- GRID ---------------- */
-.product-grid{
-    display:grid;
-    grid-template-columns:repeat(2, minmax(0, 1fr));
-    gap:0.6rem;
-    justify-items:stretch;
-    padding:0.5rem;
-    margin-bottom:48px;
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    justify-items: stretch;
+    padding: 0.5rem;
+    margin-bottom: 48px;
 }
 
 /* ---------------- PRODUCT CARD ---------------- */
-.product-card{
-    width:100%;
-    background:var(--color-bg);
-    border-radius:12px;
-    display:flex;
-    flex-direction:column;
-    overflow:hidden;
-    color:inherit;
-    text-decoration:none;
-    border:1px solid var(--color-border);
-    box-shadow:0 1px 3px color-mix(in srgb, var(--color-text) 12%, transparent);
-    transition:transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-}
-
-.product-card:active{
-    transform:scale(0.99);
-}
-
-@media (hover:hover){
-    .product-card:hover{
-        border-color:var(--color-border-2);
-        box-shadow:0 6px 16px color-mix(in srgb, var(--color-text) 18%, transparent);
-        transform:translateY(-1px);
-    }
+.product-card {
+    width: 100%;
+    background: #fff;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: inherit;
+    text-decoration: none;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 /* ---------------- IMAGE ---------------- */
-.product-image{
-    width:100%;
-    aspect-ratio:1 / 1;
-    overflow:hidden;
-    background:var(--color-surface);
+.product-image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #f5f5f5;
 }
 
-.product-image img{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    transition:transform 0.3s ease;
+.product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
 }
 
-.product-image img.loaded{ transform:scale(1); }
+.product-image img.loaded {
+    transform: scale(1);
+}
 
 /* ---------------- PRODUCT INFO ---------------- */
-.product-info{
-    display:flex;
-    flex-direction:column;
-    flex-grow:1;
-    gap:0.35rem;
-    width:100%;
-    padding:0.5rem 0.75rem;
+.product-info {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    gap: 0.35rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
 }
 
-.product-name{
-    font-size:1rem;
-    font-weight:600;
-    color:var(--color-text);
+.product-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #222;
 
-    display:-webkit-box;
-    -webkit-line-clamp:2;
-    -webkit-box-orient:vertical;
+    /* не флекс, а блочный с обрезкой по 2 строкам */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;         /* максимум 2 строки */
+    -webkit-box-orient: vertical;
 
-    overflow:hidden;
-    text-overflow:ellipsis;
-    line-height:1.2rem;
-    max-height:calc(1.2rem * 2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2rem;
+    max-height: calc(1.2rem * 2);  /* фикс по высоте на 2 строки */
 }
 
 /* ---------------- FEATURE SELECT ---------------- */
-.feature-select{
-    width:100%;
-    padding:6px 8px;
-    border:1px solid var(--color-border-2);
-    border-radius:6px;
-    background:var(--color-bg);
-    color:var(--color-text);
-    font-size:0.85rem;
-    cursor:pointer;
-    box-sizing:border-box;
-    transition:border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+.feature-select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 0.85rem;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
 
-    margin-top:auto;
+    /* толкает селект к низу блока product-info,
+       чтобы он всегда был прямо над кнопкой */
+    margin-top: auto;
 }
 
-.feature-select:focus{
-    outline:none;
-    border-color:color-mix(in srgb, var(--color-brand) 60%, var(--color-border-2));
-    box-shadow:0 0 0 2px color-mix(in srgb, var(--color-brand) 22%, transparent);
+.feature-select:focus {
+    outline: none;
 }
 
 /* ---------------- BUY BUTTON ---------------- */
-/* Нормальная кнопка "в TG стиле": цвет = кнопка Telegram */
 .buy-btn,
-.buy-counter,
-.buy-btn-initial{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    width:100%;
-    height:44px;
-
-    background:var(--color-brand) !important;
-    color:var(--color-brand-text) !important;
-
-    border:none;
-    border-radius:0 0 12px 12px;
-
-    font-size:1rem;
-    font-weight:600;
-
-    cursor:pointer;
-    overflow:hidden;
-    transition:filter 0.15s ease, transform 0.1s ease;
+.buy-counter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 44px;
+    background-color: transparent !important;
+    color: black !important;
+    border: none;
+    border-radius: 0 0 12px 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.3s ease;
 }
 
-.buy-btn-initial{ font-size:0.85rem; }
-
-.buy-btn:active,
-.buy-counter:active,
-.buy-btn-initial:active{
-    transform:scale(0.99);
-}
-
-@media (hover:hover){
-    .buy-btn:hover,
-    .buy-counter:hover,
-    .buy-btn-initial:hover{
-        filter:brightness(0.96);
-    }
-}
-
-/* Counter layout */
-.buy-counter{
-    justify-content:space-between;
-    padding:0 4px;
+.buy-btn-initial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 44px;
+    background-color: transparent !important;
+    color: black !important;
+    border: none;
+    border-radius: 0 0 12px 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
 }
 
 /* Counter buttons (- / +) */
 .buy-btn button,
-.buy-counter button{
-    flex:1;
-    height:100%;
-
-    border:none;
-    background:transparent !important;
-    color:var(--color-brand-text) !important;
-
-    font-size:1.2rem;
-    cursor:pointer;
-    transition:background-color 0.15s ease;
-}
-
-@media (hover:hover){
-    .buy-btn button:hover,
-    .buy-counter button:hover{
-        background:color-mix(in srgb, #000 10%, transparent);
-    }
+.buy-counter button {
+    flex: 1;
+    height: 100%;
+    border: none;
+    background-color: transparent !important;
+    color: black !important;    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
 }
 
 /* Count number in middle */
 .buy-btn span,
-.buy-counter span{
-    flex:1;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-size:1rem;
-    color:var(--color-brand-text);
+.buy-counter span {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1rem;
+}
+
+.buy-counter {
+    padding: 0 4px;
 }
 
 /* ---------------- LINKS ---------------- */
-a{ color:inherit; text-decoration:none; }
+a {
+    color: inherit;
+    text-decoration: none;
+}
 
 /* ---------------- RESPONSIVE ---------------- */
-@media (max-width:768px){
-    .product-grid{ gap:0.5rem; }
+@media (max-width: 768px) {
+    .product-grid {
+        gap: 0.5rem;
+    }
 }
 
-@media (max-width:480px){
-    .product-grid{
-        grid-template-columns:repeat(2, 1fr);
-        gap:0.4rem;
+@media (max-width: 480px) {
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.4rem;
     }
 
-    .product-card{ max-width:180px; }
+    .product-card {
+        max-width: 180px;
+    }
 
-    .product-name{ font-size:0.95rem; }
+    .product-name {
+        font-size: 0.95rem;
+    }
 
-    .product-info{ padding:0.3rem 0.4rem; }
+    .product-info {
+        padding: 0.3rem 0.4rem;
+    }
 
-    .feature-select{ font-size:0.8rem; }
+    .feature-select {
+        font-size: 0.8rem;
+    }
 }
 
-@media (max-width:400px){
-    .product-card{ max-width:170px; }
-    .product-name{ font-size:0.9rem; }
+@media (max-width: 400px) {
+    .product-card {
+        max-width: 170px;
+    }
+
+    .product-name {
+        font-size: 0.9rem;
+    }
 }
