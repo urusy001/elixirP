@@ -567,7 +567,7 @@ class AsyncAmoCRM:
                 is_complete = bool(status_id in self.COMPLETE_STATUS_IDS)
                 status_name = self.STATUS_WORDS.get(status_id)
                 if status_name is None:
-                    self.logger.warning("Unknown amoCRM status_id=%s (lead/cart_id=%s)", status_id, cart_id)
+                    self.logger.warning("Unknown amoCRM status_id=%s (lead/deal_code=%s)", status_id, deal_code)
                     status_name = f"UNKNOWN({status_id})"
 
                 return status_name, is_complete
@@ -623,4 +623,3 @@ amocrm = AsyncAmoCRM(
     access_token=AMOCRM_ACCESS_TOKEN,
     refresh_token=AMOCRM_REFRESH_TOKEN,
 )
-print(asyncio.run(amocrm.get_main_pipeline_statuses()))
