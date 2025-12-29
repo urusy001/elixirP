@@ -413,7 +413,6 @@ class AsyncAmoCRM:
 
         # --- NEW: cutoff 2 months ---
         cutoff_ts = int((datetime.now(timezone.utc) - timedelta(days=62)).timestamp())
-        # ----------------------------
 
         page = 1
         limit = 50
@@ -431,20 +430,14 @@ class AsyncAmoCRM:
             )
 
             leads = (data.get("_embedded") or {}).get("leads") or []
-            if not leads:
-                return ("not_found", None, None)
-
+            if not leads: return ("not_found", None, None)
             for lead in leads:
                 name = lead.get("name") or ""
                 status_id = lead.get("status_id")
-
-                # --- NEW: reject old leads ---
-                created_at = lead.get("created_at")  # unix seconds
-                if isinstance(created_at, int) and created_at < cutoff_ts:
-                    continue
-                # if created_at missing/invalid -> treat as old
-                if not isinstance(created_at, int):
-                    continue
+                created_at = lead.get("created_at")
+                print(lead, created_at, cutoff_ts)
+                if isinstance(created_at, int) and created_at < cutoff_ts: continue
+                if not isinstance(created_at, int): continue
                 # ----------------------------
 
                 if status_id in self.COMPLETE_STATUS_IDS and rx.search(name):
