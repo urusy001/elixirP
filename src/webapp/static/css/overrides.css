@@ -216,24 +216,61 @@ input, textarea {
 
 
 /* dark theme disabled: keep identical to :root */
-[data-theme="dark"] {
-    --color-bg: #ffffff;
-    --color-surface: #f9f9f9;
-    --color-surface-2: #f5f5f5;
-    --color-overlay: rgba(255, 255, 255, 0.98);
-    --color-text: #222222;
-    --color-text-strong: #111111;
-    --color-muted: #888888;
-    --color-border: #dddddd;
-    --color-border-2: #cccccc;
-    --color-brand: #2381cc;
-    --color-brand-strong: #155a87;
-    --color-brand-stronger: #17517D;
-    --color-brand-accent: #366199;
-    --color-accent: #0f4b70;
-    --color-danger: #ff0000;
+/* Dark theme override: same tokens, different values */
+[data-theme="dark"]{
+    /* colors */
+    --color-bg: #0f1419;
+    --color-surface: #141b23;
+    --color-surface-2: #1b2430;
+    --color-overlay: rgba(15, 20, 25, 0.96);
 
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.10);
-    --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.12);
-    --shadow-lg: 0 6px 12px rgba(0, 0, 0, 0.12);
+    --color-text: #e6edf3;
+    --color-text-strong: #ffffff;
+    --color-muted: #9aa4ad;
+
+    --color-border: #22303c;
+    --color-border-2: #2a3a49;
+
+    --color-brand: #2A82C7;          /* keep your blue vibe */
+    --color-brand-strong: #1E669E;
+    --color-brand-stronger: #17517D;
+    --color-brand-accent: #5a86c3;
+
+    --color-accent: #0f4b70;
+    --color-danger: #ff6161;
+
+    /* shadows (stronger on dark) */
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.35);
+    --shadow-md: 0 2px 6px rgba(0,0,0,.45);
+    --shadow-lg: 0 6px 12px rgba(0,0,0,.55);
+
+    /* components */
+    --header-bg: var(--color-surface);
+
+    --button-bg: var(--color-brand);
+    --button-bg-hover: var(--color-brand-strong);
+    --button-fg: #ffffff;
+
+    --input-bg: #0f1419;
+    --input-bg-weak: #0b1016;
+    --input-fg: var(--color-text);
+    --input-border: var(--color-border-2);
+    --input-border-focus: var(--color-brand-accent);
+    --input-shadow-focus: 0 0 0 2px rgba(90, 134, 195, 0.25);
+
+    --card-bg: var(--color-surface);
+    --card-surface: var(--color-surface-2);
+    --card-shadow: var(--shadow-md);
+
+    --chip-bg: var(--color-surface-2);
+    --chip-fg: var(--color-text);
+
+    --search-overlay-bg: var(--color-overlay);
+
+    --spinner-border: 5px solid rgba(255,255,255,0.10);
+    --spinner-top: var(--color-brand);
+
+    --toolbar-bg: var(--color-surface-2);
+    --toolbar-fg: var(--color-text);
+    --toolbar-icon: var(--color-muted);
 }
