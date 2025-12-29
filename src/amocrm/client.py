@@ -565,8 +565,12 @@ class AsyncAmoCRM:
                 if pipeline_id is not None and pipeline_id != self.PIPELINE_ID: continue
                 status_id = lead.get("status_id")
                 is_complete = bool(status_id in self.COMPLETE_STATUS_IDS)
-                return self.STATUS_WORDS[status_id], is_complete
+                status_name = self.STATUS_WORDS.get(status_id)
+                if status_name is None:
+                    self.logger.warning("Unknown amoCRM status_id=%s (lead/cart_id=%s)", status_id, cart_id)
+                    status_name = f"UNKNOWN({status_id})"
 
+                return status_name, is_complete
             page += 1
 
         return "Не найден", False
@@ -602,7 +606,11 @@ class AsyncAmoCRM:
                 res = await session.execute(select(Cart.id))  # returns column values
                 cart_ids = res.scalars().all()                # <-- list[int]
 
-            for cart_id in cart_ids: await self.update_lead_status(cart_id)
+            for cart_id in cart_ids:
+                try: await self.update_lead_status(cart_id)
+                except Exception:
+                    self.logger.exception("Failed to update lead status for cart_id=%s", cart_id)
+                    continue
             self.logger.info(f"Finished updating carts: {len(cart_ids)} updated")
             await asyncio.sleep(24*60*60)
 
@@ -615,3 +623,4 @@ amocrm = AsyncAmoCRM(
     access_token=AMOCRM_ACCESS_TOKEN,
     refresh_token=AMOCRM_REFRESH_TOKEN,
 )
+print(asyncio.run(amocrm.get_main_pipeline_statuses()))
