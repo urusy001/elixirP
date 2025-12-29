@@ -436,14 +436,11 @@ class AsyncAmoCRM:
                 status_id = lead.get("status_id")
                 created_at = lead.get("created_at")
                 print(lead, created_at, cutoff_ts)
-                if isinstance(created_at, int) and created_at < cutoff_ts: continue
-                if not isinstance(created_at, int): continue
-                # ----------------------------
-
+                if isinstance(created_at, (int, float)) and created_at < cutoff_ts: continue
+                elif not isinstance(created_at, (int, float)): continue
                 if status_id in self.COMPLETE_STATUS_IDS and rx.search(name):
                     raw_price = lead.get("price", None)
-                    if not raw_price:
-                        return ("old", None, None)
+                    if not raw_price: return ("old", None, None)
 
                     price = int(raw_price) if raw_price else 0
 
