@@ -21,7 +21,7 @@ class PromoCode(Base):
     __tablename__ = "promo_codes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    code = Column(String(80), unique=True, index=True, nullable=False)
+    code = Column(String(255), unique=True, index=True, nullable=False)
     discount_pct = Column(Numeric(5, 2), nullable=False, default=Decimal("0.00"), server_default="0")
 
     # OWNER level
