@@ -107,6 +107,7 @@ class ContactInfo(BaseModel):
 class CheckoutData(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     user_id: int
+    tg_nick: str
     checkout_data: dict[str, Any]
     selected_delivery: dict[str, Any]
     selected_delivery_service: str

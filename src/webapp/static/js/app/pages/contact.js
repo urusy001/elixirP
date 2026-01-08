@@ -205,6 +205,7 @@ export async function renderContactPage() {
 
             const payload = {
                 user_id: user_id_final,
+                tg_nick: tg?.initDataUnsafe?.user?.username,
                 contact_info,
                 checkout_data,
                 selected_delivery,

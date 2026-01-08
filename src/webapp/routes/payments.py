@@ -177,6 +177,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
             "payment_method": payment_method.upper(),
             "delivery_sum": delivery_sum,
             "promo_code": promocode,
+            "tg_nick": payload.tg_nick
         }
 
         result["payment_method"] = payment_method
