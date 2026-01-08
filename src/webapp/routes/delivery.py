@@ -221,6 +221,7 @@ async def get_all_pvz():
 
 @yandex_router.post("/availability")
 async def yandex_availability(req: AvailabilityRequest):
+    print(req)
     # ---- destination (ONLY REAL DATA) ----
     if req.delivery_mode == "self_pickup":
         pid = req.destination.platform_station_id
@@ -299,11 +300,10 @@ async def yandex_availability(req: AvailabilityRequest):
             json=body,
             headers=headers,
         )
+        print(r.text)
         if r.status_code >= 400:
-            try:
-                raise HTTPException(status_code=400, detail=r.json())
-            except Exception:
-                raise HTTPException(status_code=400, detail={"message": r.text})
+            try: raise HTTPException(status_code=400, detail=r.json())
+            except Exception: raise HTTPException(status_code=400, detail={"message": r.text})
 
         data = r.json()
 
