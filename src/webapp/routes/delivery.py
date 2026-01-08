@@ -221,13 +221,11 @@ async def get_all_pvz():
 
 @yandex_router.post("/availability")
 async def yandex_availability(req: AvailabilityRequest):
-    print(req)
+    print(req.destination.platform_station_id)
     # ---- destination (ONLY REAL DATA) ----
     if req.delivery_mode == "self_pickup":
         pid = req.destination.platform_station_id
-        if not pid:
-            raise HTTPException(422, detail="destination.platform_station_id is required for self_pickup")
-
+        if not pid: raise HTTPException(422, detail="destination.platform_station_id is required for self_pickup")
         destination_node = {
             "type": "platform_station",
             "platform_station": {"platform_id": str(pid)},
