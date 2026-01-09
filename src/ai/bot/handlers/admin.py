@@ -30,7 +30,7 @@ dose_admin_router.callback_query.filter(lambda call: call.data.startswith("admin
 
 @new_admin_router.message(Command("send"))
 async def handle_send(message: Message):
-    args = message.text.removeprefix("/send ").strip().split(maxsplit=1)[0]
+    args = message.html_text.removeprefix("/send ").strip().split(maxsplit=1)
     who = args[0]
     if who.isdigit():
         user_id = int(who)
