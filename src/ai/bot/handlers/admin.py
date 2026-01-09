@@ -14,7 +14,7 @@ from src.ai.bot.states import admin_states
 from src.helpers import make_excel_safe
 from src.tg_methods import get_user_id_by_phone, normalize_phone
 from src.webapp import get_session
-from src.webapp.crud import get_usages, get_user, update_user, upsert_user, list_promos, get_carts
+from src.webapp.crud import get_usages, get_user, update_user, upsert_user, list_promos, get_carts, get_users
 from src.webapp.schemas import UserUpdate, UserCreate
 
 professor_admin_router = Router(name="admin_professor")
@@ -27,6 +27,30 @@ new_admin_router.message.filter(lambda message: message.from_user.id in OWNER_TG
 new_admin_router.callback_query.filter(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
 dose_admin_router.message.filter(lambda message: message.from_user.id in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE)
 dose_admin_router.callback_query.filter(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
+
+@new_admin_router.message(Command("send"))
+async def handle_send(message: Message):
+    args = message.text.removeprefix("/send ").strip().split(maxsplit=1)[0]
+    who = args[0]
+    if who.isdigit():
+        user_id = int(who)
+        async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
+        if user:
+            try:
+                await message.bot.send_message(user_id, args[1])
+                await message.answer(f"Сообщение успешно отправлено пользователю с номером {user.tg_phone}")
+            except Exception as e: await message.answer(str(e))
+        else: await message.answer(f"Пользователь с айди {user_id} не был найден")
+
+    elif who == "all":
+        async with get_session() as session: users = await get_users(session)
+        i = 0
+        for user in users:
+            try: await message.bot.send_message(user.tg_id, args[1]); i +=1
+            except Exception as e: await message.answer(f"Не удалось отправить сообщение пользователю с номером {user.tg_phone}: {e}")
+        await message.answer(f"Успешно разослано {i} пользователям")
+    else: await message.answer("Ошибка команды: <code>/send тг_айди/all текст</code>")
+
 
 @new_admin_router.message(Command('edit_and_pin'), lambda message: message.reply_to_message)
 async def handle_pin(message: Message):

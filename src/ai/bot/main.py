@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import logging
 import re
 
@@ -7,7 +8,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import Message, FSInputFile, InputMediaPhoto, ReplyKeyboardRemove
+from aiogram.types import Message, FSInputFile, InputMediaPhoto, ReplyKeyboardRemove, InlineKeyboardButton
 
 from config import (
     PROFESSOR_BOT_TOKEN,
@@ -149,10 +150,14 @@ class ProfessorBot(Bot):
                 new_input,
                 new_output,
             )
-
+        keyboard = copy.deepcopy(user_keyboards.backk)
+        keyboard.inline_keyboard.append([
+            [InlineKeyboardButton(text="Ознакомиться с программой", url="https://t.me/obucheniepeptid/32"),
+             InlineKeyboardButton(text="Попасть на обучение", url="https://www.peptidecourse.ru/"),],
+        ])
         if not files and not text:
             logger.warning("EMPTY response (no files, no text)")
-            return await message.reply("oshibochka vishla da", reply_markup=user_keyboards.backk if back_menu == True else ReplyKeyboardRemove())
+            return await message.reply("oshibochka vishla da", reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove())
 
         if files:
             logger.info("OUTGOING response has %d file(s)", len(files))
@@ -166,7 +171,7 @@ class ProfessorBot(Bot):
                     FSInputFile(files[0]),
                     caption=caption,
                     parse_mode=ParseMode.MARKDOWN,
-                    reply_markup=user_keyboards.backk if back_menu == True else ReplyKeyboardRemove(),
+                    reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove(),
                 )
             else:
                 media = [
@@ -196,7 +201,7 @@ class ProfessorBot(Bot):
                     parse_mode=ParseMode.MARKDOWN,
                     reply_markup=ReplyKeyboardRemove(),
                 )
-            return await message.reply(re.sub(r"【[^】]*】", "", chunks[-1]), parse_mode=ParseMode.MARKDOWN, reply_markup=user_keyboards.backk if back_menu == True else ReplyKeyboardRemove())
+            return await message.reply(re.sub(r"【[^】]*】", "", chunks[-1]), parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove())
 
         clean_text = re.sub(r"【[^】]*】", "", text)
         logger.info(
@@ -207,7 +212,7 @@ class ProfessorBot(Bot):
         return await message.reply(
             clean_text,
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=user_keyboards.backk if back_menu == True else ReplyKeyboardRemove() if back_menu == True else ReplyKeyboardRemove(),
+            reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove() if back_menu == True else ReplyKeyboardRemove(),
         )
 
 
