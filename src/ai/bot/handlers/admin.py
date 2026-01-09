@@ -29,6 +29,8 @@ dose_admin_router.message.filter(lambda message: message.from_user.id in OWNER_T
 dose_admin_router.callback_query.filter(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
 
 @new_admin_router.message(Command("send"))
+@dose_admin_router.message(Command("send"))
+@professor_admin_router.message(Command("send"))
 async def handle_send(message: Message):
     args = message.html_text.removeprefix("/send ").strip().split(maxsplit=1)
     who = args[0]
@@ -42,7 +44,7 @@ async def handle_send(message: Message):
                     await message.bot.send_message(user_id, args[1])
                     await message.answer(f"Сообщение успешно отправлено пользователю с номером {user.tg_phone}")
                 except Exception as e: await message.answer(str(e))
-            except: pass
+            except: await message.answer(f"Чат у пользователя с айди {user.tg_id} не был найден")
         else: await message.answer(f"Пользователь с айди {user_id} не был найден")
 
     elif who == "all":
@@ -53,7 +55,7 @@ async def handle_send(message: Message):
                 await message.bot.get_chat(user.tg_id)
                 try: await message.bot.send_message(user.tg_id, args[1]); i +=1
                 except Exception as e: await message.answer(f"Не удалось отправить сообщение пользователю с номером {user.tg_phone}: {e}")
-            except: pass
+            except: await message.answer(f"Чат у пользователя с айди {user.tg_id} не был найден")
         await message.answer(f"Успешно разослано {i} пользователям")
     else: await message.answer("Ошибка команды: <code>/send тг_айди/all текст</code>")
 
