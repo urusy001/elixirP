@@ -37,17 +37,23 @@ async def handle_send(message: Message):
         async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
         if user:
             try:
-                await message.bot.send_message(user_id, args[1])
-                await message.answer(f"Сообщение успешно отправлено пользователю с номером {user.tg_phone}")
-            except Exception as e: await message.answer(str(e))
+                await message.bot.get_chat(user_id)
+                try:
+                    await message.bot.send_message(user_id, args[1])
+                    await message.answer(f"Сообщение успешно отправлено пользователю с номером {user.tg_phone}")
+                except Exception as e: await message.answer(str(e))
+            except: pass
         else: await message.answer(f"Пользователь с айди {user_id} не был найден")
 
     elif who == "all":
         async with get_session() as session: users = await get_users(session)
         i = 0
         for user in users:
-            try: await message.bot.send_message(user.tg_id, args[1]); i +=1
-            except Exception as e: await message.answer(f"Не удалось отправить сообщение пользователю с номером {user.tg_phone}: {e}")
+            try:
+                await message.bot.get_chat(user.tg_id)
+                try: await message.bot.send_message(user.tg_id, args[1]); i +=1
+                except Exception as e: await message.answer(f"Не удалось отправить сообщение пользователю с номером {user.tg_phone}: {e}")
+            except: pass
         await message.answer(f"Успешно разослано {i} пользователям")
     else: await message.answer("Ошибка команды: <code>/send тг_айди/all текст</code>")
 
