@@ -23,6 +23,7 @@ from config import (
 from src.ai.bot.handlers import *
 from src.ai.bot.keyboards import user_keyboards
 from src.ai.bot.middleware import ContextMiddleware
+from src.ai.bot.texts import user_texts
 from src.ai.client import ProfessorClient
 from src.helpers import split_text, MAX_TG_MSG_LEN
 from src.webapp import get_session
@@ -162,7 +163,7 @@ class ProfessorBot(Bot):
         if files:
             logger.info("OUTGOING response has %d file(s)", len(files))
             if len(files) == 1:
-                caption = re.sub(r"【[^】]*】", "", text[:1024]) or None
+                caption = re.sub(r"【[^】]*】", "", text[:900])+user_texts.blockquote or None
                 logger.info(
                     "OUTGOING single photo | caption_len=%d",
                     len(caption or ""),
@@ -201,7 +202,7 @@ class ProfessorBot(Bot):
                     parse_mode=ParseMode.MARKDOWN,
                     reply_markup=ReplyKeyboardRemove(),
                 )
-            return await message.reply(re.sub(r"【[^】]*】", "", chunks[-1]), parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove())
+            return await message.reply(re.sub(r"【[^】]*】", "", chunks[-1])+user_texts.blockquote, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove())
 
         clean_text = re.sub(r"【[^】]*】", "", text)
         logger.info(
@@ -210,7 +211,7 @@ class ProfessorBot(Bot):
             clean_text[:200],
         )
         return await message.reply(
-            clean_text,
+            clean_text+user_texts.blockquote,
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove()
         )
