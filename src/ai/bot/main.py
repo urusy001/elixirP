@@ -152,8 +152,8 @@ class ProfessorBot(Bot):
             )
         keyboard = copy.deepcopy(user_keyboards.backk)
         keyboard.inline_keyboard.append([
-            [InlineKeyboardButton(text="Ознакомиться с программой", url="https://t.me/obucheniepeptid/32"),
-             InlineKeyboardButton(text="Попасть на обучение", url="https://www.peptidecourse.ru/"),],
+            InlineKeyboardButton(text="Ознакомиться с программой", url="https://t.me/obucheniepeptid/32"),
+            InlineKeyboardButton(text="Попасть на обучение", url="https://www.peptidecourse.ru/"),
         ])
         if not files and not text:
             logger.warning("EMPTY response (no files, no text)")
@@ -212,7 +212,7 @@ class ProfessorBot(Bot):
         return await message.reply(
             clean_text,
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove() if back_menu == True else ReplyKeyboardRemove(),
+            reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove()
         )
 
 
