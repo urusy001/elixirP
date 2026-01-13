@@ -70,7 +70,7 @@ async def handle_user_registration(message: Message, state: FSMContext, professo
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens'])
         await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
 
-    await professor_bot.parse_response(response, message, back_menu=True, adv=True)
+    await professor_bot.parse_response(response, message)
     return await message.delete()
 
 
