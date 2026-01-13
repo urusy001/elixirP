@@ -71,7 +71,7 @@ class ProfessorBot(Bot):
         return thread_id
 
     # ---------------- PARSE RESPONSE ----------------
-    async def parse_response(self, response: dict, message: Message, back_menu: bool = False):
+    async def parse_response(self, response: dict, message: Message, back_menu: bool = False, adv: bool = False):
         user_id = message.from_user.id
         logger = self.__logger  # one logger per bot
 
@@ -152,10 +152,11 @@ class ProfessorBot(Bot):
                 new_output,
             )
         keyboard = copy.deepcopy(user_keyboards.backk)
-        keyboard.inline_keyboard.append([
-            InlineKeyboardButton(text="Ознакомиться с программой", url="https://t.me/obucheniepeptid/32"),
-            InlineKeyboardButton(text="Попасть на обучение", url="https://www.peptidecourse.ru/"),
-        ])
+        if adv:
+            keyboard.inline_keyboard.append([
+                InlineKeyboardButton(text="Ознакомиться с программой", url="https://t.me/obucheniepeptid/32"),
+                InlineKeyboardButton(text="Попасть на обучение", url="https://www.peptidecourse.ru/"),
+            ])
         if not files and not text:
             logger.warning("EMPTY response (no files, no text)")
             return await message.reply("oshibochka vishla da", reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove())
@@ -163,7 +164,7 @@ class ProfessorBot(Bot):
         if files:
             logger.info("OUTGOING response has %d file(s)", len(files))
             if len(files) == 1:
-                caption = re.sub(r"【[^】]*】", "", text[:900])+user_texts.blockquote or None
+                caption = re.sub(r"【[^】]*】", "", text[:900])+(user_texts.blockquote if adv else '') or None
                 logger.info(
                     "OUTGOING single photo | caption_len=%d",
                     len(caption or ""),
@@ -202,7 +203,7 @@ class ProfessorBot(Bot):
                     parse_mode=ParseMode.MARKDOWN,
                     reply_markup=ReplyKeyboardRemove(),
                 )
-            return await message.reply(re.sub(r"【[^】]*】", "", chunks[-1])+user_texts.blockquote, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove())
+            return await message.reply(re.sub(r"【[^】]*】", "", chunks[-1])+(user_texts.blockquote if adv else ''), parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove())
 
         clean_text = re.sub(r"【[^】]*】", "", text)
         logger.info(
@@ -211,7 +212,7 @@ class ProfessorBot(Bot):
             clean_text[:200],
         )
         return await message.reply(
-            clean_text+user_texts.blockquote,
+            clean_text+(user_texts.blockquote if adv else ''),
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove()
         )

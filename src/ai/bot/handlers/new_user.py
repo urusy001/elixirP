@@ -451,4 +451,4 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
             user_update = UserUpdate(premium_requests=user.premium_requests-1)
             user = await update_user(session, message.from_user.id, user_update)
 
-    return await professor_bot.parse_response(response, message, back_menu=True)
+    return await professor_bot.parse_response(response, message, back_menu=True, adv=bool(assistant_id != NEW_ASSISTANT_ID))

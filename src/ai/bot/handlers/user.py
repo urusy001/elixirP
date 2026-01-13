@@ -3,7 +3,7 @@ from aiogram import Router
 from aiogram.enums import ChatType
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 
 from config import PROFESSOR_BOT_TOKEN, MOSCOW_TZ, OWNER_TG_IDS, BOT_KEYWORDS, PROFESSOR_ASSISTANT_ID, DOSE_ASSISTANT_ID
 from src.ai.bot.keyboards import user_keyboards
@@ -47,7 +47,7 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens'])
         await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
 
-    return await professor_bot.parse_response(response, message)
+    return await professor_bot.parse_response(response, message, back_menu=True, adv=True)
 
 
 @professor_user_router.message(user_states.Registration.phone)
@@ -70,7 +70,7 @@ async def handle_user_registration(message: Message, state: FSMContext, professo
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens'])
         await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
 
-    await professor_bot.parse_response(response, message)
+    await professor_bot.parse_response(response, message, back_menu=True, adv=True)
     return await message.delete()
 
 
@@ -105,4 +105,8 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens']),
         await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
 
-    return await professor_bot.parse_response(response, message)
+    return await professor_bot.parse_response(response, message, back_menu=True, adv=True)
+
+@professor_user_router.callback_query()
+@dose_user_router.callback_query()
+async def handle_call(call: CallbackQuery): await call.message.answer("Напишите сообщение или очистите историю диалога командой /new_chat")
