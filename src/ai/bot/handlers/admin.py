@@ -11,11 +11,10 @@ from aiogram.types import Message, CallbackQuery, FSInputFile
 from config import ADMIN_TG_IDS, SPENDS_DIR, PROFESSOR_BOT_TOKEN, DOSE_BOT_TOKEN, MOSCOW_TZ
 from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
-from src.helpers import make_excel_safe
 from src.tg_methods import get_user_id_by_phone, normalize_phone
 from src.webapp import get_session
-from src.webapp.crud import get_usages, get_user, update_user, upsert_user, list_promos, get_carts, get_users
-from src.webapp.schemas import UserUpdate, UserCreate
+from src.webapp.crud import get_usages, get_user, update_user, get_users
+from src.webapp.schemas import UserUpdate
 
 professor_admin_router = Router(name="admin_professor")
 new_admin_router = Router(name="admin_new")

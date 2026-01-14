@@ -4,8 +4,9 @@ from datetime import datetime
 import pandas as pd
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery, FSInputFile
+from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery
 
+from config import ADMIN_TG_IDS
 from src.ai.bot.texts import admin_texts
 from src.ai.bot.handlers import new_admin_router
 from src.ai.bot.keyboards import admin_keyboards
@@ -15,25 +16,11 @@ from src.webapp import get_session
 from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user
 from src.webapp.schemas import UserCreate, UserUpdate
 
+new_admin_router.inline_query.filter(lambda query: query.from_user.id in ADMIN_TG_IDS)
 
 @new_admin_router.message(CommandStart())
 async def handle_start(message: Message):
     await message.answer(admin_texts.greeting, reply_markup=admin_keyboards.admin_menu)
-
-@new_admin_router.callback_query()
-async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
-    data = call.data.removeprefix("admin:").split(':')
-    print(data)
-    state_data = await state.get_data()
-    if data[0] == "users":
-        if data[1] == "search":
-            if data[2] == "start":
-                await call.message.edit_text(admin_texts.search_users_choice, reply_markup=admin_keyboards.search_users_choice)
-
-    elif data[0] == "spends":
-        from .admin import handle_admin_callback
-        await handle_admin_callback(call, state)
-
 
 @new_admin_router.message(Command('edit_and_pin'), lambda message: message.reply_to_message)
 async def handle_pin(message: Message):
@@ -208,8 +195,22 @@ async def handle_statistics(message: Message):
         caption=f"📊 Статистика (Excel)\nСформировано: {ts.replace('_', ' ')}",
     )
 
-    try:
-        os.remove(path)
-    except Exception:
-        pass
+    try: os.remove(path)
+    except Exception: pass
 
+@new_admin_router.callback_query()
+async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
+    data = call.data.removeprefix("admin:").split(':')
+    print(data)
+    state_data = await state.get_data()
+    if data[0] == "users":
+        if data[1] == "search":
+            await call.message.edit_text(admin_texts.search_users_choice, reply_markup=admin_keyboards.search_users_choice)
+
+    elif data[0] == "spends":
+        from .admin import handle_admin_callback
+        await handle_admin_callback(call, state)
+
+@new_admin_router.inline_query()
+async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
+    data = inline_query.query.strip().split(':')

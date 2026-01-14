@@ -47,7 +47,7 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens'])
         await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
 
-    return await professor_bot.parse_response(response, message, back_menu=True, adv=True)
+    return await professor_bot.parse_response(response, message, back_menu=True)
 
 
 @professor_user_router.message(user_states.Registration.phone)
@@ -105,7 +105,7 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens']),
         await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
 
-    return await professor_bot.parse_response(response, message, back_menu=True, adv=True)
+    return await professor_bot.parse_response(response, message, back_menu=True)
 
 @professor_user_router.callback_query()
 @dose_user_router.callback_query()
