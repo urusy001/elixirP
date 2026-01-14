@@ -17,13 +17,13 @@ open_test = InlineKeyboardMarkup(inline_keyboard=[
 
 admin_menu = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='💸 Расходы Ассистента', callback_data='admin:spends')],
-    [InlineKeyboardButton(text="👥 Пользователи", callback_data='admin:users:search:start')]
+    [InlineKeyboardButton(text="👥 Пользователи", switch_inline_query_current_chat='search_user start')]
 ])
 
 search_users_choice = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="ФИО", callback_data='admin:users:search:full_name')],
-    [InlineKeyboardButton(text="Телеграм ID", callback_data='admin:users:search:id'),
-     InlineKeyboardButton(text="Телеграм username", callback_data='admin:users:search:username')],
-    [InlineKeyboardButton(text="Номер телефона", callback_data='admin:users:search:phone'),
-     InlineKeyboardButton(text="Почта", callback_data='admin:users:search:email')]
+    [InlineKeyboardButton(text="ФИО", switch_inline_query_current_chat='search_user full_name ')],
+    [InlineKeyboardButton(text="Телеграм ID", switch_inline_query_current_chat='search_user id '),
+     InlineKeyboardButton(text="Телеграм username", switch_inline_query_current_chat='search_user username ')],
+    [InlineKeyboardButton(text="Номер телефона", switch_inline_query_current_chat='search_user phone '),
+     InlineKeyboardButton(text="Почта", switch_inline_query_current_chat='search_user email ')]
 ])

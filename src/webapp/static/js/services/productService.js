@@ -1,9 +1,5 @@
 import { apiGet } from "./api.js";
 
-// tgCategoryIds: array OR csv string "1,2,3"
-// tgCategoryMode: "any" | "all"
-// sortBy: "name" | "price"
-// sortDir: "asc" | "desc"
 export async function searchProducts({
                                          q = "",
                                          page = 0,
@@ -25,16 +21,10 @@ export async function searchProducts({
             : String(tgCategoryIds).trim();
         if (csv) params.set("tg_category_ids", csv);
     }
-    if (tgCategoryMode === "all" || tgCategoryMode === "any") {
-        params.set("tg_category_mode", tgCategoryMode);
-    }
-
-    // sorting
+    if (tgCategoryMode === "all" || tgCategoryMode === "any") {params.set("tg_category_mode", tgCategoryMode)}
     if (sortBy === "name" || sortBy === "price") params.set("sort_by", sortBy);
     if (sortDir === "asc" || sortDir === "desc") params.set("sort_dir", sortDir);
-
-    // IMPORTANT: trailing slash -> no redirect
-    return apiGet(`/search/?${params.toString()}`);
+    return apiGet(`/search/products?${params.toString()}`);
 }
 
 export async function getProductDetail(onec_id) {

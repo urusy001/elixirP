@@ -39,7 +39,6 @@ def CategoriesKeyboard(categories, per_row: int = 2) -> InlineKeyboardMarkup:
 
 
 def CategoryActions(category_id: int) -> InlineKeyboardMarkup:
-    # inline search helpers
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [

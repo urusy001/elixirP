@@ -51,7 +51,7 @@ load_dotenv()
 MOSCOW_TZ = timezone(timedelta(hours=3))
 
 OWNER_TG_IDS      = env_list_ints("OWNER_TG_IDS")
-ADMIN_TG_IDS =    env_list_ints("ADMIN_TG_IDS")
+ADMIN_TG_IDS      = env_list_ints("ADMIN_TG_IDS")
 TELETHON_API_ID   = env("TELETHON_API_ID", "")
 TELETHON_API_HASH = env("TELETHON_API_HASH", "")
 TELETHON_PHONE    = env("TELETHON_PHONE", "")
