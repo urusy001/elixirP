@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from aiogram import Router
 from aiogram.enums import ChatType
 from aiogram.filters import CommandStart, Command
@@ -240,15 +240,14 @@ async def handle_statistics(message: Message):
         pass
 
 @professor_admin_router.message(CommandStart())
-@new_admin_router.message(CommandStart(), lambda message: message.from_user.id in ADMIN_TG_IDS)
-@dose_admin_router.message(CommandStart(), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@dose_admin_router.message(CommandStart())
 async def handle_admin_start(message: Message):
     await message.answer(f'{message.from_user.full_name}, Добро пожаловать в <b>админ панель</b>\n\nВыберите действие кнопками ниже', reply_markup=admin_keyboards.main_menu, parse_mode="html")
     await message.delete()
 
-@professor_admin_router.message(Command('block'), lambda message: message.from_user.id in ADMIN_TG_IDS)
-@new_admin_router.message(Command('block'), lambda message: message.from_user.id in ADMIN_TG_IDS)
-@dose_admin_router.message(Command('block'), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@professor_admin_router.message(Command('block'))
+@new_admin_router.message(Command('block'))
+@dose_admin_router.message(Command('block'))
 async def handle_block(message: Message):
     text = (message.text or "").strip()
     args = text.removeprefix("/block ").split()
@@ -345,9 +344,9 @@ async def handle_block(message: Message):
             "<code>/block id айди_телеграм</code>"
         )
 
-@professor_admin_router.message(Command('unblock'), lambda message: message.from_user.id in ADMIN_TG_IDS)
-@new_admin_router.message(Command('unblock'), lambda message: message.from_user.id in ADMIN_TG_IDS)
-@dose_admin_router.message(Command('unblock'), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@professor_admin_router.message(Command('unblock'))
+@new_admin_router.message(Command('unblock'))
+@dose_admin_router.message(Command('unblock'))
 async def handle_unblock(message: Message):
     text = (message.text or "").strip()
     args = text.removeprefix("/unblock ").split()
@@ -441,9 +440,9 @@ async def handle_unblock(message: Message):
             "<code>/unblock id айди_телеграм</code>"
         )
 
-@professor_admin_router.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in ADMIN_TG_IDS)
-@new_admin_router.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in ADMIN_TG_IDS)
-@dose_admin_router.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in ADMIN_TG_IDS)
+@professor_admin_router.message(admin_states.MainMenu.spends_time)
+@new_admin_router.message(admin_states.MainMenu.spends_time)
+@dose_admin_router.message(admin_states.MainMenu.spends_time)
 async def handle_spends_time(message: Message):
     """
     Handle admin command to generate spending report.
@@ -514,20 +513,14 @@ async def handle_spends_time(message: Message):
 
     return os.remove(file_path)
 
-@professor_admin_router.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS)
-@new_admin_router.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS)
-@dose_admin_router.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS)
+@professor_admin_router.callback_query()
+@dose_admin_router.callback_query()
 async def handle_admin_callback(call: CallbackQuery, state: FSMContext):
-    try:
-        await call.answer()
-    except Exception:
-        pass
-
+    try: await call.answer()
+    except Exception: pass
     data = (call.data or "").split(":")[1:]  # ["spends"] or ["spends","<n>"]
-    if not data or data[0] != "spends":
-        return
+    if not data or data[0] != "spends": return
 
-    # 1) Just open the chooser
     if len(data) == 1:
         await state.set_state(admin_states.MainMenu.spends_time)
         await call.message.edit_text(
@@ -539,37 +532,20 @@ async def handle_admin_callback(call: CallbackQuery, state: FSMContext):
         )
         return
 
-    # 2) Presets from keyboard: admin:spends:1 / 7 / 30 / 0
-    from datetime import date, timedelta
-    import os
-    import pandas as pd
-    from aiogram.types import FSInputFile
-
     preset = data[1]
     today = date.today()
-    if preset == "0":
-        start_date, end_date = date(1970, 1, 1), today
+    if preset == "0": start_date, end_date = date(1970, 1, 1), today
     else:
-        try:
-            days = max(1, int(preset))  # 1/7/30
-        except ValueError:
-            days = 1
+        try: days = max(1, int(preset))  # 1/7/30
+        except ValueError: days = 1
         end_date = today
         start_date = end_date - timedelta(days=days - 1)
 
-    # resolve bot per your tokens
     bot_id = str(call.bot.id)
-    if bot_id == PROFESSOR_BOT_TOKEN.split(":")[0]:
-        bot = "professor"
-    elif bot_id == DOSE_BOT_TOKEN.split(":")[0]:
-        bot = "dose"
-    else:
-        bot = "new"
-
-    # query + export
-    async with get_session() as session:
-        period_label, usages = await get_usages(session, start_date, end_date, bot=bot)
-
+    if bot_id == PROFESSOR_BOT_TOKEN.split(":")[0]: bot = "professor"
+    elif bot_id == DOSE_BOT_TOKEN.split(":")[0]: bot = "dose"
+    else: bot = "new"
+    async with get_session() as session: period_label, usages = await get_usages(session, start_date, end_date, bot=bot)
     df = pd.DataFrame(usages)
     safe_label = (period_label or "").replace(":", "-").replace("/", "-")
     file_path = os.path.join(SPENDS_DIR, f"Расходы {safe_label}.xlsx")
@@ -580,19 +556,14 @@ async def handle_admin_callback(call: CallbackQuery, state: FSMContext):
         caption=f"📊 Файл со статистикой расходов всех пользователей <b>{period_label}</b>",
         parse_mode="HTML",
     )
-    try:
-        os.remove(file_path)
-    except Exception:
-        pass
+    try: os.remove(file_path)
+    except Exception: pass
 
-    # back to main and clean up
     await state.clear()
     await call.message.answer(
         f'{call.from_user.full_name}, Добро пожаловать в <b>админ панель</b>\n\nВыберите действие кнопками ниже',
         reply_markup=admin_keyboards.main_menu,
         parse_mode="HTML"
     )
-    try:
-        await call.message.delete()
-    except Exception:
-        pass
+    try: await call.message.delete()
+    except Exception: pass

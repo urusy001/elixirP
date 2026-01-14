@@ -16,7 +16,8 @@ open_test = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 admin_menu = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="Пользователи", callback_data='admin:users:search:start')]
+    [InlineKeyboardButton(text='💸 Расходы Ассистента', callback_data='admin:spends')],
+    [InlineKeyboardButton(text="👥 Пользователи", callback_data='admin:users:search:start')]
 ])
 
 search_users_choice = InlineKeyboardMarkup(inline_keyboard=[
