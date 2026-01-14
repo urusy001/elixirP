@@ -22,7 +22,7 @@ admin_menu = InlineKeyboardMarkup(inline_keyboard=[
 search_users_choice = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="ФИО", callback_data='admin:users:search:full_name')],
     [InlineKeyboardButton(text="Телеграм ID", callback_data='admin:users:search:id'),
-     [InlineKeyboardButton(text="Телеграм username", callback_data='admin:users:search:username'),]]
+     [InlineKeyboardButton(text="Телеграм username", callback_data='admin:users:search:username'),]],
     [InlineKeyboardButton(text="Номер телефона", callback_data='admin:users:search:phone'),
      InlineKeyboardButton(text="Почта", callback_data='admin:users:search:email')]
 ])
