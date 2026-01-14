@@ -49,11 +49,16 @@ class Cart(Base):
         default=None,
         index=True,
     )
+    promo_gains = Column(Numeric(8, 2), nullable=False, default=0, server_default="0")
     promo_gains_given = Column(Boolean, nullable=False, default=False, server_default="FALSE")
+
     delivery_string = Column(String, nullable=False, default="Не указан", server_default="Не указан")
     commentary = Column(String, nullable=True)
 
     is_active = Column(Boolean, nullable=False, default=True, server_default="true", index=True)
+    is_paid = Column(Boolean, nullable=False, default=False, server_default="false", index=True)
+    is_canceled = Column(Boolean, nullable=False, default=False, server_default="false", index=True)
+    is_shipped = Column(Boolean, nullable=False, default=False, server_default="false", index=True)
 
     status = Column(String, nullable=True, default=None)
     yandex_request_id = Column(String, nullable=True, default=None)

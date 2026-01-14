@@ -8,10 +8,10 @@ from src.webapp import get_session
 from src.webapp.crud import upsert_user, get_user, write_usage, increment_tokens
 from src.webapp.schemas import UserCreate
 
-router = Router(name="new_chat")
-router.message.filter(CHAT_ADMIN_REPLY_FILTER)
+new_chat_router = Router(name="new_chat")
+new_chat_router.message.filter(CHAT_ADMIN_REPLY_FILTER)
 
-@router.message(Command('answer_ai'))
+@new_chat_router.message(Command('answer_ai'))
 async def answer_ai(message: Message, professor_bot, professor_client):
     reply_message = message.reply_to_message
     if isinstance(reply_message, Message):

@@ -1,14 +1,14 @@
 import os
-from datetime import datetime
-
 import pandas as pd
+
+from datetime import datetime
 from aiogram import Router
 from aiogram.enums import ChatType
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, FSInputFile
 
-from config import OWNER_TG_IDS, SPENDS_DIR, PROFESSOR_BOT_TOKEN, DOSE_BOT_TOKEN, MOSCOW_TZ
+from config import ADMIN_TG_IDS, SPENDS_DIR, PROFESSOR_BOT_TOKEN, DOSE_BOT_TOKEN, MOSCOW_TZ
 from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
 from src.helpers import make_excel_safe
@@ -21,12 +21,12 @@ professor_admin_router = Router(name="admin_professor")
 new_admin_router = Router(name="admin_new")
 dose_admin_router = Router(name="admin_dose")
 
-professor_admin_router.message.filter(lambda message: message.from_user.id in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE)
-professor_admin_router.callback_query.filter(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
-new_admin_router.message.filter(lambda message: message.from_user.id in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE)
-new_admin_router.callback_query.filter(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
-dose_admin_router.message.filter(lambda message: message.from_user.id in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE)
-dose_admin_router.callback_query.filter(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
+professor_admin_router.message.filter(lambda message: message.from_user.id in ADMIN_TG_IDS and message.chat.type == ChatType.PRIVATE)
+professor_admin_router.callback_query.filter(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
+new_admin_router.message.filter(lambda message: message.from_user.id in ADMIN_TG_IDS and message.chat.type == ChatType.PRIVATE)
+new_admin_router.callback_query.filter(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
+dose_admin_router.message.filter(lambda message: message.from_user.id in ADMIN_TG_IDS and message.chat.type == ChatType.PRIVATE)
+dose_admin_router.callback_query.filter(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
 
 @new_admin_router.message(Command("send"))
 @dose_admin_router.message(Command("send"))
@@ -240,15 +240,15 @@ async def handle_statistics(message: Message):
         pass
 
 @professor_admin_router.message(CommandStart())
-@new_admin_router.message(CommandStart(), lambda message: message.from_user.id in OWNER_TG_IDS)
-@dose_admin_router.message(CommandStart(), lambda message: message.from_user.id in OWNER_TG_IDS)
+@new_admin_router.message(CommandStart(), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@dose_admin_router.message(CommandStart(), lambda message: message.from_user.id in ADMIN_TG_IDS)
 async def handle_admin_start(message: Message):
     await message.answer(f'{message.from_user.full_name}, Добро пожаловать в <b>админ панель</b>\n\nВыберите действие кнопками ниже', reply_markup=admin_keyboards.main_menu, parse_mode="html")
     await message.delete()
 
-@professor_admin_router.message(Command('block'), lambda message: message.from_user.id in OWNER_TG_IDS)
-@new_admin_router.message(Command('block'), lambda message: message.from_user.id in OWNER_TG_IDS)
-@dose_admin_router.message(Command('block'), lambda message: message.from_user.id in OWNER_TG_IDS)
+@professor_admin_router.message(Command('block'), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@new_admin_router.message(Command('block'), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@dose_admin_router.message(Command('block'), lambda message: message.from_user.id in ADMIN_TG_IDS)
 async def handle_block(message: Message):
     text = (message.text or "").strip()
     args = text.removeprefix("/block ").split()
@@ -345,9 +345,9 @@ async def handle_block(message: Message):
             "<code>/block id айди_телеграм</code>"
         )
 
-@professor_admin_router.message(Command('unblock'), lambda message: message.from_user.id in OWNER_TG_IDS)
-@new_admin_router.message(Command('unblock'), lambda message: message.from_user.id in OWNER_TG_IDS)
-@dose_admin_router.message(Command('unblock'), lambda message: message.from_user.id in OWNER_TG_IDS)
+@professor_admin_router.message(Command('unblock'), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@new_admin_router.message(Command('unblock'), lambda message: message.from_user.id in ADMIN_TG_IDS)
+@dose_admin_router.message(Command('unblock'), lambda message: message.from_user.id in ADMIN_TG_IDS)
 async def handle_unblock(message: Message):
     text = (message.text or "").strip()
     args = text.removeprefix("/unblock ").split()
@@ -441,9 +441,9 @@ async def handle_unblock(message: Message):
             "<code>/unblock id айди_телеграм</code>"
         )
 
-@professor_admin_router.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in OWNER_TG_IDS)
-@new_admin_router.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in OWNER_TG_IDS)
-@dose_admin_router.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in OWNER_TG_IDS)
+@professor_admin_router.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in ADMIN_TG_IDS)
+@new_admin_router.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in ADMIN_TG_IDS)
+@dose_admin_router.message(admin_states.MainMenu.spends_time, lambda message: message.from_user.id in ADMIN_TG_IDS)
 async def handle_spends_time(message: Message):
     """
     Handle admin command to generate spending report.
@@ -514,9 +514,9 @@ async def handle_spends_time(message: Message):
 
     return os.remove(file_path)
 
-@professor_admin_router.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS)
-@new_admin_router.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS)
-@dose_admin_router.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in OWNER_TG_IDS)
+@professor_admin_router.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS)
+@new_admin_router.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS)
+@dose_admin_router.callback_query(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS)
 async def handle_admin_callback(call: CallbackQuery, state: FSMContext):
     try:
         await call.answer()
