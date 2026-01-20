@@ -1,5 +1,8 @@
 import asyncio
 import os
+import uuid
+from typing import Literal, get_args
+
 import pandas as pd
 
 from datetime import datetime, timedelta
@@ -188,21 +191,8 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
     if data[0] == "search_user":
         column_name = data[1]
         value = data[2]
-        print(column_name, value)
-        if column_name == "phone":
-            value = value.replace(" ", "").replace("-", "").replace("(", "").replace(")", "").strip()
-            async with get_session() as session1, get_session() as session2:
-                tg_phone_task, phone_task = search_users(session1, "tg_phone", value), search_users(session2, "phone", value)
-                tg_phone_result, phone_result = await asyncio.gather(tg_phone_task, phone_task)
-                ok = isinstance(tg_phone_result, (list, int)) and isinstance(phone_result, (list, int)) and len(tg_phone_result) == len(phone_result) == 2
-                rows, total = (tg_phone_result[0] + phone_result[0], tg_phone_result[1] + phone_result[1]) if ok else ([], 0)
-
+        allowed_column_names = Literal["full_name", "username", "email", "tg_id", "phone"]
+        if column_name not in get_args(allowed_column_names): result = InlineQueryResultArticle(id=str(uuid.uuid4()), title="Неверный поисковой параметр (column_name, 2ой по счету)", input_message_entities="/start", description=f"Позволено: {', '.join(allowed_column_names)}")
         else:
-            if column_name == "tg_id":
-                if value.isdigit(): value = int(value)
-                else: result = InlineQueryResultArticle(id=str(uuid4()), title="Ошибка поиска", input_message_content=InputTextMessageContent(message_text="<b>Телеграм ID должен быть числом</b>"))
-
-
-
-            async with get_session() as session: rows, total = await search_users(session, column_name, value, limit=50)
-        [print(row.__dict__) for row in rows]
+            async with get_session() as session: rows, total = await search_users(session, column_name, value)
+            [print(row.__dict__) for row in rows]

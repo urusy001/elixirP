@@ -1,5 +1,5 @@
 from typing import Literal, Optional
-from sqlalchemy import func, case, select, bindparam, String, cast
+from sqlalchemy import func, case, select, bindparam, cast, String, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -131,25 +131,38 @@ async def search_users(db: AsyncSession, by: str, value: str, page: Optional[int
     stmt = select(User)
 
     if by is not None:
-        column = getattr(User, by, None)
-        if column is None: return [], 0
-
         norm_value = normalize_user_value(by, value)
         if norm_value is None or str(norm_value).strip() == "": return [], 0
 
-        # universal: for ANY column type
-        # 1) try exact match if we can coerce (keeps indexes for ints/bools/etc)
-        # 2) fallback to contains by casting to text (works for bigint/date/numeric/etc)
-        try: py_t = column.type.python_type
-        except Exception: py_t = None
+        if by == "tg_id":
+            col = getattr(User, "tg_id", None)
+            if col is None: return [], 0
+            v = str(norm_value).replace(" ", "")
+            stmt = stmt.where(cast(col, String).ilike(bindparam("v", f"%{v}%", type_=String())))
 
-        coerced = None
-        if py_t is not None and py_t is not str:
-            try: coerced = py_t(norm_value)
-            except Exception: coerced = None
+        elif by == "full_name":
+            name_col = getattr(User, "name", None)
+            surname_col = getattr(User, "surname", None)
+            if name_col is None or surname_col is None: return [], 0
+            full_name = func.concat(func.coalesce(name_col, ""), " ", func.coalesce(surname_col, ""))
+            stmt = stmt.where(full_name.ilike(bindparam("v", f"%{norm_value}%", type_=String())))
 
-        if coerced is not None: stmt = stmt.where(column == bindparam("v_exact", coerced, type_=column.type))
-        else: stmt = stmt.where(cast(column, String).ilike(bindparam("v", f"%{norm_value}%", type_=String())))
+        elif by == "phone":
+            phone_col = getattr(User, "phone", None)
+            tg_phone_col = getattr(User, "tg_phone", None)
+            if phone_col is None and tg_phone_col is None: return [], 0
+            v = str(norm_value).replace(" ", "")
+            conds = []
+            if phone_col is not None: conds.append(func.replace(cast(phone_col, String), " ", "").ilike(bindparam("v", f"%{v}%", type_=String())))
+            if tg_phone_col is not None: conds.append(func.replace(cast(tg_phone_col, String), " ", "").ilike(bindparam("v", f"%{v}%", type_=String())))
+            stmt = stmt.where(or_(*conds))
+
+        else:
+            col = getattr(User, by, None)
+            if col is None: return [], 0
+            v = str(norm_value).replace(" ", "")
+            col_nospace = func.replace(cast(col, String), " ", "")
+            stmt = stmt.where(col_nospace.ilike(bindparam("v", f"%{v}%", type_=String())))
 
     count_stmt = select(func.count()).select_from(stmt.subquery())
     total = await db.scalar(count_stmt)
