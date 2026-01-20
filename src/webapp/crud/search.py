@@ -1,5 +1,5 @@
 from typing import Literal, Optional
-from sqlalchemy import func, case, select, bindparam
+from sqlalchemy import func, case, select, bindparam, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
