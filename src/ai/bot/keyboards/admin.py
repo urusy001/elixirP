@@ -22,7 +22,7 @@ admin_menu = InlineKeyboardMarkup(inline_keyboard=[
 
 search_users_choice = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="ФИО", switch_inline_query_current_chat='search_user:full_name:')],
-    [InlineKeyboardButton(text="Телеграм ID", switch_inline_query_current_chat='search_user:id:'),
+    [InlineKeyboardButton(text="Телеграм ID", switch_inline_query_current_chat='search_user:tg_id:'),
      InlineKeyboardButton(text="Телеграм username", switch_inline_query_current_chat='search_user:username:')],
     [InlineKeyboardButton(text="Номер телефона", switch_inline_query_current_chat='search_user:phone:'),
      InlineKeyboardButton(text="Почта", switch_inline_query_current_chat='search_user:email:')]

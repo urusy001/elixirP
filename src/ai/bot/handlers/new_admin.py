@@ -1,3 +1,4 @@
+import asyncio
 import os
 import pandas as pd
 
@@ -187,9 +188,19 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
     if data[0] == "search_user":
         column_name = data[1]
         value = data[2]
-        if column_name == "id":
-            if value.isdigit(): value = int(value)
-            else: result = InlineQueryResultArticle(id=str(uuid4()), title="Ошибка поиска", input_message_content=InputTextMessageContent(message_text="<b>Телеграм ID должен быть числом</b>"))
+        if column_name == "phone":
+            value = normalize_phone(value).removeprefix("+")
+            async with get_session() as session1, get_session as session2:
+                tg_phone_task, phone_task = search_users(session1, "tg_phone", value), search_users(session2, "phone", value)
+                tg_phone_row, tg_phone_totals, phone_row, phone_totals = await asyncio.gather(tg_phone_task, phone_task)
+                rows, total = tg_phone_row + phone_row, tg_phone_totals + phone_totals
 
-        async with get_session() as session: rows, total = await search_users(session, column_name, value, limit=50)
+        else:
+            if column_name == "tg_id":
+                if value.isdigit(): value = int(value)
+                else: result = InlineQueryResultArticle(id=str(uuid4()), title="Ошибка поиска", input_message_content=InputTextMessageContent(message_text="<b>Телеграм ID должен быть числом</b>"))
+
+
+
+            async with get_session() as session: rows, total = await search_users(session, column_name, value, limit=50)
         [print(row.__dict__) for row in rows]
