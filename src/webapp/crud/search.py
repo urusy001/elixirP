@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal, Optional, Any
 from sqlalchemy import func, case, select, bindparam, cast, String, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -127,11 +127,11 @@ async def search_products(db: AsyncSession, q: Optional[str], page: int, limit: 
     return {"results": page_results, "total": total}
 
 
-async def search_users(db: AsyncSession, by: str, value: str, page: Optional[int] = None, limit: Optional[int] = None) -> tuple[list[User], int]:
+async def search_users(db: AsyncSession, by: str, value: Any, page: Optional[int] = None, limit: Optional[int] = None) -> tuple[list[User], int]:
     stmt = select(User)
 
     if by is not None:
-        norm_value = normalize_user_value(by, value)
+        norm_value = normalize_user_value(by, value) if by != "full_name" else str(value)
         if norm_value is None or str(norm_value).strip() == "": return [], 0
 
         if by == "tg_id":

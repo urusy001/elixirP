@@ -194,5 +194,5 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
         allowed_column_names = Literal["full_name", "username", "email", "tg_id", "phone"]
         if column_name not in get_args(allowed_column_names): result = InlineQueryResultArticle(id=str(uuid.uuid4()), title="Неверный поисковой параметр (column_name, 2ой по счету)", input_message_entities="/start", description=f"Позволено: {', '.join(allowed_column_names)}")
         else:
-            async with get_session() as session: rows, total = await search_users(session, column_name, value)
+            async with get_session() as session: rows, total = await search_users(session, column_name, value, limit=50)
             [print(row.__dict__) for row in rows]
