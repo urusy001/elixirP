@@ -12,10 +12,8 @@ def _parse_int_csv(value: Optional[str]) -> list[int]:
     parts = [p.strip() for p in value.split(",") if p.strip()]
     out: list[int] = []
     for p in parts:
-        try:
-            out.append(int(p))
-        except ValueError:
-            continue
+        try: out.append(int(p))
+        except ValueError: continue
 
     seen = set()
     res = []
@@ -134,9 +132,7 @@ async def search_users(db: AsyncSession, by: str, value: str, page: Optional[int
     if by is not None:
         column = getattr(User, by, None)
         norm_value = normalize_user_value(by, value)
-        stmt = stmt.where(column == bindparam("v", norm_value, type_=column.type))
-
-    print(stmt)
+        stmt = stmt.where(column.like(bindparam("v", f"%{norm_value}%", type_=String())))
 
     count_stmt = select(func.count()).select_from(stmt.subquery())
     total = await db.scalar(count_stmt)
@@ -144,5 +140,4 @@ async def search_users(db: AsyncSession, by: str, value: str, page: Optional[int
     if limit: stmt = stmt.limit(limit)
     if page: stmt = stmt.offset(page * limit)
     rows = (await db.execute(stmt)).scalars().all()
-
     return rows, total
