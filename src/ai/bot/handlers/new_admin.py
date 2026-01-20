@@ -188,12 +188,15 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
     if data[0] == "search_user":
         column_name = data[1]
         value = data[2]
+        print(column_name, value)
         if column_name == "phone":
             value = value.replace(" ", "").replace("-", "").replace("(", "").replace(")", "").strip()
             async with get_session() as session1, get_session() as session2:
                 tg_phone_task, phone_task = search_users(session1, "tg_phone", value), search_users(session2, "phone", value)
                 tg_phone_result, phone_result = await asyncio.gather(tg_phone_task, phone_task)
-                ok = isinstance(tg_phone_result, (tuple, list)) and isinstance(phone_result, (tuple, list)) and len(tg_phone_result) == len(phone_result) == 2
+                print(tg_phone_result, phone_result)
+                print(type(phone_result), type(tg_phone_result))
+                ok = isinstance(tg_phone_result, (list, int)) and isinstance(phone_result, (list, int)) and len(tg_phone_result) == len(phone_result) == 2
                 rows, total = (tg_phone_result[0] + phone_result[0], tg_phone_result[1] + phone_result[1]) if ok else ([], 0)
 
         else:
