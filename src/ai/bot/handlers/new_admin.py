@@ -189,7 +189,7 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
         column_name = data[1]
         value = data[2]
         if column_name == "phone":
-            value = normalize_phone(value).removeprefix("+")
+            value = value.replace(" ", "").replace("-", "").replace("(", "").replace(")", "").strip()
             async with get_session() as session1, get_session as session2:
                 tg_phone_task, phone_task = search_users(session1, "tg_phone", value), search_users(session2, "phone", value)
                 tg_phone_row, tg_phone_totals, phone_row, phone_totals = await asyncio.gather(tg_phone_task, phone_task)
