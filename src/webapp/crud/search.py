@@ -136,6 +136,8 @@ async def search_users(db: AsyncSession, by: str, value: str, page: Optional[int
         norm_value = normalize_user_value(by, value)
         stmt = stmt.where(column == bindparam("v", norm_value, type_=column.type))
 
+    print(stmt)
+
     count_stmt = select(func.count()).select_from(stmt.subquery())
     total = await db.scalar(count_stmt)
     stmt = stmt.order_by(User.tg_id.desc())
