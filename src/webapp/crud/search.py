@@ -1,5 +1,5 @@
 from typing import Literal, Optional
-from sqlalchemy import func, case, select, bindparam, String
+from sqlalchemy import func, case, select, bindparam, String, cast
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -129,15 +129,34 @@ async def search_products(db: AsyncSession, q: Optional[str], page: int, limit: 
 
 async def search_users(db: AsyncSession, by: str, value: str, page: Optional[int] = None, limit: Optional[int] = None) -> tuple[list[User], int]:
     stmt = select(User)
+
     if by is not None:
         column = getattr(User, by, None)
+        if column is None: return [], 0
+
         norm_value = normalize_user_value(by, value)
-        stmt = stmt.where(column.like(bindparam("v", f"%{norm_value}%", type_=String())))
+        if norm_value is None or str(norm_value).strip() == "": return [], 0
+
+        # universal: for ANY column type
+        # 1) try exact match if we can coerce (keeps indexes for ints/bools/etc)
+        # 2) fallback to contains by casting to text (works for bigint/date/numeric/etc)
+        try: py_t = column.type.python_type
+        except Exception: py_t = None
+
+        coerced = None
+        if py_t is not None and py_t is not str:
+            try: coerced = py_t(norm_value)
+            except Exception: coerced = None
+
+        if coerced is not None: stmt = stmt.where(column == bindparam("v_exact", coerced, type_=column.type))
+        else: stmt = stmt.where(cast(column, String).ilike(bindparam("v", f"%{norm_value}%", type_=String())))
 
     count_stmt = select(func.count()).select_from(stmt.subquery())
     total = await db.scalar(count_stmt)
+
     stmt = stmt.order_by(User.tg_id.desc())
-    if limit: stmt = stmt.limit(limit)
-    if page: stmt = stmt.offset(page * limit)
+    if limit is not None: stmt = stmt.limit(limit)
+    if page is not None and limit is not None: stmt = stmt.offset(page * limit)
+
     rows = (await db.execute(stmt)).scalars().all()
-    return rows, total
+    return rows, int(total or 0)
