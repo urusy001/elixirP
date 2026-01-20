@@ -1,6 +1,3 @@
-# src/calc/drugparams.py
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Literal, Optional, Dict, Tuple
 
@@ -20,17 +17,11 @@ class DrugParams:
     key: DrugName
     name: str
     route: Route
-
-    # Core PK (for your sims):
     t_half_days: float
     F: float
     tmax_h: Optional[float]
-
-    # Labels / meta:
     targets: str = ""
     refs: Tuple[str, ...] = ()
-
-    # Reference-only:
     V_L: Optional[float] = None
     CL_L_per_h: Optional[float] = None
     note: str = ""

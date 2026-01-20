@@ -71,47 +71,24 @@ async def handle_admin_start(message: Message):
 async def handle_block(message: Message):
     text = (message.text or "").strip()
     args = text.removeprefix("/block ").split()
-
-    if len(args) != 2:
-        return await message.answer(
-            "<b>Ошибка команды</b>\n"
-            "<code>/block phone номер_телефона</code>\n"
-            "<code>/block id айди_телеграм</code>"
-        )
-
+    if len(args) != 2: return await message.answer("<b>Ошибка команды</b>\n<code>/block phone номер_телефона</code>\n<code>/block id айди_телеграм</code>")
     mode, value = args[0], args[1]
     user_update = UserUpdate(blocked_until=datetime.max.replace(tzinfo=MOSCOW_TZ))
     full_name = "Unknown"
 
     if mode == "id":
-        if not value.isdigit():
-            return await message.answer(
-                "<b>Ошибка команды:</b> айди должен быть числом\n"
-                "<code>/block id 123456789</code>"
-            )
-
+        if not value.isdigit(): return await message.answer("<b>Ошибка команды:</b> айди должен быть числом\n<code>/block id 123456789</code>")
         user_id = int(value)
         async with get_session() as session:
             user = await get_user(session, "tg_id", user_id)
-            if not user:
-                return await message.answer(
-                    f"<b>Ошибка команды: пользователь с айди {user_id} не найден</b>"
-                )
-
+            if not user: return await message.answer(f"<b>Ошибка команды: пользователь с айди {user_id} не найден</b>")
             await update_user(session, user.tg_id, user_update)
 
-        # попытка достать нормальное имя из Telegram
         try:
             chat = await message.bot.get_chat(user_id)
-            if chat:
-                full_name = chat.full_name
-        except Exception:
-            full_name = str(user_id)
-
-        return await message.answer(
-            f"Пользователь {full_name} успешно <b>заблокирован</b>\n"
-            f"Команда для разблокировки: <code>/unblock id {user_id}</code>"
-        )
+            if chat: full_name = chat.full_name
+        except Exception: full_name = str(user_id)
+        return await message.answer(f"Пользователь {full_name} успешно <b>заблокирован</b>\nКоманда для разблокировки: <code>/unblock id {user_id}</code>")
 
     elif mode == "phone":
         phone = normalize_phone(value)
@@ -123,46 +100,22 @@ async def handle_block(message: Message):
 
         if not user:
             user_id = await get_user_id_by_phone(phone)
-            if not user_id:
-                return await message.answer(
-                    f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>"
-                )
-
+            if not user_id:return await message.answer(f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>")
             async with get_session() as session:
                 user = await get_user(session, "tg_id", user_id)
-                if not user:
-                    return await message.answer(
-                        f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>"
-                    )
-
-                # блокируем по tg_id (важно — этого не было в твоем коде)
+                if not user: return await message.answer(f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>")
                 await update_user(session, user.tg_id, user_update)
 
         else:
-            # если нашли по tg_phone — просто блокируем
-            async with get_session() as session:
-                await update_user(session, user.tg_id, user_update)
+            async with get_session() as session: await update_user(session, user.tg_id, user_update)
 
-        # попытка достать нормальное имя из Telegram
         try:
             chat = await message.bot.get_chat(user.tg_id)
-            if chat:
-                full_name = chat.full_name
-        except Exception:
-            pass
+            if chat: full_name = chat.full_name
+        except Exception: pass
+        return await message.answer(f"Пользователь {full_name} успешно <b>заблокирован</b>\nКоманда для разблокировки: <code>/unblock phone +{phone.removeprefix('+')}</code>")
 
-        return await message.answer(
-            f"Пользователь {full_name} успешно <b>заблокирован</b>\n"
-            f"Команда для разблокировки: <code>/unblock phone +{phone.removeprefix('+')}</code>"
-        )
-
-    # ------------- неизвестный режим -------------
-    else:
-        return await message.answer(
-            "<b>Ошибка команды</b>\n"
-            "<code>/block phone номер_телефона</code>\n"
-            "<code>/block id айди_телеграм</code>"
-        )
+    else: return await message.answer("<b>Ошибка команды</b>\n<code>/block phone номер_телефона</code>\n<code>/block id айди_телеграм</code>")
 
 @professor_admin_router.message(Command('unblock'))
 @new_admin_router.message(Command('unblock'))
@@ -170,167 +123,76 @@ async def handle_block(message: Message):
 async def handle_unblock(message: Message):
     text = (message.text or "").strip()
     args = text.removeprefix("/unblock ").split()
-
-    if len(args) != 2:
-        return await message.answer(
-            "<b>Ошибка команды</b>\n"
-            "<code>/unblock phone номер_телефона</code>\n"
-            "<code>/unblock id айди_телеграм</code>"
-        )
-
+    if len(args) != 2: return await message.answer("<b>Ошибка команды</b>\n<code>/unblock phone номер_телефона</code>\n<code>/unblock id айди_телеграм</code>")
     mode, value = args[0], args[1]
     user_update = UserUpdate(blocked_until=None)
     full_name = "Unknown"
 
-    # ------------- /unblock id 123456 -------------
     if mode == "id":
-        if not value.isdigit():
-            return await message.answer(
-                "<b>Ошибка команды:</b> айди должен быть числом\n"
-                "<code>/unblock id 123456789</code>"
-            )
-
+        if not value.isdigit(): return await message.answer("<b>Ошибка команды:</b> айди должен быть числом\n<code>/unblock id 123456789</code>")
         user_id = int(value)
         async with get_session() as session:
             user = await get_user(session, "tg_id", user_id)
-            if not user:
-                return await message.answer(
-                    f"<b>Ошибка команды: пользователь с айди {user_id} не найден</b>"
-                )
-
+            if not user: return await message.answer(f"<b>Ошибка команды: пользователь с айди {user_id} не найден</b>")
             await update_user(session, user.tg_id, user_update)
 
-        # попытка достать нормальное имя из Telegram
         try:
             chat = await message.bot.get_chat(user_id)
-            if chat:
-                full_name = chat.full_name
-        except Exception:
-            full_name = str(user_id)
-
-        return await message.answer(
-            f"Пользователь {full_name} успешно <b>разблокирован</b>\n"
-            f"Команда для блокировки: <code>/block id {user_id}</code>"
-        )
+            if chat: full_name = chat.full_name
+        except Exception: full_name = str(user_id)
+        return await message.answer(f"Пользователь {full_name} успешно <b>разблокирован</b>\nКоманда для блокировки: <code>/block id {user_id}</code>")
 
     elif mode == "phone":
         phone = normalize_phone(value)
         full_name = phone
-
         async with get_session() as session:
             user = await get_user(session, "tg_phone", phone)
-            if not user:
-                user = await get_user(session, "tg_id", f'+{phone}')
+            if not user: user = await get_user(session, "tg_id", f'+{phone}')
 
         if not user:
             user_id = await get_user_id_by_phone(phone)
-            if not user_id:
-                return await message.answer(
-                    f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>"
-                )
-
+            if not user_id:return await message.answer(f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>")
             async with get_session() as session:
                 user = await get_user(session, "tg_id", user_id)
-                if not user:
-                    return await message.answer(
-                        f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>"
-                    )
-
+                if not user: return await message.answer(f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>")
                 await update_user(session, user.tg_id, user_update)
 
         else:
-            async with get_session() as session:  await update_user(session, user.tg_id, user_update)
-
+            async with get_session() as session: await update_user(session, user.tg_id, user_update)
         try:
             chat = await message.bot.get_chat(user.tg_id)
             if chat: full_name = chat.full_name
-        except Exception:
-            pass
+        except Exception: pass
+        return await message.answer(f"Пользователь {full_name} успешно <b>разблокирован</b>\nКоманда для блокировки: <code>/block phone +{phone.removeprefix('+')}</code>")
 
-        return await message.answer(
-            f"Пользователь {full_name} успешно <b>разблокирован</b>\n"
-            f"Команда для блокировки: <code>/block phone +{phone.removeprefix('+')}</code>"
-        )
-
-    # ------------- неизвестный режим -------------
-    else:
-        return await message.answer(
-            "<b>Ошибка команды</b>\n"
-            "<code>/unblock phone номер_телефона</code>\n"
-            "<code>/unblock id айди_телеграм</code>"
-        )
+    else: return await message.answer("<b>Ошибка команды</b>\n<code>/unblock phone номер_телефона</code>\n<code>/unblock id айди_телеграм</code>")
 
 @professor_admin_router.message(admin_states.MainMenu.spends_time)
 @new_admin_router.message(admin_states.MainMenu.spends_time)
 @dose_admin_router.message(admin_states.MainMenu.spends_time)
 async def handle_spends_time(message: Message):
-    """
-    Handle admin command to generate spending report.
-    Requires exactly two dates in format: DD.MM.YYYY DD.MM.YYYY
-    Example: 22.09.2025 12.10.2025
-    """
     text = message.text.strip()
     dates = text.split()
-
-    if len(dates) != 2:
-        return await message.answer(
-            (
-                "<b>Неверное количество дат.</b>\n"
-                "Пожалуйста, укажите <b>ровно две даты</b> через пробел.\n"
-                "Пример: <code>22.09.2025 12.10.2025</code>"
-            ),
-            reply_markup=admin_keyboards.main_menu,
-            parse_mode="HTML",
-        )
-
+    if len(dates) != 2:return await message.answer("<b>Неверное количество дат.</b>\nПожалуйста, укажите <b>ровно две даты</b> через пробел.\nПример: <code>22.09.2025 12.10.2025</code>", reply_markup=admin_keyboards.main_menu, parse_mode="HTML")
     try:
         start_date = datetime.strptime(dates[0], "%d.%m.%Y").date()
         end_date = datetime.strptime(dates[1], "%d.%m.%Y").date()
-
-        if end_date < start_date:
-            raise ValueError("End date is before start date")
-
-    except Exception:
-        return await message.answer(
-            (
-                "<b>Ошибка формата промежутка.</b>\n"
-                "Пожалуйста, следуйте примеру:\n"
-                "<code>22.09.2025 12.10.2025</code>\n"
-                "(можно скопировать по нажатию)"
-            ),
-            reply_markup=admin_keyboards.main_menu,
-            parse_mode="HTML",
-        )
+        if end_date < start_date: raise ValueError("End date is before start date")
+    except Exception: return await message.answer("<b>Ошибка формата промежутка.</b>\n""Пожалуйста, следуйте примеру:\n""<code>22.09.2025 12.10.2025</code>\n""(можно скопировать по нажатию)", reply_markup=admin_keyboards.main_menu, parse_mode="HTML")
 
     bot_id = str(message.bot.id)
-    if bot_id == PROFESSOR_BOT_TOKEN.split(':')[0]:
-        bot = "professor"
-    elif bot_id == DOSE_BOT_TOKEN.split(':')[0]:
-        bot = "dose"
-    else:
-        bot = "new"
+    if bot_id == PROFESSOR_BOT_TOKEN.split(':')[0]: bot = "professor"
+    elif bot_id == DOSE_BOT_TOKEN.split(':')[0]: bot = "dose"
+    else: bot = "new"
 
-    async with get_session() as session:
-        period_label, usages = await get_usages(session, start_date, end_date, bot=bot)
-
-    if not usages:
-        return await message.answer(
-            f"📭 Нет данных за период {period_label}.",
-            reply_markup=admin_keyboards.main_menu,
-            parse_mode="HTML",
-        )
+    async with get_session() as session: period_label, usages = await get_usages(session, start_date, end_date, bot=bot)
+    if not usages: return await message.answer(f"📭 Нет данных за период {period_label}.", reply_markup=admin_keyboards.main_menu, parse_mode="HTML")
 
     df = pd.DataFrame(usages)
     safe_label = period_label.replace(":", "-").replace("/", "-")
     file_path = os.path.join(SPENDS_DIR, f"Расходы {safe_label}.xlsx")
     df.to_excel(file_path, index=False)
-    await message.answer_document(
-        FSInputFile(file_path),
-        caption=f"📊 Файл со статистикой расходов <b>{period_label}</b>",
-        parse_mode="HTML",
-        reply_markup=admin_keyboards.main_menu,
-    )
-
+    await message.answer_document(FSInputFile(file_path), caption=f"📊 Файл со статистикой расходов <b>{period_label}</b>", parse_mode="HTML", reply_markup=admin_keyboards.main_menu)
     return os.remove(file_path)
 
 @professor_admin_router.callback_query()
@@ -338,22 +200,16 @@ async def handle_spends_time(message: Message):
 async def handle_admin_callback(call: CallbackQuery, state: FSMContext):
     try: await call.answer()
     except Exception: pass
-    data = (call.data or "").split(":")[1:]  # ["spends"] or ["spends","<n>"]
+    data = (call.data or "").split(":")[1:]
     if not data or data[0] != "spends": return
-
     if len(data) == 1:
         await state.set_state(admin_states.MainMenu.spends_time)
-        await call.message.edit_text(
-            'Выберите <b>временной промежуток</b> за который будете смотреть расходы\n\n'
-            'Также можете отправить <i>количество дней цифрой</i> или <i>промежуток</i> вида '
-            '<code>22.09.2025 12.10.2025</code>.',
-            parse_mode="HTML",
-            reply_markup=admin_keyboards.spend_times
-        )
+        await call.message.edit_text('Выберите <b>временной промежуток</b> за который будете смотреть расходы\n\nТакже можете отправить <i>количество дней цифрой</i> или <i>промежуток</i> вида <code>22.09.2025 12.10.2025</code>.', parse_mode="HTML", reply_markup=admin_keyboards.spend_times)
         return
 
     preset = data[1]
     today = date.today()
+
     if preset == "0": start_date, end_date = date(1970, 1, 1), today
     else:
         try: days = max(1, int(preset))  # 1/7/30
@@ -365,25 +221,19 @@ async def handle_admin_callback(call: CallbackQuery, state: FSMContext):
     if bot_id == PROFESSOR_BOT_TOKEN.split(":")[0]: bot = "professor"
     elif bot_id == DOSE_BOT_TOKEN.split(":")[0]: bot = "dose"
     else: bot = "new"
+
     async with get_session() as session: period_label, usages = await get_usages(session, start_date, end_date, bot=bot)
     df = pd.DataFrame(usages)
     safe_label = (period_label or "").replace(":", "-").replace("/", "-")
     file_path = os.path.join(SPENDS_DIR, f"Расходы {safe_label}.xlsx")
     df.to_excel(file_path, index=False)
 
-    await call.message.answer_document(
-        FSInputFile(file_path),
-        caption=f"📊 Файл со статистикой расходов всех пользователей <b>{period_label}</b>",
-        parse_mode="HTML",
-    )
+    await call.message.answer_document(FSInputFile(file_path), caption=f"📊 Файл со статистикой расходов всех пользователей <b>{period_label}</b>", parse_mode="HTML")
     try: os.remove(file_path)
     except Exception: pass
 
     await state.clear()
-    await call.message.answer(
-        f'{call.from_user.full_name}, Добро пожаловать в <b>админ панель</b>\n\nВыберите действие кнопками ниже',
-        reply_markup=admin_keyboards.main_menu,
-        parse_mode="HTML"
-    )
+    await call.message.answer(f'{call.from_user.full_name}, Добро пожаловать в <b>админ панель</b>\n\nВыберите действие кнопками ниже', reply_markup=admin_keyboards.main_menu, parse_mode="HTML")
+
     try: await call.message.delete()
     except Exception: pass

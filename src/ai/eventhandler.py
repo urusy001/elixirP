@@ -25,28 +25,23 @@ class ProfessorEventHandler(AsyncAssistantEventHandler):
     async def on_message_done(self, message: Message) -> dict:
         os.makedirs(DOWNLOADS_DIR, exist_ok=True)
         response_text = ""
-
         files = []
 
         for content_block in message.content:
-            # Text
             if isinstance(content_block, TextContentBlock):
                 text = content_block.text.value
                 response_text += text
                 self.client.log.info(f"Ответ профессора: {text}")
 
-            # Image stored as file on OpenAI
             elif isinstance(content_block, ImageFileContentBlock):
                 file_id = content_block.image_file.file_id
                 filename = os.path.join(DOWNLOADS_DIR, f"{file_id}.png")
                 self.client.log.info(f"Downloading image file from OpenAI: {file_id}")
                 content = await self.client.files.content(file_id)
-                async with aiofiles.open(filename, "wb") as f:
-                    await f.write(content)
+                async with aiofiles.open(filename, "wb") as f: await f.write(content)
                 files.append(filename)
                 self.client.log.info(f"Saved image file to: {filename}")
 
-            # Image from URL
             elif isinstance(content_block, ImageURLContentBlock):
                 url = content_block.image_url.url
                 filename = os.path.join(DOWNLOADS_DIR, f"{os.path.basename(url)}.png")
@@ -54,8 +49,7 @@ class ProfessorEventHandler(AsyncAssistantEventHandler):
                 async with httpx.AsyncClient() as http:
                     resp = await http.get(url)
                     resp.raise_for_status()
-                    async with aiofiles.open(filename, "wb") as f:
-                        await f.write(resp.content)
+                    async with aiofiles.open(filename, "wb") as f: await f.write(resp.content)
                 files.append(filename)
                 self.client.log.info(f"Saved image from URL to: {filename}")
 

@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import os
 import re
 import secrets
-from decimal import Decimal
-
 import aiosmtplib
 import httpx
 
+from decimal import Decimal
 from email.message import EmailMessage
 from typing import Optional, Tuple, Literal, Union, Any
 from datetime import datetime, timedelta, UTC, timezone
@@ -430,7 +428,7 @@ class AsyncAmoCRM:
             )
 
             leads = (data.get("_embedded") or {}).get("leads") or []
-            if not leads: return ("not_found", None, None)
+            if not leads: return "not_found", None, None
             for lead in leads:
                 name = lead.get("name") or ""
                 status_id = lead.get("status_id")
@@ -440,14 +438,14 @@ class AsyncAmoCRM:
                 elif not isinstance(created_at, (int, float)): continue
                 if status_id in self.COMPLETE_STATUS_IDS and rx.search(name):
                     raw_price = lead.get("price", None)
-                    if not raw_price: return ("old", None, None)
+                    if not raw_price: return "old", None, None
 
                     price = int(raw_price) if raw_price else 0
 
                     if isinstance(price, (int, float)) and price > 5000:
                         email = await self._extract_lead_email(lead)
                         if not email:
-                            return (price, None, None)
+                            return price, None, None
 
                         verification_code = self._generate_6_digit_code()
                         await self._send_verification_code_email(
@@ -455,23 +453,18 @@ class AsyncAmoCRM:
                             code=verification_code,
                             deal_code=code_str,
                         )
-                        return (price, email, verification_code)
+                        return price, email, verification_code
 
-                    return ("low", None, None)
+                    return "low", None, None
 
             page += 1
 
-        return ("not_found", None, None)
+        return "not_found", None, None
 
-    def _generate_6_digit_code(self) -> str:
-        return f"{secrets.randbelow(1_000_000):06d}"
+    @staticmethod
+    def _generate_6_digit_code() -> str: return f"{secrets.randbelow(1_000_000):06d}"
 
-    async def _send_verification_code_email(
-            self,
-            to_email: str,
-            code: str,
-            deal_code: str,
-    ) -> None:
+    async def _send_verification_code_email(self, to_email: str, code: str, deal_code: str) -> None:
         """
         Sends verification code from Gmail via SMTP.
         Requires:

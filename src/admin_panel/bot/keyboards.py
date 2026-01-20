@@ -1,59 +1,25 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
-def ProductPhotoDoses(doses: dict[str, str], product_onec_id: str) -> InlineKeyboardMarkup:
-    # your existing logic can stay; placeholder below if you already had it elsewhere
-    buttons = [
-        InlineKeyboardButton(
-            text=name,
-            callback_data=f"product_photos:{onec_id}",
-        )
-        for onec_id, name in doses.items()
-    ]
+def ProductPhotoDoses(doses: dict[str, str]) -> InlineKeyboardMarkup:
+    buttons = [InlineKeyboardButton(text=name, callback_data=f"product_photos:{onec_id}") for onec_id, name in doses.items()]
     rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
-
-def DeletePhoto(onec_id: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="🗑️ Удалить фото", callback_data=f"delete_photo:{onec_id}")]
-        ]
-    )
-
-
-# =========================
-# TG CATEGORY ADMIN KB
-# =========================
-
-def CategoryButton(category_id: int, name: str) -> InlineKeyboardButton:
-    # ✅ store ONLY id in callback (names may contain spaces)
-    return InlineKeyboardButton(text=name, callback_data=f"set_category:{category_id}")
-
-
+def DeletePhoto(onec_id: str) -> InlineKeyboardMarkup: return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🗑️ Удалить фото", callback_data=f"delete_photo:{onec_id}")]])
+def CategoryButton(category_id: int, name: str) -> InlineKeyboardButton: return InlineKeyboardButton(text=name, callback_data=f"set_category:{category_id}")
 def CategoriesKeyboard(categories, per_row: int = 2) -> InlineKeyboardMarkup:
-    # categories: list[model] with .id and .name
     buttons = [CategoryButton(c.id, c.name) for c in categories]
     rows = [buttons[i:i + per_row] for i in range(0, len(buttons), per_row)]
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
-
 def CategoryActions(category_id: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="➕ Добавить товар", switch_inline_query_current_chat="addcat "),
-                InlineKeyboardButton(text="➖ Убрать товар", switch_inline_query_current_chat="rmcat "),
-            ],
-            [
-                InlineKeyboardButton(text="🗑️ Удалить категорию", callback_data=f"delete_category:{category_id}"),
-            ],
-            [
-                InlineKeyboardButton(text="📦 Список категорий", callback_data="categories_list"),
-            ],
-        ]
-    )
-
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="➕ Добавить товар", switch_inline_query_current_chat="addcat "),
+         InlineKeyboardButton(text="➖ Убрать товар", switch_inline_query_current_chat="rmcat ")],
+        [InlineKeyboardButton(text="🗑️ Удалить категорию", callback_data=f"delete_category:{category_id}")],
+        [InlineKeyboardButton(text="📦 Список категорий", callback_data="categories_list")],
+    ])
 
 def SelectedCategoryScreen(categories, selected_id: int) -> InlineKeyboardMarkup:
     """

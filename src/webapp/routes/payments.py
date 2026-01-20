@@ -1,16 +1,14 @@
-import json
 import logging
-from decimal import Decimal, ROUND_HALF_UP
-
 import httpx
+
+from decimal import Decimal
 from fastapi import Depends, HTTPException, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import YANDEX_DELIVERY_TOKEN, YANDEX_DELIVERY_BASE_URL, YANDEX_DELIVERY_WAREHOUSE_ID
 from src.services.cdek import client as cdek_client
 from src.helpers import format_order_for_amocrm, normalize_address_for_cf
-from src.webapp.crud import upsert_user, add_or_increment_item, create_cart, update_cart, get_promo_by_code, \
-    update_promo
+from src.webapp.crud import upsert_user, add_or_increment_item, create_cart, update_cart, get_promo_by_code, update_promo
 from src.webapp.database import get_db
 from src.webapp.models.checkout import CheckoutData
 from src.webapp.routes.cart import cart_json
@@ -34,12 +32,14 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     payment_method = payload.payment_method
     promocode = payload.promocode or "Не указан"
     promo_code = await get_promo_by_code(db, promocode.strip())
+
     if promo_code:
         if total <= 0: raise HTTPException(status_code=400, detail="Price must be greater than 0")
         discount_pct = float(promo_code.discount_pct)
         total = round(total * (1 - discount_pct/100), 2)
         promo_code_update = PromoCodeUpdate(times_used=(promo_code.times_used or 0) + 1)
         await update_promo(db, promo_code.id, promo_code_update)
+
     commentary_text = payload.commentary or "Не указан"
     address_str = normalize_address_for_cf(delivery_data["address"])
     payload_dict = payload.model_dump()
@@ -54,11 +54,12 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
 
     log.info("Create payment payload: %s", ())
     order_number = cart.id
+
+    #TODO: Отсюда начинается интеграция с ЯДоставкой
     if delivery_service == "yandex":
         delivery_sum = payload.selected_delivery.get("delivery_sum", 0)
         if delivery_sum: await update_cart(db, cart.id, CartUpdate(delivery_sum=delivery_sum))
         request_create_url = f"{YANDEX_DELIVERY_BASE_URL}/api/b2b/platform/request/create"
-
         headers = {
             "Authorization": f"Bearer {YANDEX_DELIVERY_TOKEN}",
             "Accept": "application/json",
@@ -70,7 +71,6 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
         weight_g = 100
 
         total_kop = int(Decimal(str(total)) * 100)
-        request_id_param = f"order-{order_number}"
         pvz_platform_id = delivery_data["address"].get("code", None)
 
         if pvz_platform_id:
@@ -152,6 +152,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
         yandex_request_id = yandex_data.get("request_id")
         if yandex_request_id: await update_cart(db, cart.id, CartUpdate(yandex_request_id=yandex_request_id))
         delivery_status = "ok"
+
     elif delivery_service == "cdek":
         delivery_sum = payload.selected_delivery["tariff"]["delivery_sum"]
         await update_cart(db, cart.id, CartUpdate(delivery_sum=delivery_sum))
