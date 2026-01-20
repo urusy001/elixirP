@@ -192,4 +192,4 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
             else: result = InlineQueryResultArticle(id=str(uuid4()), title="Ошибка поиска", input_message_content=InputTextMessageContent(message_text="<b>Телеграм ID должен быть числом</b>"))
 
         async with get_session() as session: rows, total = await search_users(session, column_name, value, limit=50)
-        [print(row.__dict__()) for row in rows]
+        [print(row.__dict__) for row in rows]
