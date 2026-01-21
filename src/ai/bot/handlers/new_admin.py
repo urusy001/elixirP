@@ -6,7 +6,8 @@ from typing import Literal, get_args
 from datetime import datetime, timedelta
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, InlineQueryResultArticle
+from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, InlineQueryResultArticle, \
+    InputTextMessageContent
 
 from config import ADMIN_TG_IDS, MOSCOW_TZ
 from src.ai.bot.texts import admin_texts
@@ -189,9 +190,9 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
         column_name = data[1]
         value = data[2]
         allowed_column_names = Literal["full_name", "username", "email", "tg_id", "phone"]
-        if column_name not in get_args(allowed_column_names): results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"Неверный поисковой параметр: {column_name}", input_message_content="/start", description=f"Позволено: {', '.join(allowed_column_names)}", )]
+        if column_name not in get_args(allowed_column_names): results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"Неверный поисковой параметр: {column_name}", input_message_content=InputTextMessageContent(message_text="/start", parse_mode=None), description=f"Позволено: {', '.join(allowed_column_names)}", )]
         else:
             async with get_session() as session: rows, total = await search_users(session, column_name, value, limit=50)
-            results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=row.full_name, description=row.contact_info, input_message_content=f"/get_user {row.tg_id}") for row in rows]
+            results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=row.full_name, description=row.contact_info, input_message_content=InputTextMessageContent(message_text=f"/get_user {row.tg_id}", parse_mode=None)) for row in rows]
 
         await inline_query.answer(results)
