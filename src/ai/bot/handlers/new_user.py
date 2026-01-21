@@ -14,7 +14,7 @@ from src.ai.calc import generate_drug_graphs, plot_filled_scale
 from src.helpers import CHAT_NOT_BANNED_FILTER, _notify_user, with_typing, _fmt, check_blocked
 from src.webapp import get_session
 from src.webapp.crud import write_usage, increment_tokens, get_user, update_user, get_used_code_by_code, \
-    create_used_code
+    create_used_code, update_user_name
 from src.webapp.schemas import UserUpdate, UsedCodeCreate
 from src.ai.bot.texts import user_texts
 from src.ai.bot.keyboards import user_keyboards
@@ -73,6 +73,7 @@ async def handle_user_start(message: Message, state: FSMContext):
         await state.set_state(user_states.Registration.phone)
         return await message.answer(user_texts.verify_phone.replace('*', message.from_user.full_name), reply_markup=user_keyboards.phone)
 
+    else: asyncio.create_task(update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
     return await message.answer(user_texts.greetings.replace('full_name', message.from_user.full_name), reply_markup=user_keyboards.main_menu)
 
 @new_user_router.message(user_states.Ai.activate_code)
@@ -434,6 +435,7 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
 
     async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
     if not user: return await handle_user_start(message, state, professor_bot, professor_client)
+    else: asyncio.create_task(update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
 
     state_data = await state.get_data()
     assistant_id = state_data.get("assistant_id", None)

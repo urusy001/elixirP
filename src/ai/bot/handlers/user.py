@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from aiogram import Router
 from aiogram.enums import ChatType
@@ -11,7 +12,7 @@ from src.ai.bot.states import user_states
 from src.ai.bot.texts import user_texts
 from src.helpers import with_typing, CHAT_NOT_BANNED_FILTER, check_blocked
 from src.webapp import get_session
-from src.webapp.crud import update_user, increment_tokens, write_usage, get_user
+from src.webapp.crud import update_user, increment_tokens, write_usage, get_user, update_user_name
 from src.webapp.schemas import UserUpdate
 
 professor_user_router = Router(name="user")
@@ -33,6 +34,8 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
     if not user:
         await state.set_state(user_states.Registration.phone)
         return await message.answer(user_texts.verify_phone.replace('*', message.from_user.full_name), reply_markup=user_keyboards.phone)
+
+    else: asyncio.create_task(update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
 
     if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ): return await message.answer(user_texts.banned_until.replace("Блокировка до 9999-12-31, п", "П").replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}'))
     if not user.thread_id:
@@ -94,6 +97,7 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
     if not result: return await message.answer(user_texts.banned_in_channel)
     async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
     if not user: return await handle_user_start(message, state, professor_bot, professor_client)
+    else: asyncio.create_task(update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
     if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ): return await message.answer(user_texts.banned_until.replace("Блокировка до 9999-12-31, п", "П").replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}'))
     bot_id = str(message.bot.id)
     if bot_id == PROFESSOR_BOT_TOKEN.split(':')[0]: assistant_id = PROFESSOR_ASSISTANT_ID

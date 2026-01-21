@@ -113,7 +113,6 @@ async def handle_statistics(message: Message):
                 "Доставка итого, ₽": ("Доставка, ₽", "sum"),
             }
         )
-
         summary_df["Сумма товаров итого, ₽"] = summary_df["Сумма товаров итого, ₽"].round(2)
         summary_df["Средняя сумма, ₽"] = summary_df["Средняя сумма, ₽"].round(2)
         summary_df["Доставка итого, ₽"] = summary_df["Доставка итого, ₽"].round(2)

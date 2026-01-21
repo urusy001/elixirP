@@ -578,3 +578,4 @@ def make_excel_safe(df: pd.DataFrame) -> pd.DataFrame:
             df[c] = df[c].apply(lambda x: x.replace(tzinfo=None) if hasattr(x, "tzinfo") and x.tzinfo else x)
 
     return df
+
