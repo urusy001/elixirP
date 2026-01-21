@@ -207,7 +207,7 @@ async def handle_fix(message: Message, state: FSMContext):
                 await message.answer(f"{user.tg_phone}, {user.full_name}")
                 break
             except Exception as e:
-                await message.answer(f"{e.__class__, user.tg_id}")
+                await message.answer(f"{e.__class__.__name__, user.tg_id}")
                 print(e)
 
     await message.answer("finished fix")
