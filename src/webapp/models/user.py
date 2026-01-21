@@ -50,6 +50,6 @@ class User(Base):
     @property
     def contact_info(self) -> str:
         return (f"ID ТГ: {self.tg_id}, "
-                f"Номер ТГ: {normalize_phone(self.tg_phone)}, "
+                f"Номер ТГ: {normalize_phone(self.tg_phone) if self.tg_phone else 'Отсутствует'}, "
                 f"Почта: {self.email or 'Отсутствует'}, "
                 f"Номер телефона: {normalize_phone(self.phone) or 'Отсутствует'}")
