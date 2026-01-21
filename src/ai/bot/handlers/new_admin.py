@@ -1,15 +1,12 @@
-import asyncio
 import os
 import uuid
-from typing import Literal, get_args
-
 import pandas as pd
 
+from typing import Literal, get_args
 from datetime import datetime, timedelta
-from uuid import uuid4
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
+from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, InlineQueryResultArticle
 
 from config import ADMIN_TG_IDS, MOSCOW_TZ
 from src.ai.bot.texts import admin_texts
@@ -37,9 +34,9 @@ async def handle_pin(message: Message):
 
 @new_admin_router.message(Command('set_premium'))
 async def add_premium(message: Message):
-    args = message.text.removeprefix("/set_premium ").strip()
-    if len(args) == 1:
-        phone = normalize_phone(args[0])
+    phone = message.text.removeprefix("/set_premium ").strip()
+    if phone:
+        phone = normalize_phone(phone)
         async with get_session() as session: user = await get_user(session, 'tg_phone', phone)
         user_id = await get_user_id_by_phone(phone) if not (user and user.tg_id) else user.tg_id
         if not user_id: return await message.answer('Пользователь не найден по номеру в ТГ')
