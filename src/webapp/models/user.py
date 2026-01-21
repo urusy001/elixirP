@@ -41,10 +41,10 @@ class User(Base):
     )
 
     @hybrid_property
-    def full_name(self): return f"{self.first_name} {self.last_name}"
+    def full_name(self): return f"{self.name} {self.surname}"
 
     @full_name.expression
-    def full_name(cls): return func.concat(cls.first_name, " ", cls.last_name)
+    def full_name(cls): return func.concat(cls.name, " ", cls.surname)
 
     @property
     def contact_info(self) -> str:
