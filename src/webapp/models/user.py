@@ -2,6 +2,7 @@ from sqlalchemy import Column, BigInteger, String, DateTime, Double, func
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
+from src.tg_methods import normalize_phone
 from src.webapp.database import Base
 
 
@@ -48,7 +49,7 @@ class User(Base):
 
     @property
     def contact_info(self) -> str:
-        return (f"ID ТГ {self.tg_id}\n"
-                f"Номер ТГ: {self.tg_phone}\n"
-                f"Почта: {self.email or 'Отсутствует'}\n"
-                f"Номер телефона: {self.phone or 'Отсутствует'}")
+        return (f"ID ТГ: {self.tg_id}, "
+                f"Номер ТГ: {normalize_phone(self.tg_phone)}, "
+                f"Почта: {self.email or 'Отсутствует'}, "
+                f"Номер телефона: {normalize_phone(self.phone) or 'Отсутствует'}")
