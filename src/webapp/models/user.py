@@ -1,4 +1,5 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Double
+from sqlalchemy import Column, BigInteger, String, DateTime, Double, func
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
 from src.webapp.database import Base
@@ -38,3 +39,16 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+
+    @hybrid_property
+    def full_name(self): return f"{self.first_name} {self.last_name}"
+
+    @full_name.expression
+    def full_name(cls): return func.concat(cls.first_name, " ", cls.last_name)
+
+    @property
+    def contact_info(self) -> str:
+        return (f"ID ТГ {self.tg_id}\n"
+                f"Номер ТГ: {self.tg_phone}\n"
+                f"Почта: {self.email or 'Отсутствует'}\n"
+                f"Номер телефона: {self.phone or 'Отсутствует'}")

@@ -140,12 +140,7 @@ async def search_users(db: AsyncSession, by: str, value: Any, page: Optional[int
             v = str(norm_value).replace(" ", "")
             stmt = stmt.where(cast(col, String).ilike(bindparam("v", f"%{v}%", type_=String())))
 
-        elif by == "full_name":
-            name_col = getattr(User, "name", None)
-            surname_col = getattr(User, "surname", None)
-            if name_col is None or surname_col is None: return [], 0
-            full_name = func.concat(func.coalesce(name_col, ""), " ", func.coalesce(surname_col, ""))
-            stmt = stmt.where(full_name.ilike(bindparam("v", f"%{norm_value}%", type_=String())))
+        elif by == "full_name": stmt = stmt.where(User.full_name.ilike(bindparam("v", f"%{norm_value}%", type_=String())))
 
         elif by == "phone":
             phone_col = getattr(User, "phone", None)
