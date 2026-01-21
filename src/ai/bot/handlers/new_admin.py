@@ -6,8 +6,7 @@ from typing import Literal, get_args
 from datetime import datetime, timedelta
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, InlineQueryResultArticle, \
-    InputTextMessageContent
+from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
 
 from config import ADMIN_TG_IDS, MOSCOW_TZ
 from src.ai.bot.texts import admin_texts
@@ -16,7 +15,7 @@ from src.ai.bot.keyboards import admin_keyboards
 from src.helpers import make_excel_safe
 from src.tg_methods import get_user_id_by_phone, normalize_phone
 from src.webapp import get_session
-from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user
+from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_users
 from src.webapp.crud.search import search_users
 from src.webapp.schemas import UserCreate, UserUpdate
 
@@ -195,3 +194,20 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
             results = [InlineQueryResultArticle(thumbnail_url=row.photo_url, id=str(uuid.uuid4()), title=row.full_name, description=row.contact_info, input_message_content=InputTextMessageContent(message_text=f"/get_user {row.tg_id}", parse_mode=None)) for row in rows]
 
         await inline_query.answer(results)
+
+@new_admin_router.message(Command('fix'))
+async def handle_fix(message: Message, state: FSMContext):
+    async with get_session() as session: users = await get_users(session)
+    for user in users:
+        from src.ai.bot.main import professor_bot, dose_bot, new_bot
+        for bot in [new_bot, professor_bot, dose_bot]:
+            try:
+                chat = await bot.get_chat(user.tg_id)
+                async with get_session() as session: user = await update_user(session, user.tg_id, UserUpdate(name=chat.first_name, surname=chat.last_name, tg_phone=normalize_phone(user.tg_phone)))
+                await message.answer(f"{user.tg_phone}, {user.full_name}")
+                break
+            except Exception as e:
+                await message.answer(f"{e.__class__, user.tg_id}")
+                print(e)
+
+    await message.answer("finished fix")

@@ -60,7 +60,7 @@ class ProfessorBot(Bot):
         return self.__logger
 
     # ---------------- CREATE USER ----------------
-    async def create_user(self, user_id: int, phone: str):
+    async def create_user(self, user_id: int, phone: str, name: str = None, surname: str = None) -> UserCreate:
         thread_id = await professor_client.create_thread()
         user_create = UserCreate(tg_id=user_id, tg_phone=phone, thread_id=thread_id)
 

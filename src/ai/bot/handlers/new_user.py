@@ -12,6 +12,7 @@ from config import OWNER_TG_IDS, MOSCOW_TZ, DATA_DIR, PROFESSOR_ASSISTANT_ID, NE
     WEBAPP_BASE_DOMAIN, INTERNAL_API_TOKEN
 from src.ai.calc import generate_drug_graphs, plot_filled_scale
 from src.helpers import CHAT_NOT_BANNED_FILTER, _notify_user, with_typing, _fmt, check_blocked
+from src.tg_methods import normalize_phone
 from src.webapp import get_session
 from src.webapp.crud import write_usage, increment_tokens, get_user, update_user, get_used_code_by_code, \
     create_used_code, update_user_name
@@ -204,7 +205,7 @@ async def handle_user_registration(message: Message, state: FSMContext, professo
 
     phone = message.contact.phone_number
     await state.clear()
-    await professor_bot.create_user(message.from_user.id, phone)
+    await professor_bot.create_user(message.from_user.id, normalize_phone(phone), message.from_user.first_name, message.from_user.last_name)
     await (await message.answer('Проверка пройдена успешно ✅', reply_markup=ReplyKeyboardRemove())).delete()
     return await handle_user_start(message, state)
 

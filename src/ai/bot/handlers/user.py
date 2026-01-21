@@ -14,6 +14,7 @@ from src.helpers import with_typing, CHAT_NOT_BANNED_FILTER, check_blocked
 from src.webapp import get_session
 from src.webapp.crud import update_user, increment_tokens, write_usage, get_user, update_user_name
 from src.webapp.schemas import UserUpdate
+from src.tg_methods import normalize_phone
 
 professor_user_router = Router(name="user")
 dose_user_router = Router(name="user3")
@@ -63,7 +64,7 @@ async def handle_user_registration(message: Message, state: FSMContext, professo
 
     phone = message.contact.phone_number
     await state.clear()
-    thread_id = await professor_bot.create_user(message.from_user.id, phone)
+    thread_id = await professor_bot.create_user(message.from_user.id, normalize_phone(phone), message.from_user.first_name, message.from_user.last_name)
     bot_id = str(message.bot.id)
     if bot_id == PROFESSOR_BOT_TOKEN.split(':')[0]: assistant_id = PROFESSOR_ASSISTANT_ID
     else: assistant_id = DOSE_ASSISTANT_ID
