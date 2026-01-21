@@ -194,19 +194,3 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
             results = [InlineQueryResultArticle(thumbnail_url=row.photo_url, id=str(uuid.uuid4()), title=row.full_name, description=row.contact_info, input_message_content=InputTextMessageContent(message_text=f"/get_user {row.tg_id}", parse_mode=None)) for row in rows]
 
         await inline_query.answer(results)
-
-@new_admin_router.message(Command('fix'))
-async def handle_fix(message: Message, state: FSMContext):
-    async with get_session() as session: users = await get_users(session)
-    for user in users:
-        from src.ai.bot.main import professor_bot, dose_bot, new_bot
-        for bot in [new_bot, professor_bot, dose_bot]:
-            try:
-                chat = await bot.get_chat(user.tg_id)
-                async with get_session() as session: user = await update_user(session, user.tg_id, UserUpdate(name=chat.first_name, surname=chat.last_name, tg_phone=normalize_phone(user.tg_phone)))
-                print(f"{user.tg_phone}, {user.full_name}, {bot.token}")
-                break
-            except Exception as e:
-                print(e)
-
-    await message.answer("finished fix")
