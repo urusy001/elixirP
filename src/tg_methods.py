@@ -10,15 +10,15 @@ logger = logging.getLogger("telethon")
 
 client = TelegramClient(TELETHON_API_ID, TELETHON_API_ID, TELETHON_API_HASH)
 
-def normalize_phone(phone: str, default_region: str = "RU") -> str:
-    try: parsed = phonenumbers.parse(phone, default_region)
+def normalize_phone(phone: str) -> str:
+    try: parsed = phonenumbers.parse(phone)
     except phonenumbers.NumberParseException as e: raise ValueError(f"Invalid phone number: {phone}") from e
     if not phonenumbers.is_valid_number(parsed): raise ValueError(f"Invalid phone number: {phone}")
     return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164).removeprefix('+')
 
 
-async def get_user_id_by_phone(phone: str, default_region: str = "RU"):
-    normalized = normalize_phone(phone, default_region)
+async def get_user_id_by_phone(phone: str):
+    normalized = normalize_phone(phone)
 
     result = await client(ImportContactsRequest([
         InputPhoneContact(
