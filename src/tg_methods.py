@@ -14,10 +14,10 @@ client = TelegramClient(TELETHON_API_ID, TELETHON_API_ID, TELETHON_API_HASH)
 
 
 def normalize_phone(raw: str, default_regions: Iterable[str] = ("US", "AM", "RU", "UA", "BY", "AZ", "KZ", "KG", "MD", "TJ", "TM", "UZ", "GE")) -> Optional[str]:
-    def _clean(raw: str) -> str:
-        raw = raw.strip()
-        if raw.startswith("+"): return "+" + re.sub(r"\D", "", raw[1:])
-        return re.sub(r"\D", "", raw)
+    def _clean(x: str) -> str:
+        x = x.strip()
+        if x.startswith("+"): return "+" + re.sub(r"\D", "", x[1:])
+        return re.sub(r"\D", "", x)
 
     s = _clean(raw)
     if not s: return None
