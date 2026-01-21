@@ -42,7 +42,7 @@ class User(Base):
     )
 
     @hybrid_property
-    def full_name(self): return f"{self.name} {self.surname}"
+    def full_name(self): return f"{self.name} {self.surname}".strip() or "Без имени"
 
     @full_name.expression
     def full_name(cls): return func.concat(cls.name, " ", cls.surname)
