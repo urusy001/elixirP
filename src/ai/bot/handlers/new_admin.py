@@ -204,10 +204,9 @@ async def handle_fix(message: Message, state: FSMContext):
             try:
                 chat = await bot.get_chat(user.tg_id)
                 async with get_session() as session: user = await update_user(session, user.tg_id, UserUpdate(name=chat.first_name, surname=chat.last_name, tg_phone=normalize_phone(user.tg_phone)))
-                await message.answer(f"{user.tg_phone}, {user.full_name}")
+                print(f"{user.tg_phone}, {user.full_name}, {bot.token}")
                 break
             except Exception as e:
-                await message.answer(f"{e.__class__.__name__, user.tg_id}")
                 print(e)
 
     await message.answer("finished fix")
