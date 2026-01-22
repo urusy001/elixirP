@@ -180,7 +180,7 @@ async def handle_get_user(message: Message):
         async with get_session() as session:
             user = await get_user(session, 'tg_id', user_id)
             token_usages = await get_user_usage_totals(session, user.tg_id)
-            user_carts = await get_user_carts(session, user.tg_id)
+            user_carts = [cart for cart in await get_user_carts(session, user.tg_id) if "ачальная" not in cart.name]
 
         paid: list[Cart] = []
         unpaid: list[Cart] = []
@@ -196,11 +196,11 @@ async def handle_get_user(message: Message):
         user_text = (f"<b>{user.full_name}</b>\n"
                      f"Номер ТГ: <i>{user.tg_phone}</i>\n"
                      f"Айди ТГ: <i>{user.tg_id}</i>\n\n"
-                     f"<b>Заказов: {len(user_carts)} на сумму {total_rub}₽</b>"
+                     f"<b>Заказов: {len(user_carts)} на сумму {total_rub}₽\n</b>"
                      f"Оплаченных: <i>{len(paid)} на сумму {paid_rub}₽</i>\n"
                      f"Неоплаченных: <i>{len(unpaid)} на сумму {unpaid_rub}₽</i>\n\n"
                      f"<b>Запросов ИИ: {total_requests} на сумму {total_cost_usd}$</b>\n"
-                     f"Стоимость запроса в среднем: <i>{avg_cost_per_request}</i>"
+                     f"Стоимость запроса в среднем: <i>{avg_cost_per_request}</i>\n"
                      f"Всего токенов: <i>{total_tokens}</i>")
 
         print(user_text)
