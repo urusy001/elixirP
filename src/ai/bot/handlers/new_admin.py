@@ -15,8 +15,10 @@ from src.ai.bot.keyboards import admin_keyboards
 from src.helpers import make_excel_safe
 from src.tg_methods import get_user_id_by_phone, normalize_phone
 from src.webapp import get_session
-from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_users, get_user_usage_totals
+from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_users, \
+    get_user_usage_totals, get_user_carts
 from src.webapp.crud.search import search_users
+from src.webapp.models import Cart
 from src.webapp.schemas import UserCreate, UserUpdate
 
 new_admin_router.inline_query.filter(lambda query: query.from_user.id in ADMIN_TG_IDS)
@@ -178,8 +180,31 @@ async def handle_get_user(message: Message):
         async with get_session() as session:
             user = await get_user(session, 'tg_id', user_id)
             token_usages = await get_user_usage_totals(session, user.tg_id)
-            totals = token_usages["totals"]
-            print(totals)
+            user_carts = await get_user_carts(session, user.tg_id)
+
+        paid: list[Cart] = []
+        unpaid: list[Cart] = []
+        for cart in user_carts: paid.append(cart) if cart.is_paid else unpaid.append(cart)
+        totals = token_usages["totals"]
+        total_requests = totals["total_requests"]
+        total_tokens = totals["total_tokens"]
+        total_cost_usd = totals["total_cost_usd"]
+        avg_cost_per_request = totals["avg_cost_per_request"]
+        total_rub = sum([cart.sum for cart in user_carts])
+        paid_rub = sum([cart.sum for cart in paid])
+        unpaid_rub = sum([cart.sum for cart in unpaid])
+        user_text = (f"<b>{user.full_name}</b>\n"
+                     f"Номер ТГ: <i>{user.tg_phone}</i>\n"
+                     f"Айди ТГ: <i>{user.tg_id}</i>\n\n"
+                     f"<b>Заказов: {len(user_carts)} на сумму {total_rub}₽</b>"
+                     f"Оплаченных: <i>{len(paid)} на сумму {paid_rub}₽</i>\n"
+                     f"Неоплаченных: <i>{len(unpaid)} на сумму {unpaid_rub}₽</i>\n\n"
+                     f"<b>Запросов ИИ: {total_requests} на сумму {total_cost_usd}$</b>\n"
+                     f"Стоимость запроса в среднем: <i>{avg_cost_per_request}</i>"
+                     f"Всего токенов: <i>{total_tokens}</i>")
+
+        print(user_text)
+        await message.answer(user_text)
 
 @new_admin_router.callback_query()
 async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
