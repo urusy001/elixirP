@@ -172,16 +172,13 @@ async def handle_statistics(message: Message):
 
 @new_admin_router.message(Command('get_user'))
 async def handle_get_user(message: Message):
-    user_id = message.text.strip()
-    print(user_id)
+    user_id = message.text.removeprefix("/get_user ").strip()
     if not user_id or not user_id.isdigit(): await message.answer("Ошибка команды: <code>/get_user айди_тг</code>")
     else:
         async with get_session() as session:
             user = await get_user(session, 'tg_id', user_id)
             token_usages = await get_user_usage_totals(session, user.tg_id)
             totals = token_usages["totals"]
-
-
 
 @new_admin_router.callback_query()
 async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
