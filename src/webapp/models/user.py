@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Double, func
+from sqlalchemy import Column, BigInteger, String, DateTime, Double, func, literal
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
@@ -42,10 +42,22 @@ class User(Base):
     )
 
     @hybrid_property
-    def full_name(self): return f"{self.name or ''} {self.surname or ''}" or "Без имени"
+    def full_name(self):
+        n = (self.name or "").strip()
+        s = (self.surname or "").strip()
+        full = f"{n} {s}".strip()
+        return full or "Без имени"
 
     @full_name.expression
-    def full_name(cls): return func.concat(cls.name or '', " ", cls.surname or '') or "Без имени"
+    def full_name(cls):
+        full = func.trim(
+            func.concat(
+                func.coalesce(cls.name, ""),
+                literal(" "),
+                func.coalesce(cls.surname, ""),
+            )
+        )
+        return func.coalesce(func.nullif(full, ""), literal("Без имени"))
 
     @property
     def contact_info(self) -> str:
