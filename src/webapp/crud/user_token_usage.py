@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, Optional, List, Tuple, Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -125,3 +125,91 @@ async def write_usage(
     await db.commit()
     await db.refresh(usage)
     return usage
+
+async def get_user_usage_totals(db: AsyncSession, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None) -> Dict[str, Any]:
+    """
+    Return total usage sums for a single user grouped by bot, plus grand totals.
+    Costs are summed from DB columns: input_cost_usd/output_cost_usd.
+    """
+    end_date = end_date or date.today()
+    where_clauses = [UserTokenUsage.user_id == user_id]
+    if start_date:
+        if end_date < start_date: raise ValueError("end_date cannot be earlier than start_date")
+        where_clauses += [UserTokenUsage.date >= start_date, UserTokenUsage.date <= end_date]
+    else: where_clauses += [UserTokenUsage.date <= end_date]
+
+    tg_phone = await db.scalar(select(User.tg_phone).where(User.tg_id == user_id))
+
+    stmt = (
+        select(
+            UserTokenUsage.bot.label("bot"),
+            func.coalesce(func.sum(UserTokenUsage.total_requests), 0).label("total_requests"),
+            func.coalesce(func.sum(UserTokenUsage.input_tokens), 0).label("input_tokens"),
+            func.coalesce(func.sum(UserTokenUsage.output_tokens), 0).label("output_tokens"),
+            func.coalesce(func.sum(UserTokenUsage.input_cost_usd), 0).label("input_cost_usd"),
+            func.coalesce(func.sum(UserTokenUsage.output_cost_usd), 0).label("output_cost_usd"),
+        )
+        .where(*where_clauses)
+        .group_by(UserTokenUsage.bot)
+        .order_by(UserTokenUsage.bot)
+    )
+
+    rows = (await db.execute(stmt)).all()
+
+    by_bot: List[Dict[str, Any]] = []
+    grand_requests = grand_in = grand_out = 0
+    grand_in_cost = grand_out_cost = 0.0
+
+    for r in rows:
+        in_tokens = int(r.input_tokens)
+        out_tokens = int(r.output_tokens)
+        reqs = int(r.total_requests)
+
+        in_cost = float(r.input_cost_usd or 0)
+        out_cost = float(r.output_cost_usd or 0)
+        total_cost = in_cost + out_cost
+
+        bot_name = getattr(r.bot, "value", str(r.bot))  # BotEnum -> "new"/"dose"/...
+
+        by_bot.append({
+            "bot": bot_name,
+            "total_requests": reqs,
+            "input_tokens": in_tokens,
+            "output_tokens": out_tokens,
+            "total_tokens": in_tokens + out_tokens,
+            "input_cost_usd": round(in_cost, 4),
+            "output_cost_usd": round(out_cost, 4),
+            "total_cost_usd": round(total_cost, 4),
+            "avg_cost_per_request": round(total_cost / reqs, 6) if reqs else 0.0,
+        })
+
+        grand_requests += reqs
+        grand_in += in_tokens
+        grand_out += out_tokens
+        grand_in_cost += in_cost
+        grand_out_cost += out_cost
+
+    totals = {
+        "total_requests": grand_requests,
+        "input_tokens": grand_in,
+        "output_tokens": grand_out,
+        "total_tokens": grand_in + grand_out,
+        "input_cost_usd": round(grand_in_cost, 4),
+        "output_cost_usd": round(grand_out_cost, 4),
+        "total_cost_usd": round(grand_in_cost + grand_out_cost, 4),
+        "avg_cost_per_request": round((grand_in_cost + grand_out_cost) / grand_requests, 6) if grand_requests else 0.0,
+    }
+
+    period_label = (
+        f"С {start_date:%Y-%m-%d} по {end_date:%Y-%m-%d}"
+        if start_date else
+        f"До {end_date:%Y-%m-%d}"
+    )
+
+    return {
+        "period": period_label,
+        "user_id": user_id,
+        "tg_phone": tg_phone,
+        "by_bot": by_bot,
+        "totals": totals,
+    }

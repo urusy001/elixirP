@@ -6,6 +6,7 @@ from pydantic import BaseModel
 BotLiteral = Literal["dose", "professor", "new"]
 
 
+
 class UserTokenUsageBase(BaseModel):
     user_id: int
     date: date

@@ -15,7 +15,7 @@ from src.ai.bot.keyboards import admin_keyboards
 from src.helpers import make_excel_safe
 from src.tg_methods import get_user_id_by_phone, normalize_phone
 from src.webapp import get_session
-from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_users
+from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_users, get_user_usage_totals
 from src.webapp.crud.search import search_users
 from src.webapp.schemas import UserCreate, UserUpdate
 
@@ -169,6 +169,18 @@ async def handle_statistics(message: Message):
     await message.answer_document(FSInputFile(path), caption=f"📊 Статистика (Excel)\nСформировано: {ts.replace('_', ' ')}")
     try: os.remove(path)
     except Exception: pass
+
+@new_admin_router.message(Command('get_user'))
+async def handle_get_user(message: Message):
+    user_id = message.text.strip()
+    if not user_id or not user_id.isdigit(): await message.answer("Ошибка команды: <code>/get_user айди_тг</code>")
+    else:
+        async with get_session() as session:
+            user = await get_user(session, 'tg_id', user_id)
+            token_usages = await get_user_usage_totals(session, user.tg_id)
+            totals = token_usages["totals"]
+            [print(total) for total in totals]
+
 
 @new_admin_router.callback_query()
 async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
