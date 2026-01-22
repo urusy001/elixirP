@@ -179,6 +179,7 @@ async def handle_get_user(message: Message):
             user = await get_user(session, 'tg_id', user_id)
             token_usages = await get_user_usage_totals(session, user.tg_id)
             totals = token_usages["totals"]
+            print(totals)
 
 @new_admin_router.callback_query()
 async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
