@@ -52,4 +52,4 @@ class User(Base):
         return (f"ID ТГ: {self.tg_id}, "
                 f"Номер ТГ: {normalize_phone(self.tg_phone) if self.tg_phone else 'Отсутствует'}, "
                 f"Почта: {self.email or 'Отсутствует'}, "
-                f"Номер телефона: {normalize_phone(self.phone) if self.phone else 'Отсутствует'}")
+                f"Номер телефона для покупок: {normalize_phone(self.phone) if self.phone else 'Отсутствует'}")
