@@ -29,7 +29,7 @@ async def auth(payload: TelegramAuthPayload, db: AsyncSession = Depends(get_db))
         photo_url=user["photo_url"],
     )
     user = await upsert_user(db, user_upsert)
-    carts = await get_user_carts(db, user.tg_id)
+    carts = await get_user_carts(db, user.tg_id, exclude_starting=False)
     favourites = await get_user_favourites(db, user.tg_id)
 
     user_dict = user.to_dict()

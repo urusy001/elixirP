@@ -180,7 +180,7 @@ async def handle_get_user(message: Message):
         async with get_session() as session:
             user = await get_user(session, 'tg_id', user_id)
             token_usages = await get_user_usage_totals(session, user.tg_id)
-            user_carts = [cart for cart in await get_user_carts(session, user.tg_id) if "ачальная" not in cart.name]
+            user_carts = [cart for cart in await get_user_carts(session, user.tg_id)]
 
         paid: list[Cart] = []
         unpaid: list[Cart] = []

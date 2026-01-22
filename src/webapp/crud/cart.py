@@ -22,7 +22,7 @@ async def get_carts(db: AsyncSession) -> Optional[list[Cart]]:
     return result.scalars().all()
 
 
-async def get_user_carts(db: AsyncSession, user_id: int, is_active: Optional[bool] = None) -> Sequence[Cart]:
+async def get_user_carts(db: AsyncSession, user_id: int, is_active: Optional[bool] = None, exclude_starting: bool = True) -> Sequence[Cart]:
     """
     List carts for a user.
     - if is_active is None  -> return all carts
@@ -34,7 +34,8 @@ async def get_user_carts(db: AsyncSession, user_id: int, is_active: Optional[boo
     if is_active is not None: query = query.where(Cart.is_active.is_(is_active))
     query = query.order_by(Cart.created_at.desc())
     result = await db.execute(query)
-    return result.scalars().all()
+    carts: list[Cart] = result.scalars().all()
+    return [cart for cart in carts if "ачальная" not in cart.name] if exclude_starting else carts
 
 async def create_cart(db: AsyncSession, data: CartCreate) -> Cart:
     """
