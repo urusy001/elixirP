@@ -195,16 +195,15 @@ async def handle_get_user(message: Message):
         is_member = False
         try: is_member = await message.bot.get_chat_member(ELIXIR_CHAT_ID, user.tg_id)
         except Exception as e: print(e)
-        user_text = (f"<b>{user.full_name}</b>\n"
-                     f"Номер ТГ: <i>{user.tg_phone}</i>\n"
-                     f"Айди ТГ: <i>{user.tg_id}</i>\n"
-                     f"Состоит в чате: <i>{'❌ Нет' if not is_member else '✅ Да'}</i>\n\n"
-                     f"<b>Заказов: {len(user_carts)} на сумму {total_rub}₽\n</b>"
-                     f"Оплаченных: <i>{len(paid)} на сумму {paid_rub}₽</i>\n"
-                     f"Неоплаченных: <i>{len(unpaid)} на сумму {unpaid_rub}₽</i>\n\n"
-                     f"<b>Запросов ИИ: {total_requests} на сумму {total_cost_usd}$</b>\n"
-                     f"Стоимость запроса в среднем: <i>{avg_cost_per_request}</i>\n"
-                     f"Всего токенов: <i>{total_tokens}</i>")
+        user_text = (f"👤 <b>{user.full_name}</b>\n"
+                     f"📞 Номер ТГ: <i>{user.tg_phone}</i>\n"
+                     f"🆔 Айди ТГ: <i>{user.tg_id}</i>\n"
+                     f"📣 Состоит в чате: <i>{'❌ Нет' if not is_member else '✅ Да'}</i>\n\n"
+                     f"🛍️ <b>Заказов: {len(user_carts)} на сумму {total_rub}₽\n</b>"
+                     f" — Оплаченных: <i>{len(paid)} на сумму {paid_rub}₽</i>\n"
+                     f" — Неоплаченных: <i>{len(unpaid)} на сумму {unpaid_rub}₽</i>\n\n"
+                     f"🤖 <b>Запросов ИИ: {total_requests} на сумму {total_cost_usd}$</b>\n"
+                     f"💲 Стоимость запроса в среднем: <i>{avg_cost_per_request}</i>\n")
 
         await message.answer(user_text)
 
