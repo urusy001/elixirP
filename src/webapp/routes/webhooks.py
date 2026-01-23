@@ -45,8 +45,11 @@ async def get_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
         cart_id = int(m.group(1))
         status_text = amocrm.STATUS_WORDS.get(status_id, f"Статус {status_id}")
-        is_active = bool(status_id not in amocrm.COMPLETE_STATUS_IDS)
-        cart = await update_cart(db, cart_id, CartUpdate(status=status_text, is_active=is_active))
+        is_active = True if status_id not in [143, 142] else None
+        is_paid = True if status_id in amocrm.PAID_STATUS_IDS else None
+        is_canceled = True if status_id in [82657618, 143] else None
+        is_shipped = True if status_id in [76566302, 76566306] else None
+        cart = await update_cart(db, cart_id, CartUpdate(status=status_text, is_active=is_active, is_paid=is_paid, is_canceled=is_canceled, is_shipped=is_shipped))
         if not cart.is_active and not cart.promo_gains_given:
             print(cart.to_dict())
             code = cart.promo_code

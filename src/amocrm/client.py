@@ -60,8 +60,11 @@ class AsyncAmoCRM:
             75784942: "Укомплектован",
             76566302: "Отправлен",
             76566306: "Доставлен",
+            82657618: "Отменен",
             142: "Завершен",
-            143: "Возврат/отказ"
+            143: "Возврат/отказ",
+            74461446: "Ожидание ответа",
+            82756582: "Ожидание ответа"
         }
         self.PIPELINE_ID = 9280278
         self.CF = {
@@ -90,7 +93,7 @@ class AsyncAmoCRM:
 
     # ---------- TOKEN MANAGEMENT ----------
     @property
-    def COMPLETE_STATUS_IDS(self):
+    def PAID_STATUS_IDS(self):
         x = list(self.STATUS_IDS.values())
         x.remove(self.STATUS_IDS["main"])
         return x
@@ -436,7 +439,7 @@ class AsyncAmoCRM:
                 print(lead, created_at, cutoff_ts)
                 if isinstance(created_at, (int, float)) and created_at < cutoff_ts: continue
                 elif not isinstance(created_at, (int, float)): continue
-                if status_id in self.COMPLETE_STATUS_IDS and rx.search(name):
+                if status_id in self.PAID_STATUS_IDS and rx.search(name):
                     raw_price = lead.get("price", None)
                     if not raw_price: return "old", None, None
 
@@ -561,7 +564,7 @@ class AsyncAmoCRM:
                 pipeline_id = lead.get("pipeline_id")
                 if pipeline_id is not None and pipeline_id != self.PIPELINE_ID: continue
                 status_id = lead.get("status_id")
-                is_complete = bool(status_id in self.COMPLETE_STATUS_IDS)
+                is_complete = bool(status_id in self.PAID_STATUS_IDS)
                 status_name = self.STATUS_WORDS.get(status_id)
                 if status_name is None:
                     self.logger.warning("Unknown amoCRM status_id=%s (lead/deal_code=%s)", status_id, deal_code)
@@ -621,3 +624,5 @@ amocrm = AsyncAmoCRM(
     access_token=AMOCRM_ACCESS_TOKEN,
     refresh_token=AMOCRM_REFRESH_TOKEN,
 )
+
+print(asyncio.run(amocrm.get_main_pipeline_statuses()))
