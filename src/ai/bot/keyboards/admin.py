@@ -27,3 +27,11 @@ search_users_choice = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="Номер телефона", switch_inline_query_current_chat='search_user phone '),
      InlineKeyboardButton(text="Почта", switch_inline_query_current_chat='search_user email ')]
 ])
+
+async def view_user_menu(user_id: int):
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🛍️ Заказы", callback_data=f"admin:users:{user_id}:orders"),
+         InlineKeyboardButton(text="История сообщений", callback_data=f"admin:users:{user_id}:history")],
+        [InlineKeyboardButton(text="⛔️ Заблокировать", callback_data=f'admin:users:{user_id}:block'),
+         InlineKeyboardButton(text="")]
+    ])

@@ -8,7 +8,8 @@ from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
 
-from config import ADMIN_TG_IDS, MOSCOW_TZ
+from config import ADMIN_TG_IDS, MOSCOW_TZ, ELIXIR_CHAT_ID
+from src.ai.bot.main import new_bot
 from src.ai.bot.texts import admin_texts
 from src.ai.bot.handlers import new_admin_router
 from src.ai.bot.keyboards import admin_keyboards
@@ -193,9 +194,13 @@ async def handle_get_user(message: Message):
         total_rub = sum([cart.sum for cart in user_carts])
         paid_rub = sum([cart.sum for cart in paid])
         unpaid_rub = sum([cart.sum for cart in unpaid])
+        is_member = False
+        try: is_member = await message.bot.get_chat_member(ELIXIR_CHAT_ID, user.tg_id)
+        except Exception as e: print(e)
         user_text = (f"<b>{user.full_name}</b>\n"
                      f"Номер ТГ: <i>{user.tg_phone}</i>\n"
-                     f"Айди ТГ: <i>{user.tg_id}</i>\n\n"
+                     f"Айди ТГ: <i>{user.tg_id}</i>\n"
+                     f"Состоит в чате: <i>{'❌ Нет' if not is_member else '✅ Да'}</i>\n\n"
                      f"<b>Заказов: {len(user_carts)} на сумму {total_rub}₽\n</b>"
                      f"Оплаченных: <i>{len(paid)} на сумму {paid_rub}₽</i>\n"
                      f"Неоплаченных: <i>{len(unpaid)} на сумму {unpaid_rub}₽</i>\n\n"
@@ -203,7 +208,6 @@ async def handle_get_user(message: Message):
                      f"Стоимость запроса в среднем: <i>{avg_cost_per_request}</i>\n"
                      f"Всего токенов: <i>{total_tokens}</i>")
 
-        print(user_text)
         await message.answer(user_text)
 
 @new_admin_router.callback_query()
