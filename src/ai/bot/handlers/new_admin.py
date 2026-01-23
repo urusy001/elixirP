@@ -232,13 +232,13 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
                 column_name = "tg_id"
                 async with get_session() as session: rows, total = await search_users(session, column_name, value, limit=50)
                 if rows: results = [InlineQueryResultArticle(thumbnail_url=row.photo_url, id=str(uuid.uuid4()), title=row.full_name, description=row.contact_info, input_message_content=InputTextMessageContent(message_text=f"/get_user {row.tg_id}", parse_mode=None)) for row in rows]
-                else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="🫙 В баночке не найдено пользователей по поисковому запросу", description="Попробуйте другой запрос", input_message_content=InputTextMessageContent(message_text="/start", parse_mode=None))]
+                else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено пользователей по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=InputTextMessageContent(message_text="/start", parse_mode=None))]
 
             else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="Пользователя с таким username не существует", input_message_content=InputTextMessageContent(message_text="/start", parse_mode=None))]
 
         else:
             async with get_session() as session: rows, total = await search_users(session, column_name, value, limit=50)
             if rows: results = [InlineQueryResultArticle(thumbnail_url=row.photo_url, id=str(uuid.uuid4()), title=row.full_name, description=row.contact_info, input_message_content=InputTextMessageContent(message_text=f"/get_user {row.tg_id}", parse_mode=None)) for row in rows]
-            else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="🫙 В баночке не найдено пользователей по поисковому запросу", description="Попробуйте другой запрос", input_message_content=InputTextMessageContent(message_text="/start", parse_mode=None))]
+            else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено пользователей по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=InputTextMessageContent(message_text="/start", parse_mode=None))]
 
         await inline_query.answer(results)
