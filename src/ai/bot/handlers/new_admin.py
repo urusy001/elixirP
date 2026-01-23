@@ -9,15 +9,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
 
 from config import ADMIN_TG_IDS, MOSCOW_TZ, ELIXIR_CHAT_ID
-from src.ai.bot.main import new_bot
 from src.ai.bot.texts import admin_texts
 from src.ai.bot.handlers import new_admin_router
 from src.ai.bot.keyboards import admin_keyboards
 from src.helpers import make_excel_safe
 from src.tg_methods import get_user_id_by_phone, normalize_phone, get_user_id_by_username
 from src.webapp import get_session
-from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_users, \
-    get_user_usage_totals, get_user_carts
+from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_user_usage_totals, get_user_carts
 from src.webapp.crud.search import search_users
 from src.webapp.models import Cart
 from src.webapp.schemas import UserCreate, UserUpdate

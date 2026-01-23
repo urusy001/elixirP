@@ -18,7 +18,7 @@ __all__ = [
     'create_unit', 'get_unit', 'get_units', 'update_unit',
     'create_feature', 'get_feature', 'get_features', 'update_feature', 'get_product_with_features',
     'update_user', 'get_users', 'get_user', 'create_user', 'delete_user',
-    'get_usages', 'write_usage', 'get_tg_refs', 'upsert_user', 'increment_tokens',
+    'get_usages', 'write_usage', 'get_tg_refs', 'upsert_user', 'increment_tokens', 'get_user_usage_totals',
     'delete_cart', 'get_cart_by_id', 'clear_cart', 'create_cart', 'get_cart_items', 'remove_cart_item', 'update_cart_item', 'update_cart',
     'get_user_carts', 'get_cart_item_by_id', 'get_cart_item_by_product', 'add_or_increment_item',
     'is_favourite', 'add_favourite', 'remove_favourite', 'get_user_favourites', 'get_user_favourite_by_onec', 'get_carts', "get_tg_category_by_id",
