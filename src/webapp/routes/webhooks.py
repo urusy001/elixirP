@@ -45,6 +45,7 @@ async def get_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
         cart_id = int(m.group(1))
         status_text = amocrm.STATUS_WORDS.get(status_id, f"Статус {status_id}")
+        print(cart_id, '->', status_text)
         is_active = True if status_id not in [143, 142, 82657618] else False
         is_paid = True if status_id in amocrm.PAID_STATUS_IDS else None
         is_canceled = True if status_id in [82657618, 143] else None
