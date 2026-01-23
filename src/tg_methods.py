@@ -58,4 +58,4 @@ async def get_user_id_by_username(username: str):
     try:
         entity = await client.get_entity(username)
         return entity.id
-    except (UsernameNotOccupiedError, UsernameInvalidError): return None
+    except (UsernameNotOccupiedError, UsernameInvalidError, ValueError): return None
