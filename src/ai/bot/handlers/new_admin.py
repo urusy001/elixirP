@@ -13,7 +13,7 @@ from src.ai.bot.texts import admin_texts
 from src.ai.bot.handlers import new_admin_router
 from src.ai.bot.keyboards import admin_keyboards
 from src.helpers import make_excel_safe
-from src.tg_methods import get_user_id_by_phone, normalize_phone
+from src.tg_methods import get_user_id_by_phone, normalize_phone, get_user_id_by_username
 from src.webapp import get_session
 from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_users, \
     get_user_usage_totals, get_user_carts
@@ -226,6 +226,15 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
         allowed_column_names = Literal["full_name", "username", "email", "tg_id", "phone"]
         if column_name not in get_args(allowed_column_names): results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"Неверный поисковой параметр: {column_name}", input_message_content=InputTextMessageContent(message_text="/start", parse_mode=None), description=f"Позволено: {', '.join(allowed_column_names)}", )]
         elif not value.strip(): results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"Введите поисковый запрос", input_message_content=InputTextMessageContent(message_text="/start", parse_mode=None), description=f"Не трогайте ничего после двоеточия", )]
+        elif column_name == "username":
+            value = await get_user_id_by_username(value)
+            if value:
+                column_name = "tg_id"
+                async with get_session() as session: rows, total = await search_users(session, column_name, value, limit=50)
+                results = [InlineQueryResultArticle(thumbnail_url=row.photo_url, id=str(uuid.uuid4()), title=row.full_name, description=row.contact_info, input_message_content=InputTextMessageContent(message_text=f"/get_user {row.tg_id}", parse_mode=None)) for row in rows]
+
+            else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="Пользователя с таким username не существует", input_message_content=InputTextMessageContent(message_text="/start", parse_mode=None))]
+
         else:
             async with get_session() as session: rows, total = await search_users(session, column_name, value, limit=50)
             results = [InlineQueryResultArticle(thumbnail_url=row.photo_url, id=str(uuid.uuid4()), title=row.full_name, description=row.contact_info, input_message_content=InputTextMessageContent(message_text=f"/get_user {row.tg_id}", parse_mode=None)) for row in rows]

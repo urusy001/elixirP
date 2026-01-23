@@ -4,6 +4,8 @@ import re
 
 from telethon import TelegramClient
 from typing import Iterable, Optional
+
+from telethon.errors import UsernameInvalidError, UsernameNotOccupiedError
 from telethon.tl.functions.contacts import ImportContactsRequest
 from telethon.tl.types import InputPhoneContact
 
@@ -51,3 +53,9 @@ async def get_user_id_by_phone(phone: str):
 
     if result.users: return result.users[0].id
     return None
+
+async def get_user_id_by_username(username: str):
+    try:
+        entity = await client.get_entity(username)
+        return entity.id
+    except (UsernameNotOccupiedError, UsernameInvalidError): return None
