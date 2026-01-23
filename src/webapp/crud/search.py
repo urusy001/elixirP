@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.helpers import normalize, normalize_user_value
-from src.webapp.models import Product, product_tg_categories, User
-
+from src.webapp.models import Product, User
+from src.webapp.models.product_tg_categories import product_tg_categories
 
 def _parse_int_csv(value: Optional[str]) -> list[int]:
     if not value: return []
