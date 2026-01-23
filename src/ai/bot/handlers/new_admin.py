@@ -219,8 +219,8 @@ async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
 
 @new_admin_router.inline_query()
 async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
-    data = inline_query.query.strip().split(':')
-    if data[0] == "search_user":
+    data = inline_query.query.strip().split(maxsplit=2)
+    if data[0] == "search_user" and len(data) == 3:
         column_name = data[1]
         value = data[2]
         allowed_column_names = Literal["full_name", "username", "email", "tg_id", "phone"]
@@ -241,4 +241,5 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
             if rows: results = [InlineQueryResultArticle(thumbnail_url=row.photo_url, id=str(uuid.uuid4()), title=row.full_name, description=row.contact_info, input_message_content=InputTextMessageContent(message_text=f"/get_user {row.tg_id}", parse_mode=None)) for row in rows]
             else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено пользователей по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=InputTextMessageContent(message_text="/start", parse_mode=None))]
 
-        await inline_query.answer(results)
+    else: results = []
+    await inline_query.answer(results)
