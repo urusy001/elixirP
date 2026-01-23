@@ -90,7 +90,7 @@ async def handle_statistics(message: Message):
             "Комментарий": getattr(c, "commentary", None),
             "Промокод": getattr(c, "promo_code", None),
             "Статус": getattr(c, "status", None),
-            "Оплачен": "Нет" if not bool(getattr(c, "is_paid", False)) else "Да",
+            "Оплачен": False if not bool(getattr(c, "is_paid", False)) else True,
             "Создано": getattr(c, "created_at", None),
             "Обновлено": getattr(c, "updated_at", None),
         })
