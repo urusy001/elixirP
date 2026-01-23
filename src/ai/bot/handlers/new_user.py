@@ -70,7 +70,7 @@ async def handle_user_start(message: Message, state: FSMContext):
     await state.set_data(state_data)
     if not result: return await message.answer(user_texts.banned_in_channel)
     async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
-    if not user:
+    if not user or not user.tg_phone:
         await state.set_state(user_states.Registration.phone)
         return await message.answer(user_texts.verify_phone.replace('*', message.from_user.full_name), reply_markup=user_keyboards.phone)
 
@@ -435,7 +435,7 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
     if not result: return await message.answer(user_texts.banned_in_channel)
 
     async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
-    if not user: return await handle_user_start(message, state, professor_bot, professor_client)
+    if not user or not user.tg_phone: return await handle_user_start(message, state, professor_bot, professor_client)
     else: asyncio.create_task(update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
 
     state_data = await state.get_data()

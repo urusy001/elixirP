@@ -32,7 +32,7 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
     result = await CHAT_NOT_BANNED_FILTER(user_id)
     if not result: return await message.answer(user_texts.banned_in_channel)
     async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
-    if not user:
+    if not user or not user.tg_phone:
         await state.set_state(user_states.Registration.phone)
         return await message.answer(user_texts.verify_phone.replace('*', message.from_user.full_name), reply_markup=user_keyboards.phone)
 
@@ -97,7 +97,7 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
     result = await CHAT_NOT_BANNED_FILTER(user_id)
     if not result: return await message.answer(user_texts.banned_in_channel)
     async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
-    if not user: return await handle_user_start(message, state, professor_bot, professor_client)
+    if not user or not user.tg_phone: return await handle_user_start(message, state, professor_bot, professor_client)
     else: asyncio.create_task(update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
     if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ): return await message.answer(user_texts.banned_until.replace("Блокировка до 9999-12-31, п", "П").replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}'))
     bot_id = str(message.bot.id)
