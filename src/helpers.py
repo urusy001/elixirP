@@ -740,7 +740,6 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
     else:
         user_bits.append(f"👤 user_id: <code>{cart.user_id}</code>")
 
-    # ---- статус / мета ----
     status_flags = []
     status_flags.append("✅ оплачено" if getattr(cart, "is_paid", False) else "⏳ не оплачено")
     status_flags.append("🟢 активна" if getattr(cart, "is_active", False) else "⚪ неактивна")
@@ -770,21 +769,20 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
 
     header = f"🧾 <b>{_s(cart,'name',f'Заказ #{cart.id}')}</b>\n🆔 cart_id: <code>{cart.id}</code>"
     meta = (
-            f"\n\n📌 статус: <b>{', '.join(status_flags)}</b>"
-            + (f"\n📄 статус (текст): <i>{status_str}</i>" if status_str else "")
+            (f"\n📄 Статус (текст): <i>{status_str}</i>, <b>{', '.join(status_flags)}</b>" if status_str else "")
             + (f"\n🪪 yandex_request_id: <code>{yandex_request_id}</code>" if yandex_request_id else "")
-            + (f"\n🚚 доставка: <i>{delivery_string}</i>" if delivery_string else "")
-            + (f"\n💬 комментарий: <i>{commentary}</i>" if commentary else "")
-            + f"\n⏱ создано: <code>{created_at}</code>\n🔁 обновлено: <code>{updated_at}</code>"
+            + (f"\n🚚 Доставка: <i>{delivery_string}</i>" if delivery_string else "")
+            + (f"\n💬 Комментарий: <i>{commentary}</i>" if commentary else "")
+            + f"\n🕰️ Создано: <code>{created_at}</code>\n🔁 обновлено: <code>{updated_at}</code>"
     )
 
     totals = (
-        f"\n\n📦 позиций: <b>{len(cart.items or [])}</b> • всего кол-во: <b>{qty_total}</b>"
-        f"\n🧮 сумма по позициям (пересчёт): <b>{items_total}</b>₽"
-        f"\n🧾 cart.sum (в базе): <b>{cart_sum}</b>₽"
-        f"\n🚚 доставка (в базе): <b>{delivery_sum}</b>₽"
-        f"\n💰 итог (пересчёт): <b>{grand_total_calc}</b>₽"
-        f"\n💰 итог (как в базе): <b>{grand_total_saved}</b>₽"
+        f"\n\n📦 Позиций: <b>{len(cart.items or [])}</b> • всего кол-во: <b>{qty_total}</b>"
+        f"\n🧮 Сумма по позициям (пересчёт): <b>{items_total}</b>₽"
+        f"\n🧾 Сумма при создании заказа: <b>{cart_sum}</b>₽"
+        f"\n🚚 Стоимость доставки: <b>{delivery_sum}</b>₽"
+        f"\n💰 Итог (пересчёт): <b>{grand_total_calc}</b>₽"
+        f"\n💰 Итог (изначально): <b>{grand_total_saved}</b>₽"
         f"{diff_note}"
     )
 
