@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy import select, update, bindparam, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -158,6 +160,15 @@ async def update_premium_requests(db: AsyncSession, value: int = 2) -> int:
     print(f"Updated {result.rowcount or 0} to add requests with {value}")
 
 
-async def update_user_name(i, first_name, last_name):
+async def update_user_name(i: int, first_name: Optional[str] = None, last_name: Optional[str] = None) -> User:
     from src.webapp import get_session
-    async with get_session() as _session: await update_user(_session, i, UserUpdate(name=first_name or '', surname=last_name or ''))
+    first_name = (first_name or "").strip()
+    last_name = (last_name or "").strip()
+    if not first_name and not last_name: return
+    async with get_session() as _session:
+        user = await _session.get(User, i)
+        if not user: return
+        if not (getattr(user, "name", None) or "").strip(): user.name = first_name
+        if not (getattr(user, "surname", None) or "").strip(): user.surname = last_name
+        await _session.commit()
+        await _session.refresh(user)
