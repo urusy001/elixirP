@@ -8,12 +8,12 @@ import json
 import random
 import re
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from functools import wraps
 from logging import Logger
 from typing import Any
-from typing import Optional, Literal
+from typing import Optional
 from urllib.parse import parse_qsl
 
 import pandas as pd
@@ -23,13 +23,16 @@ from aiogram.types import Message, CallbackQuery
 from bs4 import BeautifulSoup, Tag
 from fastapi import HTTPException, Request
 from pydantic import BaseModel
-from sqlalchemy import BigInteger, Integer, String, DateTime, Numeric, Boolean, select
+from sqlalchemy import BigInteger, Integer, String, DateTime, Numeric, Boolean, select, distinct, func, desc, case
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from transliterate import translit
 
 from config import ELIXIR_CHAT_ID, NEW_BOT_TOKEN, INTERNAL_API_TOKEN, MOSCOW_TZ
 from src.ai.bot.texts import user_texts
 from src.webapp import get_session
+from src.webapp.models import Cart, CartItem, TgCategory, Feature
+from src.webapp.models.product_tg_categories import product_tg_categories
 from src.webapp.models.user import User
 
 MAX_TG_MSG_LEN = 4096
@@ -178,13 +181,8 @@ def format_order_for_amocrm(order_number: int | str, payload: dict[str, Any], de
     items = checkout.get("items", []) or []
     delivery = payload.get("selected_delivery", {}) or {}
     contact = payload.get("contact_info", {}) or {}
-
     address_data = delivery.get("address", {}) or {}
-
-    # ---- Date ----
     order_date = datetime.now().strftime("%d.%m.%Y")
-
-    # ---- Items ----
     lines_items: list[str] = []
     for idx, item in enumerate(items, start=1):
         name = item.get("name", "Товар")
@@ -194,37 +192,25 @@ def format_order_for_amocrm(order_number: int | str, payload: dict[str, Any], de
         lines_items.append(f"{idx}. {name} {qty}шт. — {subtotal_str}руб.")
 
     items_block = "\n".join(lines_items) if lines_items else "Товары не указаны."
-
-    # ---- Delivery text (CDEK vs Yandex) ----
     delivery_service_norm = (delivery_service or "").strip().upper()
     tariff_norm = (tariff or "").strip().lower() if tariff is not None else ""
-
     postal_code = address_data.get("postal_code") or ""
     formatted_cdek_addr = address_data.get("formatted") or address_data.get("name")
-    # Yandex uses "address"
     yandex_addr = address_data.get("address") or ""
     yandex_name = address_data.get("name") or ""  # for self_pickup PVZ label
-
     delivery_mode = (delivery.get("deliveryMode") or "").strip()  # for Yandex
 
     if delivery_service_norm == "CDEK":
-        # CDEK uses our explicit tariff param
-        if tariff_norm == "office":
-            prefix = "Доставка: Пункт выдачи СДЕК"
-        elif tariff_norm == "door":
-            prefix = "Доставка: Курьер СДЭК"
-        else:
-            prefix = "Доставка: СДЭК"
+        if tariff_norm == "office": prefix = "Доставка: Пункт выдачи СДЕК"
+        elif tariff_norm == "door": prefix = "Доставка: Курьер СДЭК"
+        else: prefix = "Доставка: СДЭК"
 
         delivery_line = f"{prefix}: {postal_code}, {formatted_cdek_addr}".strip()
 
     elif delivery_service_norm == "YANDEX":
-        # Yandex uses deliveryMode + address.address
         if delivery_mode == "self_pickup":
-            # данные из address: {code, address, name, phone, schedule}
             base = yandex_addr
-            if yandex_name:
-                base = f"{yandex_addr} ({yandex_name})"
+            if yandex_name: base = f"{yandex_addr} ({yandex_name})"
             prefix = "Доставка: Пункт выдачи Яндекс"
             delivery_line = f"{prefix}: {base}".strip()
 
@@ -237,20 +223,16 @@ def format_order_for_amocrm(order_number: int | str, payload: dict[str, Any], de
             delivery_line = f"{prefix}: {yandex_addr}".strip()
 
     else:
-        # generic fallback for any other service
         base_addr = formatted_cdek_addr or yandex_addr
         prefix = f"Доставка: {delivery_service}"
         delivery_line = f"{prefix}: {postal_code + ', ' if postal_code else ''}{base_addr}".strip()
 
-    # ---- Contact info ----
     name = contact.get("name") or ""
     surname = contact.get("surname") or ""
     full_name = (surname + " " + name).strip() or "Не указано"
-
     phone = contact.get("phone") or "Не указан"
     email = contact.get("email") or "Не указан"
 
-    # ---- Final text ----
     text = (
         f"Заказ №{order_number} с Магазина Телеграм\n"
         f"Дата заказа: {order_date}\n"
@@ -267,43 +249,20 @@ def format_order_for_amocrm(order_number: int | str, payload: dict[str, Any], de
 
     return text
 
-
-def normalize_address_for_cf(address: object, service: Literal["cdek", "yandex"] | None = "cdek", ) -> str | None:
-        """
-        Takes either:
-        - string address
-        - CDEK/Yandex address dict (like your example)
-        Returns a short string <= 255 chars suitable for Amo text CF.
-        """
-        if not address: return None
-        if isinstance(address, str):
-            s = address
-        # dict from CDEK/Yandex
-        elif isinstance(address, dict):
-            postal_code = address.get("postal_code")
-            city = address.get("city")
-            region = address.get("region")
-            country_code = address.get("country_code")
-            # typical CDEK/Yandex key for line
-            line = address.get("address") or address.get("name")
-
-            parts = [
-                p for p in [
-                    postal_code,
-                    city,
-                    region,
-                    country_code,
-                    line,
-                ] if p
-            ]
-            s = ", ".join(map(str, parts))
-        else:
-            s = str(address)
-
-        # Trim to Amo's 256 char limit (play safe with 255)
-        if len(s) > 255:
-            s = s[:255]
-        return s or None
+def normalize_address_for_cf(address: object) -> str | None:
+    if not address: return None
+    if isinstance(address, str): s = address
+    elif isinstance(address, dict):
+        postal_code = address.get("postal_code")
+        city = address.get("city")
+        region = address.get("region")
+        country_code = address.get("country_code")
+        line = address.get("address") or address.get("name")
+        parts = [p for p in [postal_code, city, region, country_code, line] if p]
+        s = ", ".join(map(str, parts))
+    else: s = str(address)
+    if len(s) > 255: s = s[:255]
+    return s or None
 
 
 def normalize_html_for_telegram(raw_html: str) -> str:
@@ -319,116 +278,61 @@ def normalize_html_for_telegram(raw_html: str) -> str:
     - оставляет только допустимые теги и нужные атрибуты
     - декодирует HTML-сущности (&nbsp; &mdash; ...) в юникод и заново экранирует
     """
-
-    # 1) Сначала раскрываем все HTML-сущности в нормальные символы,
-    #    чтобы не осталось именованных типа &nbsp; &mdash; и т.п.,
-    #    которые Телега не понимает
     raw_html = html.unescape(raw_html)
-
     soup = BeautifulSoup(raw_html, "html.parser")
-
-    # 2) Заголовки в <b>
-    for tag in soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"]):
-        tag.name = "b"
-
-    # 3) strong/em оставляем как есть (они разрешены), можно было бы и мапать в b/i
-    #    но Телега их понимает напрямую
-
-    # 4) Списки -> "• ..."
+    for tag in soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"]): tag.name = "b"
     for lst in soup.find_all(["ul", "ol"]):
         lines = []
         for li in lst.find_all("li", recursive=False):
             text = li.get_text(" ", strip=True)
-            if text:
-                lines.append(f"• {text}")
+            if text: lines.append(f"• {text}")
         lst.replace_with("\n".join(lines))
 
-    # 5) <br> -> \n
-    for br in soup.find_all("br"):
-        br.replace_with("\n")
-
-    # 6) <p> -> абзацы + пустая строка после
+    for br in soup.find_all("br"): br.replace_with("\n")
     for p in soup.find_all("p"):
         text = p.get_text(" ", strip=True)
-        if text:
-            p.replace_with(text + "\n")
-        else:
-            p.decompose()
+        if text: p.replace_with(text + "\n")
+        else: p.decompose()
 
-    # 7) Обработка атрибутов и фильтрация тегов
     for tag in list(soup.find_all(True)):  # True = любой тег
-        if not isinstance(tag, Tag):
-            continue
-
+        if not isinstance(tag, Tag): continue
         name = tag.name
-
-        # всё, что не в ALLOWED_TAGS, разворачиваем
         if name not in ALLOWED_TAGS:
             tag.unwrap()
             continue
 
-        # ----- специальные случаи по тегам -----
-
         if name == "span":
-            # оставляем только spoiler: <span class="tg-spoiler">
             classes = tag.get("class", [])
-            if "tg-spoiler" in classes:
-                tag.attrs = {"class": "tg-spoiler"}
-            else:
-                tag.unwrap()
+            if "tg-spoiler" in classes: tag.attrs = {"class": "tg-spoiler"}
+            else: tag.unwrap()
 
         elif name == "a":
-            # только href
             href = tag.get("href")
-            if href:
-                tag.attrs = {"href": href}
-            else:
-                # без href смысла нет
-                tag.unwrap()
+            if href: tag.attrs = {"href": href}
+            else: tag.unwrap()
 
         elif name == "tg-emoji":
-            # только emoji-id
             emoji_id = tag.get("emoji-id")
-            if emoji_id:
-                tag.attrs = {"emoji-id": emoji_id}
-            else:
-                tag.unwrap()
+            if emoji_id: tag.attrs = {"emoji-id": emoji_id}
+            else: tag.unwrap()
 
         elif name == "code":
-            # язык можно оставлять только если внутри <pre><code class="language-...">
             if isinstance(tag.parent, Tag) and tag.parent.name == "pre":
                 cls = tag.get("class")
-                if cls:
-                    # class="language-python" и т.п. — оставляем
-                    tag.attrs = {"class": cls}
-                else:
-                    tag.attrs = {}
-            else:
-                # одиночный <code> — без атрибутов
-                tag.attrs = {}
+                if cls: tag.attrs = {"class": cls}
+                else: tag.attrs = {}
+            else: tag.attrs = {}
 
-        elif name == "pre":
-            # pre без атрибутов
-            tag.attrs = {}
-
+        elif name == "pre": tag.attrs = {}
         elif name == "blockquote":
-            # разрешён только атрибут expandable
-            if "expandable" in tag.attrs:
-                tag.attrs = {"expandable": None}  # <blockquote expandable>
-            else:
-                tag.attrs = {}
+            if "expandable" in tag.attrs: tag.attrs = {"expandable": None}  # <blockquote expandable>
+            else: tag.attrs = {}
 
-        else:
-            # все остальные разрешённые теги без атрибутов
-            tag.attrs = {}
+        else: tag.attrs = {}
 
-    # 8) Получаем HTML-строку обратно
     text = str(soup)
-
-    # 9) Чистим лишние пустые строки
     text = re.sub(r"\n{3,}", "\n\n", text)
     text = "\n".join(line.rstrip() for line in text.splitlines())
-
     return text.strip()
 
 
@@ -456,7 +360,6 @@ async def CHAT_ADMIN_REPLY_FILTER(message: Message, bot: Bot) -> bool:
     if getattr(message.chat, "id") not in [ELIXIR_CHAT_ID]: return False
     elif not message.reply_to_message: return False
     if message.sender_chat and message.sender_chat.id == message.chat.id: return True
-
     if message.from_user:
         member = await bot.get_chat_member(message.chat.id, message.from_user.id)
         return member.status in ("administrator", "creator")
@@ -464,19 +367,11 @@ async def CHAT_ADMIN_REPLY_FILTER(message: Message, bot: Bot) -> bool:
     return False
 
 class TelegramAuthPayload(BaseModel): initData: str
-class TelegramInitDataError(Exception):
-    """Base error for init data validation issues."""
-class TelegramInitDataSignatureError(TelegramInitDataError):
-    """Signature does not match, init data is not trusted."""
-class TelegramInitDataExpiredError(TelegramInitDataError):
-    """auth_date is too old."""
+class TelegramInitDataError(Exception): """Base error for init data validation issues."""
+class TelegramInitDataSignatureError(TelegramInitDataError): """Signature does not match, init data is not trusted."""
+class TelegramInitDataExpiredError(TelegramInitDataError): """auth_date is too old."""
 
-
-def validate_init_data(
-        init_data: str,
-        bot_token: str = NEW_BOT_TOKEN,
-        max_age_seconds: int = 60*60*2  # e.g. 10 minutes; adjust as you like
-) -> dict[str, Any]:
+def validate_init_data(init_data: str, bot_token: str = NEW_BOT_TOKEN, max_age_seconds: int = 60*60*2) -> dict[str, Any]:
     """
     Validate Telegram Mini App init data according to the official algorithm.
 
@@ -486,65 +381,42 @@ def validate_init_data(
     :return: dict with parsed parameters (user, query_id, auth_date, etc.).
     :raises TelegramInitDataError: On invalid or expired data.
     """
-
-    # 1. Parse query string
-    # parse_qsl returns a list of (key, value) with URL-decoding applied.
     params_list = parse_qsl(init_data, keep_blank_values=True)
-
     params: dict[str, str] = {}
     received_hash: Optional[str] = None
 
     for key, value in params_list:
-        if key == "hash":
-            received_hash = value
-        else:
-            params[key] = value
+        if key == "hash": received_hash = value
+        else: params[key] = value
 
-    if received_hash is None:
-        raise TelegramInitDataSignatureError("Missing 'hash' parameter in init data.")
+    if received_hash is None: raise TelegramInitDataSignatureError("Missing 'hash' parameter in init data.")
 
-    # 2. Build data_check_string: "key=value" sorted by key and joined with '\n'
     data_check_string_parts = [f"{k}={v}" for k, v in sorted(params.items(), key=lambda kv: kv[0])]
     data_check_string = "\n".join(data_check_string_parts)
-
-    # 3. Create secret key: HMAC_SHA256("WebAppData", bot_token)
     secret_key = hmac.new(
         key=b"WebAppData",
         msg=bot_token.encode("utf-8"),
         digestmod=hashlib.sha256
     ).digest()  # IMPORTANT: keep as raw bytes
-
-    # 4. Compute check hash: HMAC_SHA256(secret_key, data_check_string)
     check_hash = hmac.new(
         key=secret_key,
         msg=data_check_string.encode("utf-8"),
         digestmod=hashlib.sha256
     ).hexdigest()
 
-    # 5. Constant-time comparison
-    if not hmac.compare_digest(check_hash, received_hash):
-        raise TelegramInitDataSignatureError("Init data signature mismatch.")
-
-    # 6. Optional: auth_date freshness check
+    if not hmac.compare_digest(check_hash, received_hash): raise TelegramInitDataSignatureError("Init data signature mismatch.")
     if "auth_date" in params and max_age_seconds > 0:
-        try:
-            auth_date = int(params["auth_date"])
-        except ValueError:
-            raise TelegramInitDataError("Invalid auth_date format.")
+        try: auth_date = int(params["auth_date"])
+        except ValueError: raise TelegramInitDataError("Invalid auth_date format.")
 
         now = int(time.time())
-        if now - auth_date > max_age_seconds:
-            raise TelegramInitDataExpiredError("Init data is too old.")
+        if now - auth_date > max_age_seconds: raise TelegramInitDataExpiredError("Init data is too old.")
 
-    # 7. Parse complex fields (e.g., user) from JSON if needed
     result: dict[str, Any] = dict(params)
 
     if "user" in result:
-        try:
-            result["user"] = json.loads(result["user"])
-        except json.JSONDecodeError:
-            # Leave as raw string if something’s wrong
-            pass
+        try: result["user"] = json.loads(result["user"])
+        except json.JSONDecodeError: pass
 
     return result
 
@@ -569,16 +441,221 @@ async def check_blocked(message: Message):
 
 def make_excel_safe(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
-
-    # 1) Any datetime64[ns, tz] columns -> remove tz (keep same wall time)
     tz_cols = df.select_dtypes(include=["datetimetz"]).columns
-    for c in tz_cols:
-        df[c] = df[c].dt.tz_localize(None)
-
-    # 2) If you have datetime objects inside "object" columns, strip tzinfo too
+    for c in tz_cols: df[c] = df[c].dt.tz_localize(None)
     for c in df.columns:
-        if df[c].dtype == "object":
-            df[c] = df[c].apply(lambda x: x.replace(tzinfo=None) if hasattr(x, "tzinfo") and x.tzinfo else x)
-
+        if df[c].dtype == "object": df[c] = df[c].apply(lambda x: x.replace(tzinfo=None) if hasattr(x, "tzinfo") and x.tzinfo else x)
     return df
 
+
+def _fmt_dt(dt: datetime | None) -> str:
+    if not dt: return "—"
+    return dt.strftime("%Y-%m-%d %H:%M")
+
+def _money(x: Any) -> Decimal:
+    if x is None: return Decimal("0")
+    if isinstance(x, Decimal): return x
+    return Decimal(str(x))
+
+async def user_carts_analytics_text(db: AsyncSession, user_id: int, *, days: int = 30, top_n: int = 5, recent_n: int = 8) -> str:
+    since_dt = datetime.now(timezone.utc) - timedelta(days=days)
+
+    totals_stmt = (
+        select(
+            func.count(Cart.id).label("carts_total"),
+            func.coalesce(func.sum(Cart.sum), 0).label("sum_total"),
+            func.coalesce(func.sum(Cart.delivery_sum), 0).label("delivery_sum_total"),
+            func.coalesce(func.sum(Cart.promo_gains), 0).label("promo_gains_total"),
+            func.sum(case((Cart.is_paid.is_(True), 1), else_=0)).label("paid_cnt"),
+            func.sum(case((Cart.is_paid.is_(False), 1), else_=0)).label("unpaid_cnt"),
+            func.sum(case((Cart.is_active.is_(True), 1), else_=0)).label("active_cnt"),
+            func.sum(case((Cart.is_active.is_(False), 1), else_=0)).label("inactive_cnt"),
+            func.sum(case((Cart.is_canceled.is_(True), 1), else_=0)).label("canceled_cnt"),
+            func.sum(case((Cart.is_shipped.is_(True), 1), else_=0)).label("shipped_cnt"),
+            func.sum(case((Cart.promo_code.isnot(None), 1), else_=0)).label("with_promo_cnt"),
+            func.max(Cart.created_at).label("last_cart_at"),
+            func.min(Cart.created_at).label("first_cart_at"),
+            func.sum(case((Cart.created_at >= since_dt, 1), else_=0)).label("carts_last_days_cnt"),
+        )
+        .where(Cart.user_id == user_id)
+    )
+    t = (await db.execute(totals_stmt)).one()
+
+    carts_total = int(t.carts_total or 0)
+    sum_total = _money(t.sum_total)
+    delivery_total = _money(t.delivery_sum_total)
+    promo_total = _money(t.promo_gains_total)
+    avg_sum = (sum_total / carts_total) if carts_total else Decimal("0")
+
+    status_rows = (await db.execute(
+        select(Cart.status, func.count(Cart.id).label("cnt"))
+        .where(Cart.user_id == user_id)
+        .group_by(Cart.status)
+        .order_by(desc("cnt"))
+    )).all()
+
+    it = (await db.execute(
+        select(
+            func.count(CartItem.id).label("lines_total"),
+            func.coalesce(func.sum(CartItem.quantity), 0).label("qty_total"),
+            func.count(distinct(CartItem.product_onec_id)).label("products_distinct"),
+            func.count(distinct(CartItem.feature_onec_id)).label("features_distinct"),
+        )
+        .select_from(CartItem)
+        .join(Cart, Cart.id == CartItem.cart_id)
+        .where(Cart.user_id == user_id)
+    )).one()
+
+    top_rows = (await db.execute(
+        select(
+            CartItem.feature_onec_id.label("fid"),
+            Feature.name.label("name"),
+            func.sum(CartItem.quantity).label("qty"),
+            func.coalesce(func.sum(CartItem.quantity * Feature.price), 0).label("rev"),
+        )
+        .select_from(CartItem)
+        .join(Cart, Cart.id == CartItem.cart_id)
+        .join(Feature, Feature.onec_id == CartItem.feature_onec_id)
+        .where(Cart.user_id == user_id)
+        .group_by(CartItem.feature_onec_id, Feature.name)
+        .order_by(desc("qty"))
+        .limit(top_n)
+    )).all()
+
+    cat_rows = (await db.execute(
+        select(
+            TgCategory.id.label("cat_id"),
+            TgCategory.name.label("cat_name"),
+            func.sum(CartItem.quantity).label("qty"),
+            func.coalesce(func.sum(CartItem.quantity * func.coalesce(Feature.price, 0)), 0).label("rev"),
+            func.count(distinct(CartItem.product_onec_id)).label("products_distinct"),
+        )
+        .select_from(CartItem)
+        .join(Cart, Cart.id == CartItem.cart_id)
+        .join(product_tg_categories, product_tg_categories.c.product_onec_id == CartItem.product_onec_id)
+        .join(TgCategory, TgCategory.id == product_tg_categories.c.tg_category_id)
+        .outerjoin(Feature, Feature.onec_id == CartItem.feature_onec_id)
+        .where(Cart.user_id == user_id)
+        .group_by(TgCategory.id, TgCategory.name)
+        .order_by(desc("qty"))
+        .limit(top_n)
+    )).all()
+
+    cats_distinct = (await db.execute(
+        select(func.count(distinct(product_tg_categories.c.tg_category_id)))
+        .select_from(CartItem)
+        .join(Cart, Cart.id == CartItem.cart_id)
+        .join(product_tg_categories, product_tg_categories.c.product_onec_id == CartItem.product_onec_id)
+        .where(Cart.user_id == user_id)
+    )).scalar_one() or 0
+
+    recent_rows = (await db.execute(
+        select(
+            Cart.id,
+            Cart.created_at,
+            Cart.sum,
+            Cart.delivery_sum,
+            Cart.status,
+            Cart.is_paid,
+            Cart.is_active,
+            Cart.is_canceled,
+            Cart.is_shipped,
+            Cart.promo_code,
+        )
+        .where(Cart.user_id == user_id)
+        .order_by(Cart.created_at.desc())
+        .limit(recent_n)
+    )).all()
+
+    lines_total = int(it.lines_total or 0)
+    qty_total = int(it.qty_total or 0)
+    products_distinct = int(it.products_distinct or 0)
+    features_distinct = int(it.features_distinct or 0)
+
+    parts: list[str] = []
+
+    parts.append(f"<b>Аналитика заказов пользователя</b>\n<i>User ID:</i> <b>{user_id}</b>")
+
+    parts.append(
+        "\n".join(
+            [
+                "",
+                "<u>Сводка</u>",
+                f"Заказов: <b>{carts_total}</b>",
+                f"За {days} дней: <b>{int(t.carts_last_days_cnt or 0)}</b>",
+                f"Сумма заказов: <b>{sum_total:.2f}₽</b>",
+                f"Доставка: <b>{delivery_total:.2f}₽</b>",
+                f"Реф.выплаты: <b>{promo_total:.2f}₽</b>",
+                f"Оплачено: <b>{int(t.paid_cnt or 0)}</b>",
+                f"Не оплачено: <b>{int(t.unpaid_cnt or 0)}</b>",
+                f"Активные: <b>{int(t.active_cnt or 0)}</b>",
+                f"Неактивные: <b>{int(t.inactive_cnt or 0)}</b>",
+                f"Отправлено: <b>{int(t.shipped_cnt or 0)}</b>",
+                f"Отменено: <b>{int(t.canceled_cnt or 0)}</b>",
+                f"С промокодом: <b>{int(t.with_promo_cnt or 0)}</b>",
+                f"Средний чек: <b>{avg_sum:.2f}₽</b>",
+                f"Первый заказ: <i>{_fmt_dt(t.first_cart_at)}</i>",
+                f"Последний заказ: <i>{_fmt_dt(t.last_cart_at)}</i>",
+            ]
+        )
+    )
+
+    parts.append(
+        "\n".join(
+            [
+                "",
+                "<u>Позиции</u>",
+                f"Строк: <b>{lines_total}</b>",
+                f"Всего штук: <b>{qty_total}</b>",
+                f"Уникальных продуктов: <b>{products_distinct}</b>",
+                f"Уникальных вариаций: <b>{features_distinct}</b>",
+                f"Уникальных TG категорий: <b>{int(cats_distinct)}</b>",
+            ]
+        )
+    )
+
+    if status_rows:
+        parts.append("\n<u>Статусы</u>")
+        for s, cnt in status_rows[:10]:
+            parts.append(f"{s or 'NULL'}: <b>{int(cnt)}</b>")
+
+    if cat_rows:
+        parts.append("\n<u>Топ TG категорий</u>")
+        for cat_id, cat_name, qty, rev, prod_cnt in cat_rows:
+            parts.append(
+                f"{cat_name} (ID {cat_id}): "
+                f"<b>{int(qty)}</b> шт, "
+                f"<b>{_money(rev):.2f}₽</b>, "
+                f"товаров <b>{int(prod_cnt)}</b>"
+            )
+
+    if top_rows:
+        parts.append("\n<u>Топ вариаций</u>")
+        for fid, name, qty, rev in top_rows:
+            parts.append(
+                f"{name} (ID {fid}): "
+                f"<b>{int(qty)}</b> шт, "
+                f"<b>{_money(rev):.2f}₽</b>"
+            )
+
+    if recent_rows:
+        parts.append("\n<u>Последние заказы</u>")
+        for (cid, created_at, ssum, dsum, status, is_paid, is_active, is_canceled, is_shipped, promo_code) in recent_rows:
+            flags = []
+            if is_paid: flags.append("paid")
+            if is_shipped: flags.append("shipped")
+            if is_canceled: flags.append("canceled")
+            if is_active: flags.append("active")
+            flags_s = ", ".join(flags) if flags else "—"
+
+            line = (
+                f"Заказ <b>#{cid}</b> — <i>{_fmt_dt(created_at)}</i>\n"
+                f"Статус: <b>{status or '—'}</b>\n"
+                f"Сумма: <b>{_money(ssum):.2f}₽</b>, доставка <b>{_money(dsum):.2f}₽</b>\n"
+                f"Флаги: <i>{flags_s}</i>"
+            )
+            if promo_code:
+                line += f"\nПромокод: <b>{promo_code}</b>"
+            parts.append(line)
+
+    return "\n".join(parts)

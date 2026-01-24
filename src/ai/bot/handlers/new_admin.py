@@ -13,7 +13,7 @@ from src.ai.bot.texts import admin_texts
 from src.ai.bot.handlers import new_admin_router
 from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
-from src.helpers import make_excel_safe
+from src.helpers import make_excel_safe, user_carts_analytics_text
 from src.tg_methods import get_user_id_by_phone, normalize_phone, get_user_id_by_username
 from src.webapp import get_session
 from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_user_usage_totals, get_user_carts
@@ -230,7 +230,8 @@ async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
             user_id = int(data[1])
             async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
             if data[2] == "carts":
-                async with get_session() as session: carts = await get_user_carts(session, user.tg_id)
+                async with get_session() as session: analysis_text = await user_carts_analytics_text(session, user_id)
+                await call.message.answer(analysis_text)
 
             elif data[2] == "block":
                 await call.message.edit_text(admin_texts.block_days, reply_markup=admin_keyboards.back)
