@@ -170,7 +170,7 @@ async def search_users(db: AsyncSession, by: str, value: Any, page: Optional[int
     return rows, int(total or 0)
 
 async def search_carts(db: AsyncSession, value: Any, page: Optional[int] = None, limit: Optional[int] = None) -> tuple[list[Cart], int]:
-    stmt = (select(Cart).options(selectinload(Cart.items), joinedload(Cart.promo), selectinload(Cart.user)))
+    stmt = (select(Cart).where("ачальная" not in Cart.name).options(selectinload(Cart.items), joinedload(Cart.promo), selectinload(Cart.user)))
     v = str(value).replace(" ", "").strip()
     if not v: return [], 0
     col = getattr(Cart, "id", None)
