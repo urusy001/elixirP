@@ -4,12 +4,7 @@ main_menu = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='💸 Расходы Ассистента', callback_data='admin:spends')],
 ])
 
-spend_times = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='1️⃣ Этот день', callback_data='admin:spends:1'),
-     InlineKeyboardButton(text='Неделя 7️⃣', callback_data='admin:spends:7')],
-    [InlineKeyboardButton(text='🗓 Месяц️', callback_data='admin:spends:30'),
-     InlineKeyboardButton(text='Все время ♾️', callback_data='admin:spends:0')],
-])
+
 
 open_test = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="Магазин", url="t.me/elixirpeptidebot/test")],
@@ -33,6 +28,14 @@ back = InlineKeyboardMarkup(inline_keyboard=[[back_button]])
 
 backk_button = InlineKeyboardButton(text="🔙 Главное меню", callback_data='admin:main_menuu')
 backk = InlineKeyboardMarkup(inline_keyboard=[[backk_button]])
+
+spend_times = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='1️⃣ Этот день', callback_data='admin:spends:1'),
+     InlineKeyboardButton(text='Неделя 7️⃣', callback_data='admin:spends:7')],
+    [InlineKeyboardButton(text='🗓 Месяц️', callback_data='admin:spends:30'),
+     InlineKeyboardButton(text='Все время ♾️', callback_data='admin:spends:0')],
+    [back_button]
+])
 
 def back_to_user(user_id: int): return InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="👤 К пользователю", switch_inline_query_current_chat=f'search_user tg_id {user_id}')],
