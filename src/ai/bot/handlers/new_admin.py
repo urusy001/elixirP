@@ -241,7 +241,8 @@ async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
                 await state.update_data(user_id=user.tg_id)
 
             elif data[2] == "unblock":
-                async with get_session() as session: await update_user(session, user.tg_id, UserUpdate(blocked_until=None))
+                async with get_session() as session: user = await update_user(session, user.tg_id, UserUpdate(blocked_until=None))
+                await call.message.edit_text(f"Пользователь {user.full_name} {user.tg_phone} успешно <b>разблокирован 🔓</b>")
 
     elif data[0] == "spends":
         from .admin import handle_admin_callback
