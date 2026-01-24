@@ -563,10 +563,7 @@ async def check_blocked(message: Message):
         user = result.scalar_one_or_none()
 
     if user and user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ):
-        print("Блокировка до 9999-12-31, п" in user_texts.banned_until)
-        text = user_texts.banned_until.replace("Блокировка до 9999-12-31, п", "П")
-        print(text)
-        await message.answer(text.replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}'))
+        await message.answer(user_texts.banned_until.replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}').replace("Блокировка до 9999-12-31, п", "П"))
         return False
     return True
 
