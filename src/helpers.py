@@ -148,7 +148,7 @@ def normalize_user_value(column_name: str, raw_value: Any) -> Any:
     return raw_value
 
 
-def _fmt(x, nd=2):
+def _fmt(x):
     try:
         if x is None: return "-"
         x = float(x)
@@ -170,6 +170,7 @@ def format_order_for_amocrm(order_number: int | str, payload: dict[str, Any], de
     """
     Format Telegram checkout payload into AmoCRM-friendly Russian text.
 
+    :param delivery_sum:
     :param promocode:
     :param commentary_text:
     :param order_number: e.g. 12529
@@ -577,40 +578,31 @@ async def user_carts_analytics_text(db: AsyncSession, user_id: int, *, days: int
     products_distinct = int(it.products_distinct or 0)
     positions_distinct = int(it.positions_distinct or 0)
 
-    parts: list[str] = []
-    parts.append(f"📊 <b>Аналитика заказов пользователя</b>\n<i>User ID:</i> <b>{user_id}</b>")
-
-    parts.append(
-        "\n".join(
-            [
-                "",
-                "🧾 <u>Сводка</u>",
-                f"🛍️ Заказов: <b>{carts_total}</b> (за {days} дней: <b>{int(t.carts_last_days_cnt or 0)}</b>)",
-                f"💰 Сумма: <b>{sum_total:.2f}₽</b> | 🚚 Доставка: <b>{delivery_total:.2f}₽</b>",
-                f"🎁 Реф.выплаты: <b>{promo_total:.2f}₽</b>",
-                f"✅ Оплачено: <b>{int(t.paid_cnt or 0)}</b> | ❌ Не оплачено: <b>{int(t.unpaid_cnt or 0)}</b>",
-                f"🟢 Активные: <b>{int(t.active_cnt or 0)}</b> | ⚫ Неактивные: <b>{int(t.inactive_cnt or 0)}</b>",
-                f"📦 Отправлено: <b>{int(t.shipped_cnt or 0)}</b> | ⛔ Отменено: <b>{int(t.canceled_cnt or 0)}</b>",
-                f"🏷️ С промокодом: <b>{int(t.with_promo_cnt or 0)}</b>",
-                f"📈 Средний чек: <b>{avg_sum:.2f}₽</b>",
-                f"🕒 Первый: <i>{_fmt_dt(t.first_cart_at)}</i>",
-                f"🕓 Последний: <i>{_fmt_dt(t.last_cart_at)}</i>",
-            ]
-        )
-    )
-
-    parts.append(
-        "\n".join(
-            [
-                "",
-                "📦 <u>Позиции (cart_items)</u>",
-                f"• строк: <b>{lines_total}</b> | всего штук: <b>{qty_total}</b>",
-                f"• уникальных продуктов: <b>{products_distinct}</b>",
-                f"• уникальных позиций: <b>{positions_distinct}</b>",
-                f"• уникальных TG категорий: <b>{int(cats_distinct)}</b>",
-            ]
-        )
-    )
+    parts: list[str] = [f"📊 <b>Аналитика заказов пользователя</b>\n<i>User ID:</i> <b>{user_id}</b>", "\n".join(
+        [
+            "",
+            "🧾 <u>Сводка</u>",
+            f"🛍️ Заказов: <b>{carts_total}</b> (за {days} дней: <b>{int(t.carts_last_days_cnt or 0)}</b>)",
+            f"💰 Сумма: <b>{sum_total:.2f}₽</b> | 🚚 Доставка: <b>{delivery_total:.2f}₽</b>",
+            f"🎁 Реф.выплаты: <b>{promo_total:.2f}₽</b>",
+            f"✅ Оплачено: <b>{int(t.paid_cnt or 0)}</b> | ❌ Не оплачено: <b>{int(t.unpaid_cnt or 0)}</b>",
+            f"🟢 Активные: <b>{int(t.active_cnt or 0)}</b> | ⚫ Неактивные: <b>{int(t.inactive_cnt or 0)}</b>",
+            f"📦 Отправлено: <b>{int(t.shipped_cnt or 0)}</b> | ⛔ Отменено: <b>{int(t.canceled_cnt or 0)}</b>",
+            f"🏷️ С промокодом: <b>{int(t.with_promo_cnt or 0)}</b>",
+            f"📈 Средний чек: <b>{avg_sum:.2f}₽</b>",
+            f"🕒 Первый: <i>{_fmt_dt(t.first_cart_at)}</i>",
+            f"🕓 Последний: <i>{_fmt_dt(t.last_cart_at)}</i>",
+        ]
+    ), "\n".join(
+        [
+            "",
+            "📦 <u>Позиции (cart_items)</u>",
+            f"• строк: <b>{lines_total}</b> | всего штук: <b>{qty_total}</b>",
+            f"• уникальных продуктов: <b>{products_distinct}</b>",
+            f"• уникальных позиций: <b>{positions_distinct}</b>",
+            f"• уникальных TG категорий: <b>{int(cats_distinct)}</b>",
+        ]
+    )]
 
     if status_rows:
         parts.append("\n📌 <u>Статусы</u>")
