@@ -673,7 +673,8 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
     )
 
     cart: Optional[Cart] = (await db.execute(stmt)).scalars().first()
-    if not cart: return f"❌ Корзина/заказ не найден: <code>{cart_id}</code>"
+    if not cart:
+        return f"❌ Корзина/заказ не найден: <code>{cart_id}</code>"
 
     lines = []
     qty_total = 0
@@ -688,24 +689,27 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
 
         p_name = _s(product, "name", "Без названия")
         p_code = _s(product, "code", "")
-        f_name = _s(feature, "name", "")  # usually dosage/variation name
+        f_name = _s(feature, "name", "")  # обычно дозировка/вариация
         unit_price = _money(getattr(feature, "price", None))
         line_total = unit_price * qty
         items_total += line_total
 
-        # categories (tg)
+        # категории (tg)
         cats = []
         if product and getattr(product, "tg_categories", None):
             cats = [getattr(c, "name", "") for c in product.tg_categories if getattr(c, "name", None)]
         cats_text = f" • 🏷 {', '.join(cats)}" if cats else ""
 
-        # nice line
         title = f"• <b>{p_name}</b>"
         if p_code:
             title += f" <i>({p_code})</i>"
         if f_name:
             title += f"\n  ↳ {f_name}"
-        title += f"\n  qty: <b>{qty}</b> • price: <b>{unit_price}</b>₽ • total: <b>{line_total}</b>₽{cats_text}"
+        title += (
+            f"\n  кол-во: <b>{qty}</b>"
+            f" • цена: <b>{unit_price}</b>₽"
+            f" • сумма: <b>{line_total}</b>₽{cats_text}"
+        )
 
         lines.append(title)
 
@@ -715,7 +719,7 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
     grand_total_calc = items_total + delivery_sum
     grand_total_saved = cart_sum + delivery_sum
 
-    # ---- user block (best-effort, because User fields may differ) ----
+    # ---- блок пользователя ----
     user = getattr(cart, "user", None)
     user_bits = []
     if user:
@@ -724,7 +728,7 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
         if not full_name:
             full_name = f"{_s(user,'name','').strip()} {_s(user,'surname','').strip()}".strip()
         if full_name:
-            user_bits.append(f"   name: <b>{full_name}</b>")
+            user_bits.append(f"   имя: <b>{full_name}</b>")
         uname = _s(user, "username", "").strip()
         if uname:
             user_bits.append(f"   username: @{uname.lstrip('@')}")
@@ -732,33 +736,25 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
         tg_phone = _s(user, "tg_phone", "").strip()
         if phone or tg_phone:
             ph = " / ".join([p for p in [phone, tg_phone] if p])
-            user_bits.append(f"   phone: <code>{ph}</code>")
+            user_bits.append(f"   телефон: <code>{ph}</code>")
     else:
         user_bits.append(f"👤 user_id: <code>{cart.user_id}</code>")
 
-    # ---- status / meta ----
+    # ---- статус / мета ----
     status_flags = []
-    if getattr(cart, "is_paid", False):
-        status_flags.append("✅ paid")
-    else:
-        status_flags.append("⏳ unpaid")
-
-    if getattr(cart, "is_active", False):
-        status_flags.append("🟢 active")
-    else:
-        status_flags.append("⚪ inactive")
-
+    status_flags.append("✅ оплачено" if getattr(cart, "is_paid", False) else "⏳ не оплачено")
+    status_flags.append("🟢 активна" if getattr(cart, "is_active", False) else "⚪ неактивна")
     if getattr(cart, "is_canceled", False):
-        status_flags.append("❌ canceled")
+        status_flags.append("❌ отменено")
     if getattr(cart, "is_shipped", False):
-        status_flags.append("📦 shipped")
+        status_flags.append("📦 отправлено")
 
     promo_code = _s(cart, "promo_code", "").strip()
     promo_txt = ""
     if promo_code:
         promo_owner = _s(getattr(cart, "promo", None), "owner_name", "").strip()
-        promo_txt = f"\n🎟 promo: <code>{promo_code}</code>" + (f" • owner: <b>{promo_owner}</b>" if promo_owner else "")
-        promo_txt += f"\n💸 promo_gains: <b>{promo_gains}</b>₽ • given: <b>{'yes' if getattr(cart,'promo_gains_given',False) else 'no'}</b>"
+        promo_txt = f"\n🎟 промокод: <code>{promo_code}</code>" + (f" • владелец: <b>{promo_owner}</b>" if promo_owner else "")
+        promo_txt += f"\n💸 выгода по промо: <b>{promo_gains}</b>₽ • начислено: <b>{'да' if getattr(cart,'promo_gains_given',False) else 'нет'}</b>"
 
     delivery_string = _s(cart, "delivery_string", "").strip()
     commentary = _s(cart, "commentary", "").strip()
@@ -768,35 +764,31 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
     created_at = _s(cart, "created_at", "")
     updated_at = _s(cart, "updated_at", "")
 
-    # discrepancy note
     diff_note = ""
     if items_total != cart_sum:
-        diff_note = (
-            f"\n⚠️ <i>Несовпадение сумм:</i> items_calc=<b>{items_total}</b>₽ vs cart.sum=<b>{cart_sum}</b>₽"
-        )
+        diff_note = f"\n⚠️ <i>Несовпадение сумм:</i> по позициям=<b>{items_total}</b>₽ vs cart.sum=<b>{cart_sum}</b>₽"
 
     header = f"🧾 <b>{_s(cart,'name',f'Заказ #{cart.id}')}</b>\n🆔 cart_id: <code>{cart.id}</code>"
     meta = (
-            f"\n\n📌 status: <b>{', '.join(status_flags)}</b>"
-            + (f"\n📄 status_text: <i>{status_str}</i>" if status_str else "")
+            f"\n\n📌 статус: <b>{', '.join(status_flags)}</b>"
+            + (f"\n📄 статус (текст): <i>{status_str}</i>" if status_str else "")
             + (f"\n🪪 yandex_request_id: <code>{yandex_request_id}</code>" if yandex_request_id else "")
-            + (f"\n🚚 delivery: <i>{delivery_string}</i>" if delivery_string else "")
-            + (f"\n💬 comment: <i>{commentary}</i>" if commentary else "")
-            + f"\n⏱ created: <code>{created_at}</code>\n🔁 updated: <code>{updated_at}</code>"
+            + (f"\n🚚 доставка: <i>{delivery_string}</i>" if delivery_string else "")
+            + (f"\n💬 комментарий: <i>{commentary}</i>" if commentary else "")
+            + f"\n⏱ создано: <code>{created_at}</code>\n🔁 обновлено: <code>{updated_at}</code>"
     )
 
     totals = (
-        f"\n\n📦 items: <b>{len(cart.items or [])}</b> lines • qty total: <b>{qty_total}</b>"
-        f"\n🧮 items_total(calc): <b>{items_total}</b>₽"
-        f"\n🧾 cart.sum(saved): <b>{cart_sum}</b>₽"
-        f"\n🚚 delivery_sum: <b>{delivery_sum}</b>₽"
-        f"\n💰 grand_total(calc): <b>{grand_total_calc}</b>₽"
-        f"\n💰 grand_total(saved): <b>{grand_total_saved}</b>₽"
+        f"\n\n📦 позиций: <b>{len(cart.items or [])}</b> • всего кол-во: <b>{qty_total}</b>"
+        f"\n🧮 сумма по позициям (пересчёт): <b>{items_total}</b>₽"
+        f"\n🧾 cart.sum (в базе): <b>{cart_sum}</b>₽"
+        f"\n🚚 доставка (в базе): <b>{delivery_sum}</b>₽"
+        f"\n💰 итог (пересчёт): <b>{grand_total_calc}</b>₽"
+        f"\n💰 итог (как в базе): <b>{grand_total_saved}</b>₽"
         f"{diff_note}"
     )
 
     items_block = "\n\n🧷 <b>Состав заказа</b>\n" + ("\n".join(lines) if lines else "— пусто —")
-
     user_block = "\n\n" + "\n".join(user_bits) if user_bits else ""
 
     return header + user_block + meta + promo_txt + totals + items_block
