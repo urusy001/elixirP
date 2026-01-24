@@ -255,7 +255,6 @@ function renderOrderCard(cart) {
    ========================= */
 
 function openOrderDetail(cart) {
-    alert(JSON.stringify(cart));
     // hide list, show detail
     ordersPageEl.style.display = "none";
     orderDetailEl.style.display = "block";
@@ -340,7 +339,6 @@ function openOrderDetail(cart) {
 }
 
 function renderOrderItemRow(it) {
-    alert(JSON.stringify(it));
     const name =
         it?.product?.name ??
         it?.product_name ??
