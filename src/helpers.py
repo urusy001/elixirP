@@ -720,7 +720,7 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
     user_bits = []
     if user:
         user_bits.append(f"👤<b>{user.full_name}</b>\n"
-                         f"{user.contact_info}")
+                         f"{user.contact_info.replace(', ', '\n')}\n\n")
 
     else:
         user_bits.append(f"👤 АЙДИ ЗАКАЗЧИКА: <code>{cart.user_id}</code>")
@@ -747,10 +747,10 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
 
     header = f"🧾 <b>{_s(cart,'name',f'Заказ #{cart.id}')}</b>"
     meta = (
-            (f"\n📄 Статус (текст): <i>{status_str}</i>, <b>{', '.join(status_flags)}</b>" if status_str else "")
-            + (f"\n🪪 yandex_request_id: <code>{yandex_request_id}</code>" if yandex_request_id else "")
+            (f"\n📄 <b>СТАТУСЫ ЗАКАЗА: <i>{status_str}</i>, {', '.join(status_flags)}</b>" if status_str else "")
+            + (f"\n\n🪪 yandex_request_id: <code>{yandex_request_id}</code>" if yandex_request_id else "")
             + (f"\n🚚 Доставка: <i>{delivery_string}</i>" if delivery_string else "")
-            + (f"\n💬 Комментарий: <i>{commentary}</i>" if commentary else "")
+            + (f"\n\n💬 Комментарий: <i>{commentary}</i>" if commentary else "")
             + f"\n🕰️ Создано: <code>{created_at}</code>\n🔁 Обновлено: <code>{updated_at}</code>"
     )
     totals = (
