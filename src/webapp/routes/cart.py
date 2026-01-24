@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Query, Depends, Body
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.webapp.crud import get_product, get_feature, create_cart, get_user_carts
+from src.webapp.crud import get_product, get_feature, create_cart, get_user_carts_webapp
 from src.webapp.database import get_db
 from src.webapp.models import Feature
 from src.webapp.schemas import CartCreate, CartRead
@@ -13,9 +13,8 @@ router = APIRouter(prefix="/cart", tags=["cart"])
 
 @router.get("/", response_model=list[CartRead])
 async def get_orders(user_id: int = Query(...), db: AsyncSession = Depends(get_db)):
-    carts = await get_user_carts(db, user_id)
-    carts = [c for c in carts if 'Начальная' not in (c.name or "")]
-    [(print(cart.__dict__), [print(item.__dict__) for item in cart.items]) for cart in carts]
+    carts = await get_user_carts_webapp(db, user_id)
+    carts = [c for c in carts if 'ачальная' not in (c.name or "")]
     return carts
 
 @router.get("/product/{onec_id}")

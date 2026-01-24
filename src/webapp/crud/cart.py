@@ -1,5 +1,5 @@
 from typing import Optional, Sequence
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
 
@@ -90,3 +90,37 @@ async def clear_cart(db: AsyncSession, cart_id: int) -> None:
         delete(CartItem).where(CartItem.cart_id == cart_id)
     )
     await db.commit()
+
+async def get_user_carts_webapp(
+        db: AsyncSession,
+        user_id: int,
+        is_active: Optional[bool] = None,
+        exclude_starting: bool = True,
+) -> Sequence[Cart]:
+    stmt = (
+        select(Cart)
+        .where(Cart.user_id == user_id)
+        .options(
+            # items + product + tg_categories
+            selectinload(Cart.items)
+            .selectinload(CartItem.product)
+            .selectinload(Product.tg_categories),
+
+            # items + feature
+            selectinload(Cart.items).selectinload(CartItem.feature),
+
+            # если нужно (не обязательно)
+            joinedload(Cart.promo),
+            )
+        .order_by(Cart.created_at.desc())
+    )
+
+    if is_active is not None:
+        stmt = stmt.where(Cart.is_active.is_(is_active))
+
+    if exclude_starting:
+        # ✅ SQL-фильтр вместо "ачальная" not in Cart.name
+        stmt = stmt.where(or_(Cart.name.is_(None), ~Cart.name.ilike("%ачальная%")))
+
+    res = await db.execute(stmt)
+    return res.scalars().unique().all()
