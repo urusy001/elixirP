@@ -19,7 +19,7 @@ from urllib.parse import parse_qsl
 import pandas as pd
 from aiogram import Bot
 from aiogram.enums import ChatMemberStatus
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 from bs4 import BeautifulSoup, Tag
 from fastapi import HTTPException, Request
 from pydantic import BaseModel
@@ -441,11 +441,14 @@ async def _notify_user(message: Message, text: str, timer: float | None = None, 
         if logger: logger.debug("Deleted notification message for user %s", message.from_user.id)
 
 
-async def CHAT_NOT_BANNED_FILTER(user_id: int) -> bool:
-    from src.ai.bot.main import new_bot
+async def CHAT_NOT_BANNED_FILTER(obj: Message | CallbackQuery) -> bool:
     try:
-        member = await new_bot.get_chat_member(ELIXIR_CHAT_ID, user_id)
-        if member.status in [ChatMemberStatus.KICKED]: return False
+        user_id = obj.from_user.id
+        bot = obj.bot
+        member = await bot.get_chat_member(ELIXIR_CHAT_ID, user_id)
+        if member.status in [ChatMemberStatus.KICKED]:
+            await bot.send_message(user_id, user_texts.banned_in_channel)
+            return False
         else: return True
     except: return True
 

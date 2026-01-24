@@ -24,9 +24,8 @@ async def _(x: Message):
     await x.delete()
 
 new_user_router = Router(name="shop_user")
-new_user_router.message.filter(lambda message: message.from_user.id not in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE, check_blocked)
-new_user_router.callback_query.filter(lambda call: call.data.startswith("user") and call.from_user.id not in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE, check_blocked)
-
+new_user_router.message.filter(lambda message: message.from_user.id not in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE, check_blocked, CHAT_NOT_BANNED_FILTER)
+new_user_router.callback_query.filter(lambda call: call.data.startswith("user") and call.from_user.id not in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE, check_blocked, CHAT_NOT_BANNED_FILTER)
 
 @new_user_router.message(Command('shop'))
 async def app(message: Message):
@@ -62,16 +61,14 @@ async def graph(message: Message):
 @new_user_router.message(CommandStart())
 async def handle_user_start(message: Message, state: FSMContext):
     user_id = message.from_user.id
-    result = await CHAT_NOT_BANNED_FILTER(user_id)
     state_data = await state.get_data()
     await state.clear()
     await state.set_data(state_data)
-    if not result: return await message.answer(user_texts.banned_in_channel)
     async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
     if not user:
         await state.set_state(user_states.Registration.phone)
         return await message.answer(user_texts.verify_phone.replace('*', message.from_user.full_name), reply_markup=user_keyboards.phone)
-    if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ): return await message.answer(user_texts.banned_until.replace("Блокировка до 9999-12-31, п", "П").replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}'))
+
     else: asyncio.create_task(update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
     return await message.answer(user_texts.greetings.replace('full_name', message.from_user.full_name), reply_markup=user_keyboards.main_menu)
 
@@ -196,11 +193,7 @@ async def handle_verification_code(message: Message, state: FSMContext):
 
 @new_user_router.message(user_states.Registration.phone)
 async def handle_user_registration(message: Message, state: FSMContext, professor_bot, professor_client):
-    user_id = message.from_user.id
-    result = await CHAT_NOT_BANNED_FILTER(user_id)
-    if not result: return await message.answer(user_texts.banned_in_channel)
     if not message.contact: return await message.answer(user_texts.verify_phone.replace('*', message.from_user.full_name), reply_markup=user_keyboards.phone)
-
     phone = message.contact.phone_number
     await state.clear()
     await professor_bot.create_user(message.from_user.id, normalize_phone(phone), message.from_user.first_name, message.from_user.last_name)
@@ -367,9 +360,6 @@ async def handle_course_interval_days(message: Message, state: FSMContext):
 
 @new_user_router.message(Command('new_chat'))
 async def handle_new_chat(message: Message, state: FSMContext, professor_client):
-    user_id = message.from_user.id
-    result = await CHAT_NOT_BANNED_FILTER(user_id)
-    if not result: return await message.answer(user_texts.banned_in_channel)
     thread_id = await professor_client.create_thread()
     async with get_session() as session: await update_user(session, message.from_user.id, UserUpdate(thread_id=thread_id))
     await state.update_data(thread_id=thread_id)
@@ -429,9 +419,6 @@ async def handle_user_call(call: CallbackQuery, state: FSMContext):
 @with_typing
 async def handle_text_message(message: Message, state: FSMContext, professor_bot, professor_client):
     user_id = message.from_user.id
-    result = await CHAT_NOT_BANNED_FILTER(user_id)
-    if not result: return await message.answer(user_texts.banned_in_channel)
-
     async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
     if not user or not user.tg_phone: return await handle_user_start(message, state, professor_bot, professor_client)
     else: asyncio.create_task(update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))

@@ -1,12 +1,12 @@
 import asyncio
-from datetime import datetime
+
 from aiogram import Router
 from aiogram.enums import ChatType
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
-from config import PROFESSOR_BOT_TOKEN, MOSCOW_TZ, OWNER_TG_IDS, BOT_KEYWORDS, PROFESSOR_ASSISTANT_ID, DOSE_ASSISTANT_ID
+from config import PROFESSOR_BOT_TOKEN, OWNER_TG_IDS, BOT_KEYWORDS, PROFESSOR_ASSISTANT_ID, DOSE_ASSISTANT_ID
 from src.ai.bot.keyboards import user_keyboards
 from src.ai.bot.states import user_states
 from src.ai.bot.texts import user_texts
@@ -38,7 +38,6 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
 
     else: asyncio.create_task(update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
 
-    if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ): return await message.answer(user_texts.banned_until.replace("Блокировка до 9999-12-31, п", "П").replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}'))
     if not user.thread_id:
         thread_id = await professor_client.create_thread()
         async with get_session() as session: await update_user(session, user_id, UserUpdate(thread_id=thread_id))
@@ -99,7 +98,6 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
     async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
     if not user or not user.tg_phone: return await handle_user_start(message, state, professor_bot, professor_client)
     else: asyncio.create_task(update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
-    if user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ): return await message.answer(user_texts.banned_until.replace("Блокировка до 9999-12-31, п", "П").replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}'))
     bot_id = str(message.bot.id)
     if bot_id == PROFESSOR_BOT_TOKEN.split(':')[0]: assistant_id = PROFESSOR_ASSISTANT_ID
     else: assistant_id = DOSE_ASSISTANT_ID
