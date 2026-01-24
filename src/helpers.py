@@ -747,7 +747,7 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
 
     header = f"🧾 <b>{_s(cart,'name',f'Заказ #{cart.id}')}</b>"
     meta = (
-            (f"\n📄 <b>СТАТУСЫ ЗАКАЗА: <i>{status_str}</i>, {', '.join(status_flags)}</b>" if status_str else "")
+            (f"\n📄 <b>СТАТУСЫ ЗАКАЗА: \n{status_str}, {', '.join(status_flags)}</b>" if status_str else "")
             + (f"\n\n🪪 yandex_request_id: <code>{yandex_request_id}</code>" if yandex_request_id else "")
             + (f"\n🚚 Доставка: <i>{delivery_string}</i>" if delivery_string else "")
             + (f"\n\n💬 Комментарий: <i>{commentary}</i>" if commentary else "")
