@@ -1,5 +1,5 @@
 /* =========================
-   orders.js (FULL)
+   orders.js (FULL) — strict fields (no guessing)
    ========================= */
 
 import {
@@ -21,9 +21,9 @@ import { apiGet } from "../../services/api.js";
    ========================= */
 
 function getStatusText(cart) {
-    const s = (cart?.status ?? "").toString().trim();
+    const s = (cart.status ?? "").toString().trim();
     if (s) return s;
-    return cart?.is_active ? "В обработке" : "Обработан";
+    return cart.is_active ? "В обработке" : "Обработан";
 }
 
 function getStatusBadgeClass(statusText) {
@@ -36,7 +36,6 @@ function getStatusBadgeClass(statusText) {
     if (t === "доставлен") return "order-card-status--delivered";
     if (t === "закрыт" || t === "обработан") return "order-card-status--closed";
     if (t === "не найден") return "order-card-status--notfound";
-
     if (t === "в обработке") return "order-card-status--inprogress";
 
     return "order-card-status--default";
@@ -63,10 +62,7 @@ export async function renderOrdersPage() {
     ordersPageEl.style.display = "block";
     orderDetailEl.style.display = "none";
 
-    // Ensure toggles are bound once
     initOrdersSectionToggles();
-
-    // Fetch + render
     await loadAndRenderOrders();
 }
 
@@ -90,14 +86,12 @@ async function loadAndRenderOrders() {
         return;
     }
 
-    // Accept either {data:[...]} or just [...]
     const carts = Array.isArray(result) ? result : (result?.data || result?.carts || []);
     const normalized = carts.map(normalizeCart);
 
     const active = normalized.filter((c) => c.is_active === true);
     const processed = normalized.filter((c) => c.is_active === false);
 
-    // newest first
     active.sort((a, b) => b.created_ts - a.created_ts);
     processed.sort((a, b) => b.created_ts - a.created_ts);
 
@@ -122,7 +116,6 @@ function renderOrdersLists(active, processed) {
     if (activeCount) activeCount.textContent = String(active.length);
     if (processedCount) processedCount.textContent = String(processed.length);
 
-    // Active
     if (active.length === 0) {
         if (activeEmpty) activeEmpty.style.display = "block";
     } else {
@@ -130,7 +123,6 @@ function renderOrdersLists(active, processed) {
         active.forEach((cart) => activeList.appendChild(renderOrderCard(cart)));
     }
 
-    // Processed
     if (processed.length === 0) {
         if (processedEmpty) processedEmpty.style.display = "block";
     } else {
@@ -153,15 +145,12 @@ function initOrdersSectionToggles() {
         const header = section.querySelector(".orders-section-header");
         if (!header) return;
 
-        // prevent double-bind
         if (header.dataset.toggleBound === "1") return;
         header.dataset.toggleBound = "1";
 
-        // accessibility
         header.setAttribute("role", "button");
         header.tabIndex = 0;
 
-        // ensure chevron exists
         if (!header.querySelector(".orders-section-chevron")) {
             const chev = document.createElement("span");
             chev.className = "orders-section-chevron";
@@ -169,7 +158,6 @@ function initOrdersSectionToggles() {
             header.appendChild(chev);
         }
 
-        // ensure body wrapper exists (optional)
         if (!section.querySelector(".orders-section-body")) {
             const body = document.createElement("div");
             body.className = "orders-section-body";
@@ -177,7 +165,7 @@ function initOrdersSectionToggles() {
             const childrenToMove = [];
             section.childNodes.forEach((node) => {
                 if (node.nodeType === 1 && node.classList.contains("orders-section-header")) return;
-                if (node.nodeType === 3 && node.textContent.trim() === "") return; // whitespace
+                if (node.nodeType === 3 && node.textContent.trim() === "") return;
                 childrenToMove.push(node);
             });
 
@@ -190,7 +178,6 @@ function initOrdersSectionToggles() {
             header.setAttribute("aria-expanded", String(!collapsed));
         };
 
-        // default open
         setCollapsed(false);
 
         header.addEventListener("click", () => {
@@ -220,9 +207,11 @@ function renderOrderCard(cart) {
 
     const dateText = cart.created_at ? formatDateTime(cart.created_at) : "—";
     const totalText = formatMoney(cart.sum);
-    const deliveryText = (cart.delivery_string && String(cart.delivery_string).trim())
-        ? cart.delivery_string
-        : "Доставка не указана";
+
+    const deliveryText =
+        cart.delivery_string && String(cart.delivery_string).trim()
+            ? cart.delivery_string
+            : "Доставка не указана";
 
     btn.innerHTML = `
     <div class="order-card-top">
@@ -243,10 +232,7 @@ function renderOrderCard(cart) {
     </div>
   `;
 
-    btn.addEventListener("click", () => {
-        openOrderDetail(cart);
-    });
-
+    btn.addEventListener("click", () => openOrderDetail(cart));
     return btn;
 }
 
@@ -255,42 +241,35 @@ function renderOrderCard(cart) {
    ========================= */
 
 function openOrderDetail(cart) {
-    // hide list, show detail
     ordersPageEl.style.display = "none";
     orderDetailEl.style.display = "block";
-
-    // If your app uses detailEl wrapper for pages, keep it visible
-    // If not used, you can delete next line safely.
     detailEl.style.display = "block";
 
-    // fill header
+    // header
     const idEl = document.getElementById("order-detail-id");
     const statusEl = document.getElementById("order-detail-status");
     const dateEl = document.getElementById("order-detail-date");
 
-    if (idEl) idEl.textContent = String(cart.id ?? "");
+    if (idEl) idEl.textContent = String(cart.id);
 
     if (statusEl) {
         const statusText = getStatusText(cart);
         statusEl.textContent = statusText;
-        // keep your base class + badge class
         statusEl.className = `order-detail-status ${getStatusBadgeClass(statusText)}`;
     }
 
-    if (dateEl) {
-        dateEl.textContent = cart.created_at ? formatDateTime(cart.created_at) : "—";
-    }
+    if (dateEl) dateEl.textContent = cart.created_at ? formatDateTime(cart.created_at) : "—";
 
     // delivery
     const deliverySummaryEl = document.getElementById("order-delivery-summary");
     if (deliverySummaryEl) {
         deliverySummaryEl.textContent =
-            (cart.delivery_string && String(cart.delivery_string).trim())
+            cart.delivery_string && String(cart.delivery_string).trim()
                 ? cart.delivery_string
                 : "Доставка не указана";
     }
 
-    // payment method (if you don't have a field yet)
+    // payment
     const paymentMethodEl = document.getElementById("order-payment-method");
     if (paymentMethodEl) paymentMethodEl.textContent = "—";
 
@@ -309,17 +288,13 @@ function openOrderDetail(cart) {
     const totalNum = toNumber(cart.sum) + toNumber(cart.delivery_sum);
     if (totalEl) totalEl.textContent = formatMoney(totalNum);
 
-    // ✅ contacts
+    // contacts (cart.phone/cart.email always exist after your migration)
     const phoneEl = document.getElementById("order-contact-phone");
     const emailEl = document.getElementById("order-contact-email");
+    if (phoneEl) phoneEl.textContent = (cart.phone || "").toString().trim() || "Не указан";
+    if (emailEl) emailEl.textContent = (cart.email || "").toString().trim() || "Не указан";
 
-    const phone = (cart.phone ?? "").toString().trim();
-    const email = (cart.email ?? "").toString().trim();
-
-    if (phoneEl) phoneEl.textContent = phone || "Не указан";
-    if (emailEl) emailEl.textContent = email || "Не указан";
-
-    // items list (basic; replace with your pretty renderer if you have one)
+    // items
     const itemsListEl = document.getElementById("order-items-list");
     if (itemsListEl) {
         itemsListEl.innerHTML = "";
@@ -331,28 +306,17 @@ function openOrderDetail(cart) {
             empty.textContent = "— нет товаров —";
             itemsListEl.appendChild(empty);
         } else {
-            items.forEach((it) => {
-                itemsListEl.appendChild(renderOrderItemRow(it));
-            });
+            items.forEach((it) => itemsListEl.appendChild(renderOrderItemRow(it)));
         }
     }
 }
 
 function renderOrderItemRow(it) {
-    const name =
-        it?.product?.name ??
-        it?.product_name ??
-        it?.name ??
-        "Товар";
-
-    const variant =
-        it?.feature?.name ??
-        it?.feature_name ??
-        it?.variation ??
-        "";
-
-    const qty = Number(it?.quantity ?? it?.qty ?? 1) || 1;
-    const price = toNumber(it?.feature?.price ?? it?.price ?? 0);
+    // ✅ strict: we expect backend to return product + feature objects
+    const name = it.product?.name ?? "Товар";
+    const variant = it.feature?.name ?? "";
+    const qty = Number(it.quantity) || 1;
+    const price = toNumber(it.feature?.price);
     const line = price * qty;
 
     const row = document.createElement("div");
@@ -371,34 +335,36 @@ function renderOrderItemRow(it) {
 }
 
 /* =========================
-   Normalization
+   Normalization (strict)
    ========================= */
 
 function normalizeCart(raw) {
-    const created = raw.created_at || raw.createdAt || raw.created;
-    const updated = raw.updated_at || raw.updatedAt || raw.updated;
-    const createdTs = created ? Date.parse(created) : 0;
+    // backend uses snake_case and ISO timestamps
+    const created = raw.created_at;
+    const updated = raw.updated_at;
 
     return {
         id: raw.id,
         name: raw.name,
-        user_id: raw.user_id ?? raw.userId,
+        user_id: raw.user_id,
 
-        status: raw.status ?? null,
+        status: raw.status,
 
         sum: toNumber(raw.sum),
         delivery_sum: toNumber(raw.delivery_sum),
         delivery_string: raw.delivery_string,
         commentary: raw.commentary,
 
-        // ✅ NEW (contact info on cart)
-        phone: raw.phone ?? null,
-        email: raw.email ?? null,
+        phone: raw.phone,
+        email: raw.email,
 
         is_active: Boolean(raw.is_active),
+
         created_at: created,
         updated_at: updated,
-        created_ts: Number.isFinite(createdTs) ? createdTs : 0,
+        created_ts: created ? Date.parse(created) : 0,
+
+        // ✅ backend MUST return list
         items: Array.isArray(raw.items) ? raw.items : [],
     };
 }

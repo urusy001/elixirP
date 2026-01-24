@@ -274,3 +274,20 @@ input, textarea {
     --toolbar-fg: var(--color-text);
     --toolbar-icon: var(--color-muted);
 }
+
+.order-card-status--invoiced  { background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; } /* invoice sent */
+.order-card-status--waiting   { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; } /* waiting */
+.order-card-status--canceled  { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; } /* canceled */
+.order-card-status--refund    { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; } /* refund/decline */
+.order-card-status--done      { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; } /* done */
+
+/* If you don't have base styles yet: */
+.order-card-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+}
