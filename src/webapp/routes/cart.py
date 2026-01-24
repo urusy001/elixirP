@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.webapp.crud import get_product, get_feature, create_cart, get_user_carts_webapp
 from src.webapp.database import get_db
 from src.webapp.models import Feature
-from src.webapp.schemas import CartWebRead
+from src.webapp.schemas import CartWebRead, CartCreate
 
 router = APIRouter(prefix="/cart", tags=["cart"])
 
