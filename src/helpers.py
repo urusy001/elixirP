@@ -596,7 +596,7 @@ async def user_carts_analytics_text(db: AsyncSession, user_id: int, *, days: int
     ), "\n".join(
         [
             "",
-            "📦 <u>Позиции (cart_items)</u>",
+            "📦 <u>Позиции</u>",
             f"• строк: <b>{lines_total}</b> | всего штук: <b>{qty_total}</b>",
             f"• уникальных продуктов: <b>{products_distinct}</b>",
             f"• уникальных позиций: <b>{positions_distinct}</b>",
@@ -610,7 +610,7 @@ async def user_carts_analytics_text(db: AsyncSession, user_id: int, *, days: int
             parts.append(f"• {s or 'NULL'}: <b>{int(cnt)}</b>")
 
     if cat_rows:
-        parts.append("\n🗂️ <u>Топ TG категорий</u>")
+        parts.append("\n🗂️ <u>Топ категорий</u>")
         for cat_id, cat_name, qty, rev, prod_cnt in cat_rows:
             parts.append(
                 f"• {cat_name}: <b>{int(qty)}</b> шт, <b>{_money(rev):.2f}₽</b>, товаров <b>{int(prod_cnt)}</b>"
@@ -640,10 +640,9 @@ async def user_carts_analytics_text(db: AsyncSession, user_id: int, *, days: int
                 f"• <b>Заказ #{cid}</b> — <i>{_fmt_dt(created_at)}</i>\n"
                 f"  Статус: <b>{status or '—'}</b>\n"
                 f"  Сумма: <b>{_money(ssum):.2f}₽</b>, доставка <b>{_money(dsum):.2f}₽</b>\n"
-                f"  Флаги: <i>{flags_s}</i>"
+                f"  Флаги: <i>{flags_s}</i>\n"
             )
-            if promo_code:
-                line += f"\n  Промокод: <b>{promo_code}</b>"
+            if promo_code: line += f"\n  Промокод: <b>{promo_code}</b>"
             parts.append(line)
 
     return "\n".join(parts)
