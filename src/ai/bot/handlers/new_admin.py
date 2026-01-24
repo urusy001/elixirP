@@ -8,7 +8,7 @@ from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
 
-from config import ADMIN_TG_IDS, MOSCOW_TZ, ELIXIR_CHAT_ID
+from config import MOSCOW_TZ, ELIXIR_CHAT_ID
 from src.ai.bot.texts import admin_texts
 from src.ai.bot.handlers import new_admin_router
 from src.ai.bot.keyboards import admin_keyboards
@@ -17,11 +17,10 @@ from src.helpers import make_excel_safe, user_carts_analytics_text
 from src.tg_methods import get_user_id_by_phone, normalize_phone, get_user_id_by_username
 from src.webapp import get_session
 from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_user_usage_totals, get_user_carts
-from src.webapp.crud.search import search_users
+from src.webapp.crud.search import search_users, search_carts
 from src.webapp.models import Cart
 from src.webapp.schemas import UserCreate, UserUpdate
 
-new_admin_router.inline_query.filter(lambda query: query.from_user.id in ADMIN_TG_IDS)
 
 @new_admin_router.message(CommandStart())
 async def handle_start(message: Message, state: FSMContext):
@@ -231,7 +230,7 @@ async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
             async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
             if data[2] == "carts":
                 async with get_session() as session: analysis_text = await user_carts_analytics_text(session, user_id)
-                await call.message.edit_text(call.message.text.splitlines()[0] + '\n' + analysis_text)
+                await call.message.edit_text(f"{call.message.html_text.splitlines()[0]}\n{analysis_text}")
 
             elif data[2] == "block":
                 await call.message.edit_text(admin_texts.block_days, reply_markup=admin_keyboards.back)
@@ -255,26 +254,36 @@ async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
 @new_admin_router.inline_query()
 async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
     data = inline_query.query.strip().split(maxsplit=2)
+    start_input_content = InputTextMessageContent(message_text="/start", parse_mode=None)
     if data[0] == "search_user" and len(data) == 3:
         column_name = data[1]
         value = data[2]
         allowed_column_names = Literal["full_name", "username", "email", "tg_id", "phone"]
-        if column_name not in get_args(allowed_column_names): results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"❌ Неверный поисковой параметр: {column_name}", input_message_content=InputTextMessageContent(message_text="/start", parse_mode=None), description=f"Позволено: {', '.join(allowed_column_names)}", )]
-        elif not value.strip(): results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"Введите поисковый запрос", input_message_content=InputTextMessageContent(message_text="/start", parse_mode=None), description=f"Не трогайте ничего после двоеточия", )]
+        if column_name not in get_args(allowed_column_names): results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"❌ Неверный поисковой параметр: {column_name}", input_message_content=start_input_content, description=f"Позволено: {', '.join(allowed_column_names)}", )]
+        elif not value.strip(): results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"Введите поисковый запрос", input_message_content=start_input_content, description=f"Не трогайте ничего после двоеточия", )]
         elif column_name == "username":
             value = await get_user_id_by_username(value.removeprefix("@"))
             if value:
                 column_name = "tg_id"
                 async with get_session() as session: rows, total = await search_users(session, column_name, value, limit=50)
                 if rows: results = [InlineQueryResultArticle(thumbnail_url=row.photo_url, id=str(uuid.uuid4()), title=row.full_name, description=row.contact_info, input_message_content=InputTextMessageContent(message_text=f"/get_user {row.tg_id}", parse_mode=None)) for row in rows]
-                else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено пользователей по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=InputTextMessageContent(message_text="/start", parse_mode=None))]
+                else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено пользователей по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=start_input_content)]
 
-            else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="Пользователя с таким username не существует", input_message_content=InputTextMessageContent(message_text="/start", parse_mode=None))]
+            else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="Пользователя с таким username не существует", input_message_content=start_input_content)]
 
         else:
             async with get_session() as session: rows, total = await search_users(session, column_name, value, limit=50)
             if rows: results = [InlineQueryResultArticle(thumbnail_url=row.photo_url, id=str(uuid.uuid4()), title=row.full_name, description=row.contact_info, input_message_content=InputTextMessageContent(message_text=f"/get_user {row.tg_id}", parse_mode=None)) for row in rows]
-            else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено пользователей по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=InputTextMessageContent(message_text="/start", parse_mode=None))]
+            else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено пользователей по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=start_input_content)]
+
+    elif data[0] == "search_cart":
+        cart_id = data[1]
+        if not cart_id.isdigit(): results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="Введенный запрос не число", description="Поиск заказов возможен только по их номерам", input_message_content=start_input_content)]
+        else:
+            cart_id = int(cart_id)
+            async with get_session() as session: carts, total = await search_carts(session, cart_id, limit=50)
+            if carts: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"{cart.name} от {cart.user.full_name}", description=f"Статус: {cart.status}, Обновлено: {cart.updated_at}", input_message_content=f"/get_cart {cart.id}") for cart in carts]
+            else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено пользователей по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=start_input_content)]
 
     else: results = []
     await inline_query.answer(results)

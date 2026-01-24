@@ -1,10 +1,10 @@
 from typing import Literal, Optional, Any
 from sqlalchemy import func, case, select, bindparam, cast, String, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 
 from src.helpers import normalize, normalize_user_value
-from src.webapp.models import Product, User
+from src.webapp.models import Product, User, Cart
 from src.webapp.models.product_tg_categories import product_tg_categories
 
 def _parse_int_csv(value: Optional[str]) -> list[int]:
@@ -163,6 +163,24 @@ async def search_users(db: AsyncSession, by: str, value: Any, page: Optional[int
     total = await db.scalar(count_stmt)
 
     stmt = stmt.order_by(User.tg_id.desc())
+    if limit is not None: stmt = stmt.limit(limit)
+    if page is not None and limit is not None: stmt = stmt.offset(page * limit)
+
+    rows = (await db.execute(stmt)).scalars().all()
+    return rows, int(total or 0)
+
+async def search_carts(db: AsyncSession, value: Any, page: Optional[int] = None, limit: Optional[int] = None) -> tuple[list[Cart], int]:
+    stmt = (select(Cart).options(selectinload(Cart.items), joinedload(Cart.promo), selectinload(Cart.user)))
+    v = str(value).replace(" ", "").strip()
+    if not v: return [], 0
+    col = getattr(Cart, "id", None)
+    if col is None: return [], 0
+
+    stmt = stmt.where(cast(col, String).ilike(bindparam("v", f"%{v}%", type_=String())))
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total = await db.scalar(count_stmt)
+
+    stmt = stmt.order_by(Cart.id.desc())
     if limit is not None: stmt = stmt.limit(limit)
     if page is not None and limit is not None: stmt = stmt.offset(page * limit)
 

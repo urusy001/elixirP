@@ -18,6 +18,7 @@ from src.webapp.schemas import UserUpdate
 
 professor_admin_router = Router(name="admin_professor")
 new_admin_router = Router(name="admin_new")
+new_admin_router.inline_query.filter(lambda query: query.from_user.id in ADMIN_TG_IDS)
 dose_admin_router = Router(name="admin_dose")
 
 professor_admin_router.message.filter(lambda message: message.from_user.id in ADMIN_TG_IDS and message.chat.type == ChatType.PRIVATE)

@@ -12,7 +12,8 @@ open_test = InlineKeyboardMarkup(inline_keyboard=[
 
 admin_menu = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='💸 Расходы Ассистента', callback_data='admin:spends')],
-    [InlineKeyboardButton(text="👥 Пользователи", callback_data='admin:users:search')]
+    [InlineKeyboardButton(text="👥 Пользователи", callback_data='admin:users:search'),
+     InlineKeyboardButton(text="🛍️ Заказы", switch_inline_query_current_chat='search_cart ')]
 ])
 
 search_users_choice = InlineKeyboardMarkup(inline_keyboard=[
