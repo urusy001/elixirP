@@ -225,7 +225,7 @@ async def handle_get_cart(message: Message, state: FSMContext):
     cart_id = message.text.removeprefix("/get_cart").strip()
     if not cart_id.isdigit(): await message.answer("Ошибка команды: <code>/get_cart номер_заказа</code>", reply_markup=admin_keyboards.back)
     else:
-        async with get_session() as session: await message.answer(await cart_analysis_text(session, cart_id))
+        async with get_session() as session: await message.answer(await cart_analysis_text(session, int(cart_id)))
 
 @new_admin_router.callback_query()
 async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
