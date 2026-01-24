@@ -340,7 +340,7 @@ function openOrderDetail(cart) {
 }
 
 function renderOrderItemRow(it) {
-    // Best-effort renderer; adjust to your real CartItem shape
+    alert(JSON.stringify(it));
     const name =
         it?.product?.name ??
         it?.product_name ??
