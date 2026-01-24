@@ -14,7 +14,7 @@ router = APIRouter(prefix="/cart", tags=["cart"])
 @router.get("/", response_model=list[CartRead])
 async def get_orders(user_id: int = Query(...), db: AsyncSession = Depends(get_db)):
     carts = await get_user_carts(db, user_id)
-    carts = [c for c in carts if 'Начальная' not in (c.delivery_string or "")]
+    carts = [c for c in carts if 'Начальная' not in (c.name or "")]
     [print(cart.__dict__) for cart in carts]
     return carts
 
