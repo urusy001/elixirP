@@ -231,7 +231,7 @@ async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
             async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
             if data[2] == "carts":
                 async with get_session() as session: analysis_text = await user_carts_analytics_text(session, user_id)
-                await call.message.answer(analysis_text)
+                await call.message.edit_text(call.message.text.splitlines()[0] + '\n' + analysis_text)
 
             elif data[2] == "block":
                 await call.message.edit_text(admin_texts.block_days, reply_markup=admin_keyboards.back)
