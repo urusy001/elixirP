@@ -255,6 +255,7 @@ function renderOrderCard(cart) {
    ========================= */
 
 function openOrderDetail(cart) {
+    alert(JSON.stringify(cart));
     // hide list, show detail
     ordersPageEl.style.display = "none";
     orderDetailEl.style.display = "block";
