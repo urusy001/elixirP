@@ -31,7 +31,7 @@ from transliterate import translit
 from config import ELIXIR_CHAT_ID, NEW_BOT_TOKEN, INTERNAL_API_TOKEN, MOSCOW_TZ
 from src.ai.bot.texts import user_texts
 from src.webapp import get_session
-from src.webapp.models import Cart, CartItem, TgCategory, Feature
+from src.webapp.models import Cart, CartItem, TgCategory, Feature, Product
 from src.webapp.models.product_tg_categories import product_tg_categories
 from src.webapp.models.user import User
 
@@ -628,7 +628,7 @@ async def user_carts_analytics_text(db: AsyncSession, user_id: int, *, days: int
         parts.append("\n⭐ <u>Топ позиций</u>")
         for product_id, product_name, feature_id, feature_name, qty, rev in top_positions_rows:
             pname = product_name or "Без названия"
-            grams = _extract_grams(feature_name)
+            grams = feature_name
             parts.append(
                 f"• <b>{pname}</b> "
                 f"(ID продукта <b>{product_id}</b>) — граммовка <i>{grams}</i> — "
