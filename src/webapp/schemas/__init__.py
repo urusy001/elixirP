@@ -1,5 +1,6 @@
 from typing import Union
 
+from .cart_web import CartWebRead
 from .category import *
 from .feature import *
 from .product import *
@@ -20,7 +21,7 @@ __all__ = [
     'FeatureUpdate', 'FeatureBase', 'FeatureRead', 'FeatureCreate',
     'UserUpdate', 'UserBase', 'UserRead', 'UserCreate',
     'UserTokenUsageUpdate', 'UserTokenUsageRead', 'UserTokenUsageBase', 'UserTokenUsageCreate',
-    'CartCreate', 'CartUpdate', 'CartItemCreate', 'CartItemUpdate', 'CartItemBase', 'CartRead',
+    'CartCreate', 'CartUpdate', 'CartItemCreate', 'CartItemUpdate', 'CartItemBase', 'CartRead', 'CartWebRead',
     'FavouriteOut', 'FavouriteCreate', 'FavouriteDelete', 'FavouriteBase',
     'TgCategoryCreate', 'TgCategoryUpdate', 'TgCategoryBase', 'TgCategoryRead',
     'UsedCodeBase', 'UsedCodeRead', 'UsedCodeCreate', 'UsedCodeUpdate',

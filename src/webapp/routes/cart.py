@@ -7,11 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.webapp.crud import get_product, get_feature, create_cart, get_user_carts_webapp
 from src.webapp.database import get_db
 from src.webapp.models import Feature
-from src.webapp.schemas import CartCreate, CartRead
+from src.webapp.schemas import CartWebRead
 
 router = APIRouter(prefix="/cart", tags=["cart"])
 
-@router.get("/", response_model=list[CartRead])
+@router.get("/", response_model=list[CartWebRead])
 async def get_orders(user_id: int = Query(...), db: AsyncSession = Depends(get_db)):
     carts = await get_user_carts_webapp(db, user_id)
     carts = [c for c in carts if 'ачальная' not in (c.name or "")]
