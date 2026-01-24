@@ -215,7 +215,7 @@ async def handle_block_days(message: Message, state: FSMContext):
     state_data = await state.get_data()
     user_id = state_data["user_id"]
     days = int(message.text.strip())
-    if days == 0: until = datetime.now(MOSCOW_TZ) + timedelta(days=int(time.time()))
+    if days == 0: until = datetime.max.replace(tzinfo=MOSCOW_TZ)
     else: until = datetime.now() + timedelta(days=abs(int(days)))
     async with get_session() as session: user = await update_user(session, user_id, UserUpdate(blocked_until=until))
     await message.answer(f"Пользователь {user.full_name} ({user.phone}) <b>успешно заблокирован до {until.date()} {until.hour}:{until.minute} по МСК</b>", reply_markup=admin_keyboards.fast_unblock(user.tg_id))
