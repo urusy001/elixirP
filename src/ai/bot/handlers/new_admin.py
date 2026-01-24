@@ -190,7 +190,6 @@ async def handle_get_user(message: Message):
         for cart in user_carts: paid.append(cart) if cart.is_paid else unpaid.append(cart)
         totals = token_usages["totals"]
         total_requests = totals["total_requests"]
-        total_tokens = totals["total_tokens"]
         total_cost_usd = totals["total_cost_usd"]
         avg_cost_per_request = totals["avg_cost_per_request"]
         total_rub = sum([cart.sum for cart in user_carts])
@@ -220,8 +219,7 @@ async def handle_block_days(message: Message, state: FSMContext):
     if days == 0: until = datetime.max.replace(tzinfo=MOSCOW_TZ)
     else: until = datetime.now() + timedelta(days=abs(int(days)))
     async with get_session() as session: user = await update_user(session, user_id, UserUpdate(blocked_until=until))
-    await message.answer(f"Пользователь {user.full_name} {user.tg_phone} <b>успешно заблокирован до {until.date()} {until.hour}:{until.minute} по МСК</b>", reply_markup=admin_keyboards.fast_unblock(user.tg_id))
-
+    await message.answer(f"Пользователь {user.full_name} {user.tg_phone} <b>успешно заблокирован до {until.date()} {until.hour}:{until.minute} по МСК</b>", reply_markup=admin_keyboards.back_to_user(user.tg_id))
 
 @new_admin_router.callback_query()
 async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
@@ -242,7 +240,7 @@ async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
 
             elif data[2] == "unblock":
                 async with get_session() as session: user = await update_user(session, user.tg_id, UserUpdate(blocked_until=None))
-                await call.message.edit_text(f"Пользователь {user.full_name} {user.tg_phone} успешно <b>разблокирован 🔓</b>")
+                await call.message.edit_text(f"Пользователь {user.full_name} {user.tg_phone} успешно <b>разблокирован 🔓</b>", reply_markup=admin_keyboards.back_to_user(user.tg_id))
 
     elif data[0] == "spends":
         from .admin import handle_admin_callback

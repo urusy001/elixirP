@@ -34,8 +34,8 @@ back = InlineKeyboardMarkup(inline_keyboard=[[back_button]])
 backk_button = InlineKeyboardButton(text="🔙 Главное меню", callback_data='admin:main_menuu')
 backk = InlineKeyboardMarkup(inline_keyboard=[[backk_button]])
 
-def fast_unblock(user_id: int): return InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="🔓 Разблокировать", callback_data=f'admin:users:{user_id}:unblock')],
+def back_to_user(user_id: int): return InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="👤 К пользователю", switch_inline_query_current_chat=f'search_user tg_id {user_id}')],
     [back_button]
 ])
 
