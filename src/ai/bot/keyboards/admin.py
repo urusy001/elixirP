@@ -44,6 +44,6 @@ def view_user_menu(user_id: int, carts_len: int, blocked: bool):
     else: block_button = InlineKeyboardButton(text="🔓 Разблокировать", callback_data=f'admin:users:{user_id}:unblock')
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=f"🛍️ Заказы {carts_len}", callback_data=f"admin:users:{user_id}:orders"),
-         InlineKeyboardButton(text="💬 История сообщений", callback_data=f"admin:users:{user_id}:history")],
+         InlineKeyboardButton(text="💬 История", callback_data=f"admin:users:{user_id}:history")],
         [block_button], [back_button]
     ])

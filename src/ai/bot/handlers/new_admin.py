@@ -245,6 +245,12 @@ async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
         from .admin import handle_admin_callback
         await handle_admin_callback(call, state)
 
+    elif data[0] == "main_menu": await handle_start(call.message, state)
+    elif data[0] == "main_menuu":
+        await call.message.answer(admin_texts.greeting, reply_markup=admin_keyboards.admin_menu)
+        await state.clear()
+
+
 @new_admin_router.inline_query()
 async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
     data = inline_query.query.strip().split(maxsplit=2)
