@@ -694,17 +694,10 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
         line_total = unit_price * qty
         items_total += line_total
 
-        # категории (tg)
-        cats = []
-        if product and getattr(product, "tg_categories", None): cats = [getattr(c, "name", "") for c in product.tg_categories if getattr(c, "name", None)]
-        cats_text = f" • 🏷 {', '.join(cats)}" if cats else ""
         title = f"• <b>{p_name}</b>"
         if p_code: title += f" <i>({p_code})</i>"
         if f_name: title += f"{f_name}"
-        title += (
-            f"<b>x {qty} ({unit_price}₽) = {line_total}</b>₽\n{cats_text}"
-        )
-
+        title += f"<b>x {qty} ({unit_price}₽) = {line_total}</b>₽"
         lines.append(title)
 
     cart_sum = _money(getattr(cart, "sum", None))
@@ -713,20 +706,14 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
     grand_total_calc = items_total + delivery_sum
     grand_total_saved = cart_sum + delivery_sum
 
-    # ---- блок пользователя ----
     user = getattr(cart, "user", None)
     user_bits = []
-    if user:
-        user_bits.append(f"👤<b>{user.full_name}</b>\n"
-                         f"{user.contact_info.replace(', ', '\n')}\n\n")
-
-    else:
-        user_bits.append(f"👤 АЙДИ ЗАКАЗЧИКА: <code>{cart.user_id}</code>")
+    if user: user_bits.append(f"👤<b>{user.full_name}</b>\n{user.contact_info.replace(', ', '\n')}\n")
+    else: user_bits.append(f"👤 АЙДИ ЗАКАЗЧИКА: <code>{cart.user_id}</code>")
 
     status_flags = ["✅ Оплачено" if getattr(cart, "is_paid", False) else "⏳ Ожидает оплаты", "В обработке" if getattr(cart, "is_active", False) else 'Обработано']
     if getattr(cart, "is_canceled", False): status_flags.append("❌ Отменено")
-    if getattr(cart, "is_shipped", False):
-        status_flags.append("📦 Отправлено")
+    if getattr(cart, "is_shipped", False): status_flags.append("📦 Отправлено")
 
     promo_code = _s(cart, "promo_code", "").strip()
     promo_txt = ""
