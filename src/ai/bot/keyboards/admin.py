@@ -39,7 +39,7 @@ def fast_unblock(user_id: int): return InlineKeyboardMarkup(inline_keyboard=[
     [back_button]
 ])
 
-async def view_user_menu(user_id: int, carts_len: int, blocked: bool):
+def view_user_menu(user_id: int, carts_len: int, blocked: bool):
     if not blocked: block_button = InlineKeyboardButton(text="🔐 Заблокировать", callback_data=f'admin:users:{user_id}:block')
     else: block_button = InlineKeyboardButton(text="🔓 Разблокировать", callback_data=f'admin:users:{user_id}:unblock')
     return InlineKeyboardMarkup(inline_keyboard=[
