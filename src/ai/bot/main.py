@@ -251,15 +251,5 @@ async def run_dose_bot():
 
 
 async def run_new_bot():
-    async def _premium_worker():
-        while True:
-            async with get_session() as session: await update_premium_requests(session)
-            now = datetime.now(tz=MOSCOW_TZ)
-            if now.month == 12: next_month = datetime(now.year + 1, 1, 1, tzinfo=MOSCOW_TZ)
-            else: next_month = datetime(now.year, now.month + 1, 1, tzinfo=MOSCOW_TZ)
-            delay = (next_month - now).total_seconds()
-            await asyncio.sleep(delay)
-
-    asyncio.create_task(_premium_worker())
     await new_bot.delete_webhook(drop_pending_updates=False)
     await new_dp.start_polling(new_bot)
