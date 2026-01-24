@@ -8,10 +8,7 @@ from src.webapp.schemas.cart import CartCreate, CartUpdate
 
 
 async def get_cart_by_id(db: AsyncSession, cart_id: int) -> Optional[Cart]:
-    """Get a single cart by its ID."""
-    result = await db.execute(
-        select(Cart).where(Cart.id == cart_id)
-    )
+    result = await db.execute(select(Cart).where(Cart.id == cart_id))
     return result.scalar_one_or_none()
 
 async def get_carts(db: AsyncSession, exclude_starting: bool = True) -> Optional[list[Cart]]:

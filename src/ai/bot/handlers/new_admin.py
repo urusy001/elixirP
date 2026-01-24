@@ -13,10 +13,11 @@ from src.ai.bot.texts import admin_texts
 from src.ai.bot.handlers import new_admin_router
 from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
-from src.helpers import make_excel_safe, user_carts_analytics_text
+from src.helpers import make_excel_safe, user_carts_analytics_text, cart_analysis_text
 from src.tg_methods import get_user_id_by_phone, normalize_phone, get_user_id_by_username
 from src.webapp import get_session
-from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_user_usage_totals, get_user_carts
+from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_user_usage_totals, \
+    get_user_carts, get_cart_by_id
 from src.webapp.crud.search import search_users, search_carts
 from src.webapp.models import Cart
 from src.webapp.schemas import UserCreate, UserUpdate
@@ -176,7 +177,7 @@ async def handle_statistics(message: Message):
 @new_admin_router.message(Command('get_user'))
 async def handle_get_user(message: Message):
     user_id = message.text.removeprefix("/get_user ").strip()
-    if not user_id or not user_id.isdigit(): await message.answer("Ошибка команды: <code>/get_user айди_тг</code>")
+    if not user_id or not user_id.isdigit(): await message.answer("Ошибка команды: <code>/get_user айди_тг</code>", reply_markup=admin_keyboards.back)
     else:
         async with get_session() as session:
             user = await get_user(session, 'tg_id', user_id)
@@ -218,6 +219,13 @@ async def handle_block_days(message: Message, state: FSMContext):
     else: until = datetime.now() + timedelta(days=abs(int(days)))
     async with get_session() as session: user = await update_user(session, user_id, UserUpdate(blocked_until=until))
     await message.answer(f"Пользователь {user.full_name} {user.tg_phone} <b>успешно заблокирован до {until.date()} {until.hour}:{until.minute} по МСК</b>", reply_markup=admin_keyboards.back_to_user(user.tg_id))
+
+@new_admin_router.message(Command("get_cart"))
+async def handle_get_cart(message: Message, state: FSMContext):
+    cart_id = message.text.removeprefix("/get_cart").strip()
+    if not cart_id.isdigit(): await message.answer("Ошибка команды: <code>/get_cart номер_заказа</code>", reply_markup=admin_keyboards.back)
+    else:
+        async with get_session() as session: await message.answer(await cart_analysis_text(session, cart_id))
 
 @new_admin_router.callback_query()
 async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
@@ -282,7 +290,7 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
         else:
             cart_id = int(cart_id)
             async with get_session() as session: carts, total = await search_carts(session, cart_id, limit=50)
-            if carts: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"{cart.name} от {cart.user.full_name}", description=f"Статус: {cart.status}, Обновлено: {cart.updated_at}", input_message_content=InputTextMessageContent(message_text=f"/get_cart {cart.id}")) for cart in carts]
+            if carts: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"{cart.name} от {cart.user.full_name}", description=f"Статус: {cart.status}, Обновлено: {cart.updated_at.hour}:{cart.updated_at.minute}, {cart.updated_at.date}", input_message_content=InputTextMessageContent(message_text=f"/get_cart {cart.id}")) for cart in carts]
             else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено пользователей по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=start_input_content)]
 
     else: results = []
