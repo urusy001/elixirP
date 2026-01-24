@@ -700,11 +700,9 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
         cats_text = f" • 🏷 {', '.join(cats)}" if cats else ""
         title = f"• <b>{p_name}</b>"
         if p_code: title += f" <i>({p_code})</i>"
-        if f_name: title += f"\n  ↳ {f_name}"
+        if f_name: title += f"{f_name}"
         title += (
-            f"\n  кол-во: <b>{qty}</b>"
-            f" • цена: <b>{unit_price}</b>₽"
-            f" • сумма: <b>{line_total}</b>₽{cats_text}"
+            f"<b>x {qty} ({unit_price}₽) = {line_total}</b>₽\n{cats_text}"
         )
 
         lines.append(title)
