@@ -290,7 +290,7 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
         else:
             cart_id = int(cart_id)
             async with get_session() as session: carts, total = await search_carts(session, cart_id, limit=50)
-            if carts: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"{cart.name} от {cart.user.full_name}", description=f"Статус: {cart.status}, Обновлено: {cart.updated_at.hour}:{cart.updated_at.minute}, {cart.updated_at.date}", input_message_content=InputTextMessageContent(message_text=f"/get_cart {cart.id}")) for cart in carts]
+            if carts: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"{cart.name} от {cart.user.full_name}", description=f"Статус: {cart.status}, Обновлено: {cart.updated_at.hour}:{cart.updated_at.minute}, {cart.updated_at.date()}", input_message_content=InputTextMessageContent(message_text=f"/get_cart {cart.id}")) for cart in carts]
             else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено пользователей по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=start_input_content)]
 
     else: results = []
