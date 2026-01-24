@@ -25,7 +25,8 @@ from src.webapp.schemas import UserCreate, UserUpdate
 new_admin_router.inline_query.filter(lambda query: query.from_user.id in ADMIN_TG_IDS)
 
 @new_admin_router.message(CommandStart())
-async def handle_start(message: Message):
+async def handle_start(message: Message, state: FSMContext):
+    await state.clear()
     await message.answer(admin_texts.greeting, reply_markup=admin_keyboards.admin_menu)
 
 @new_admin_router.message(Command('edit_and_pin'), lambda message: message.reply_to_message)
