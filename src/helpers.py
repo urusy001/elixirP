@@ -499,29 +499,34 @@ async def user_carts_analytics_text(db: AsyncSession, user_id: int, *, days: int
             func.count(CartItem.id).label("lines_total"),
             func.coalesce(func.sum(CartItem.quantity), 0).label("qty_total"),
             func.count(distinct(CartItem.product_onec_id)).label("products_distinct"),
-            func.count(distinct(CartItem.feature_onec_id)).label("features_distinct"),
+            func.count(distinct(CartItem.feature_onec_id)).label("positions_distinct"),
         )
         .select_from(CartItem)
         .join(Cart, Cart.id == CartItem.cart_id)
         .where(Cart.user_id == user_id)
     )).one()
 
-    top_rows = (await db.execute(
+    # ✅ Топ позиций: Product.name + граммовка (Feature.name) + product_onec_id
+    top_positions_rows = (await db.execute(
         select(
-            CartItem.feature_onec_id.label("fid"),
-            Feature.name.label("name"),
+            CartItem.product_onec_id.label("product_id"),
+            Product.name.label("product_name"),
+            CartItem.feature_onec_id.label("feature_id"),
+            Feature.name.label("feature_name"),
             func.sum(CartItem.quantity).label("qty"),
-            func.coalesce(func.sum(CartItem.quantity * Feature.price), 0).label("rev"),
+            func.coalesce(func.sum(CartItem.quantity * func.coalesce(Feature.price, 0)), 0).label("rev"),
         )
         .select_from(CartItem)
         .join(Cart, Cart.id == CartItem.cart_id)
-        .join(Feature, Feature.onec_id == CartItem.feature_onec_id)
+        .outerjoin(Feature, Feature.onec_id == CartItem.feature_onec_id)
+        .outerjoin(Product, Product.onec_id == CartItem.product_onec_id)
         .where(Cart.user_id == user_id)
-        .group_by(CartItem.feature_onec_id, Feature.name)
+        .group_by(CartItem.product_onec_id, Product.name, CartItem.feature_onec_id, Feature.name)
         .order_by(desc("qty"))
         .limit(top_n)
     )).all()
 
+    # TG категории
     cat_rows = (await db.execute(
         select(
             TgCategory.id.label("cat_id"),
@@ -570,32 +575,26 @@ async def user_carts_analytics_text(db: AsyncSession, user_id: int, *, days: int
     lines_total = int(it.lines_total or 0)
     qty_total = int(it.qty_total or 0)
     products_distinct = int(it.products_distinct or 0)
-    features_distinct = int(it.features_distinct or 0)
+    positions_distinct = int(it.positions_distinct or 0)
 
     parts: list[str] = []
-
-    parts.append(f"<b>Аналитика заказов пользователя</b>\n<i>User ID:</i> <b>{user_id}</b>")
+    parts.append(f"📊 <b>Аналитика заказов пользователя</b>\n<i>User ID:</i> <b>{user_id}</b>")
 
     parts.append(
         "\n".join(
             [
                 "",
-                "<u>Сводка</u>",
-                f"Заказов: <b>{carts_total}</b>",
-                f"За {days} дней: <b>{int(t.carts_last_days_cnt or 0)}</b>",
-                f"Сумма заказов: <b>{sum_total:.2f}₽</b>",
-                f"Доставка: <b>{delivery_total:.2f}₽</b>",
-                f"Реф.выплаты: <b>{promo_total:.2f}₽</b>",
-                f"Оплачено: <b>{int(t.paid_cnt or 0)}</b>",
-                f"Не оплачено: <b>{int(t.unpaid_cnt or 0)}</b>",
-                f"Активные: <b>{int(t.active_cnt or 0)}</b>",
-                f"Неактивные: <b>{int(t.inactive_cnt or 0)}</b>",
-                f"Отправлено: <b>{int(t.shipped_cnt or 0)}</b>",
-                f"Отменено: <b>{int(t.canceled_cnt or 0)}</b>",
-                f"С промокодом: <b>{int(t.with_promo_cnt or 0)}</b>",
-                f"Средний чек: <b>{avg_sum:.2f}₽</b>",
-                f"Первый заказ: <i>{_fmt_dt(t.first_cart_at)}</i>",
-                f"Последний заказ: <i>{_fmt_dt(t.last_cart_at)}</i>",
+                "🧾 <u>Сводка</u>",
+                f"🛍️ Заказов: <b>{carts_total}</b> (за {days} дней: <b>{int(t.carts_last_days_cnt or 0)}</b>)",
+                f"💰 Сумма: <b>{sum_total:.2f}₽</b> | 🚚 Доставка: <b>{delivery_total:.2f}₽</b>",
+                f"🎁 Реф.выплаты: <b>{promo_total:.2f}₽</b>",
+                f"✅ Оплачено: <b>{int(t.paid_cnt or 0)}</b> | ❌ Не оплачено: <b>{int(t.unpaid_cnt or 0)}</b>",
+                f"🟢 Активные: <b>{int(t.active_cnt or 0)}</b> | ⚫ Неактивные: <b>{int(t.inactive_cnt or 0)}</b>",
+                f"📦 Отправлено: <b>{int(t.shipped_cnt or 0)}</b> | ⛔ Отменено: <b>{int(t.canceled_cnt or 0)}</b>",
+                f"🏷️ С промокодом: <b>{int(t.with_promo_cnt or 0)}</b>",
+                f"📈 Средний чек: <b>{avg_sum:.2f}₽</b>",
+                f"🕒 Первый: <i>{_fmt_dt(t.first_cart_at)}</i>",
+                f"🕓 Последний: <i>{_fmt_dt(t.last_cart_at)}</i>",
             ]
         )
     )
@@ -604,58 +603,56 @@ async def user_carts_analytics_text(db: AsyncSession, user_id: int, *, days: int
         "\n".join(
             [
                 "",
-                "<u>Позиции</u>",
-                f"Строк: <b>{lines_total}</b>",
-                f"Всего штук: <b>{qty_total}</b>",
-                f"Уникальных продуктов: <b>{products_distinct}</b>",
-                f"Уникальных вариаций: <b>{features_distinct}</b>",
-                f"Уникальных TG категорий: <b>{int(cats_distinct)}</b>",
+                "📦 <u>Позиции (cart_items)</u>",
+                f"• строк: <b>{lines_total}</b> | всего штук: <b>{qty_total}</b>",
+                f"• уникальных продуктов: <b>{products_distinct}</b>",
+                f"• уникальных позиций: <b>{positions_distinct}</b>",
+                f"• уникальных TG категорий: <b>{int(cats_distinct)}</b>",
             ]
         )
     )
 
     if status_rows:
-        parts.append("\n<u>Статусы</u>")
+        parts.append("\n📌 <u>Статусы</u>")
         for s, cnt in status_rows[:10]:
-            parts.append(f"{s or 'NULL'}: <b>{int(cnt)}</b>")
+            parts.append(f"• {s or 'NULL'}: <b>{int(cnt)}</b>")
 
     if cat_rows:
-        parts.append("\n<u>Топ TG категорий</u>")
+        parts.append("\n🗂️ <u>Топ TG категорий</u>")
         for cat_id, cat_name, qty, rev, prod_cnt in cat_rows:
             parts.append(
-                f"{cat_name} (ID {cat_id}): "
-                f"<b>{int(qty)}</b> шт, "
-                f"<b>{_money(rev):.2f}₽</b>, "
-                f"товаров <b>{int(prod_cnt)}</b>"
+                f"• {cat_name}: <b>{int(qty)}</b> шт, <b>{_money(rev):.2f}₽</b>, товаров <b>{int(prod_cnt)}</b>"
             )
 
-    if top_rows:
-        parts.append("\n<u>Топ вариаций</u>")
-        for fid, name, qty, rev in top_rows:
+    if top_positions_rows:
+        parts.append("\n⭐ <u>Топ позиций</u>")
+        for product_id, product_name, feature_id, feature_name, qty, rev in top_positions_rows:
+            pname = product_name or "Без названия"
+            grams = _extract_grams(feature_name)
             parts.append(
-                f"{name} (ID {fid}): "
-                f"<b>{int(qty)}</b> шт, "
-                f"<b>{_money(rev):.2f}₽</b>"
+                f"• <b>{pname}</b> "
+                f"(ID продукта <b>{product_id}</b>) — граммовка <i>{grams}</i> — "
+                f"<b>{int(qty)}</b> шт (≈ <b>{_money(rev):.2f}₽</b>)"
             )
 
     if recent_rows:
-        parts.append("\n<u>Последние заказы</u>")
+        parts.append("\n🕓 <u>Последние заказы</u>")
         for (cid, created_at, ssum, dsum, status, is_paid, is_active, is_canceled, is_shipped, promo_code) in recent_rows:
             flags = []
-            if is_paid: flags.append("paid")
-            if is_shipped: flags.append("shipped")
-            if is_canceled: flags.append("canceled")
-            if is_active: flags.append("active")
+            if is_paid: flags.append("✅ paid")
+            if is_shipped: flags.append("📦 shipped")
+            if is_canceled: flags.append("⛔ canceled")
+            if is_active: flags.append("🟢 active")
             flags_s = ", ".join(flags) if flags else "—"
 
             line = (
-                f"Заказ <b>#{cid}</b> — <i>{_fmt_dt(created_at)}</i>\n"
-                f"Статус: <b>{status or '—'}</b>\n"
-                f"Сумма: <b>{_money(ssum):.2f}₽</b>, доставка <b>{_money(dsum):.2f}₽</b>\n"
-                f"Флаги: <i>{flags_s}</i>"
+                f"• <b>Заказ #{cid}</b> — <i>{_fmt_dt(created_at)}</i>\n"
+                f"  Статус: <b>{status or '—'}</b>\n"
+                f"  Сумма: <b>{_money(ssum):.2f}₽</b>, доставка <b>{_money(dsum):.2f}₽</b>\n"
+                f"  Флаги: <i>{flags_s}</i>"
             )
             if promo_code:
-                line += f"\nПромокод: <b>{promo_code}</b>"
+                line += f"\n  Промокод: <b>{promo_code}</b>"
             parts.append(line)
 
     return "\n".join(parts)
