@@ -28,10 +28,10 @@ class PromoCodeRef(BaseModel):
 class CartCreate(BaseModel):
     # Required by model
     user_id: int
+    phone:str
+    email: str
 
-    # Optional in model (name is auto-set after insert if None)
     name: Optional[str] = None
-
     # Money fields in model
     sum: Decimal = Field(default=ZERO_MONEY)
     delivery_sum: Decimal = Field(default=ZERO_MONEY)
@@ -56,6 +56,8 @@ class CartCreate(BaseModel):
 class CartUpdate(BaseModel):
     # PATCH-style: everything optional, so you don't accidentally reset fields
     name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
 
     sum: Optional[Decimal] = None
     delivery_sum: Optional[Decimal] = None
@@ -81,6 +83,8 @@ class CartRead(BaseModel):
 
     id: int
     user_id: int
+    phone: str
+    email: str
 
     name: Optional[str] = None
 

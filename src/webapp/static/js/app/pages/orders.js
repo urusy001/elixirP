@@ -42,9 +42,10 @@ function getStatusBadgeClass(statusText) {
     return "order-card-status--default";
 }
 
-/**
- * Public
- */
+/* =========================
+   Public
+   ========================= */
+
 export async function renderOrdersPage() {
     navBottomEl.style.display = "flex";
     headerTitle.textContent = "Мои заказы";
@@ -69,9 +70,10 @@ export async function renderOrdersPage() {
     await loadAndRenderOrders();
 }
 
-/**
- * Fetch carts and render into two sections.
- */
+/* =========================
+   Data fetch + list render
+   ========================= */
+
 async function loadAndRenderOrders() {
     const user = state.user;
     if (!user?.tg_id) {
@@ -102,9 +104,6 @@ async function loadAndRenderOrders() {
     renderOrdersLists(active, processed);
 }
 
-/**
- * Render both lists + counters + empty states
- */
 function renderOrdersLists(active, processed) {
     const activeList = document.getElementById("orders-active-list");
     const processedList = document.getElementById("orders-processed-list");
@@ -120,33 +119,32 @@ function renderOrdersLists(active, processed) {
     activeList.innerHTML = "";
     processedList.innerHTML = "";
 
-    activeCount.textContent = String(active.length);
-    processedCount.textContent = String(processed.length);
+    if (activeCount) activeCount.textContent = String(active.length);
+    if (processedCount) processedCount.textContent = String(processed.length);
 
     // Active
     if (active.length === 0) {
-        activeEmpty.style.display = "block";
+        if (activeEmpty) activeEmpty.style.display = "block";
     } else {
-        activeEmpty.style.display = "none";
+        if (activeEmpty) activeEmpty.style.display = "none";
         active.forEach((cart) => activeList.appendChild(renderOrderCard(cart)));
     }
 
     // Processed
     if (processed.length === 0) {
-        processedEmpty.style.display = "block";
+        if (processedEmpty) processedEmpty.style.display = "block";
     } else {
-        processedEmpty.style.display = "none";
+        if (processedEmpty) processedEmpty.style.display = "none";
         processed.forEach((cart) => processedList.appendChild(renderOrderCard(cart)));
     }
 
-    // Optional: auto-collapse empty sections (feel free to delete)
     autoCollapseIfEmpty();
 }
 
-/**
- * Make section headers act like table headers (expand/collapse)
- * Also inject missing chevron and body wrapper if needed.
- */
+/* =========================
+   Orders section toggles
+   ========================= */
+
 function initOrdersSectionToggles() {
     const root = document.querySelector("#orders-page");
     if (!root) return;
@@ -173,7 +171,6 @@ function initOrdersSectionToggles() {
 
         // ensure body wrapper exists (optional)
         if (!section.querySelector(".orders-section-body")) {
-            // move everything except header into body
             const body = document.createElement("div");
             body.className = "orders-section-body";
 
@@ -209,10 +206,10 @@ function initOrdersSectionToggles() {
     });
 }
 
-/**
- * Card renderer.
- * If you already have order detail routing, replace openOrderDetail(cart) with your function.
- */
+/* =========================
+   Card renderer
+   ========================= */
+
 function renderOrderCard(cart) {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -247,18 +244,137 @@ function renderOrderCard(cart) {
   `;
 
     btn.addEventListener("click", () => {
-        // TODO: hook into your existing order detail navigation
-        // openOrderDetail(cart);
-        console.log("Open order:", cart);
+        openOrderDetail(cart);
     });
 
     return btn;
 }
 
-/**
- * Normalize backend cart shape to stable fields.
- * Works with your SQLAlchemy model output (typical FastAPI JSON).
- */
+/* =========================
+   Order detail renderer
+   ========================= */
+
+function openOrderDetail(cart) {
+    // hide list, show detail
+    ordersPageEl.style.display = "none";
+    orderDetailEl.style.display = "block";
+
+    // If your app uses detailEl wrapper for pages, keep it visible
+    // If not used, you can delete next line safely.
+    detailEl.style.display = "block";
+
+    // fill header
+    const idEl = document.getElementById("order-detail-id");
+    const statusEl = document.getElementById("order-detail-status");
+    const dateEl = document.getElementById("order-detail-date");
+
+    if (idEl) idEl.textContent = String(cart.id ?? "");
+
+    if (statusEl) {
+        const statusText = getStatusText(cart);
+        statusEl.textContent = statusText;
+        // keep your base class + badge class
+        statusEl.className = `order-detail-status ${getStatusBadgeClass(statusText)}`;
+    }
+
+    if (dateEl) {
+        dateEl.textContent = cart.created_at ? formatDateTime(cart.created_at) : "—";
+    }
+
+    // delivery
+    const deliverySummaryEl = document.getElementById("order-delivery-summary");
+    if (deliverySummaryEl) {
+        deliverySummaryEl.textContent =
+            (cart.delivery_string && String(cart.delivery_string).trim())
+                ? cart.delivery_string
+                : "Доставка не указана";
+    }
+
+    // payment method (if you don't have a field yet)
+    const paymentMethodEl = document.getElementById("order-payment-method");
+    if (paymentMethodEl) paymentMethodEl.textContent = "—";
+
+    // comment
+    const commentEl = document.getElementById("order-comment-text");
+    if (commentEl) commentEl.textContent = cart.commentary ? String(cart.commentary) : "—";
+
+    // totals
+    const subtotalEl = document.getElementById("order-subtotal");
+    const deliveryPriceEl = document.getElementById("order-delivery-price");
+    const totalEl = document.getElementById("order-total");
+
+    if (subtotalEl) subtotalEl.textContent = formatMoney(cart.sum);
+    if (deliveryPriceEl) deliveryPriceEl.textContent = formatMoney(cart.delivery_sum);
+
+    const totalNum = toNumber(cart.sum) + toNumber(cart.delivery_sum);
+    if (totalEl) totalEl.textContent = formatMoney(totalNum);
+
+    // ✅ contacts
+    const phoneEl = document.getElementById("order-contact-phone");
+    const emailEl = document.getElementById("order-contact-email");
+
+    const phone = (cart.phone ?? "").toString().trim();
+    const email = (cart.email ?? "").toString().trim();
+
+    if (phoneEl) phoneEl.textContent = phone || "Не указан";
+    if (emailEl) emailEl.textContent = email || "Не указан";
+
+    // items list (basic; replace with your pretty renderer if you have one)
+    const itemsListEl = document.getElementById("order-items-list");
+    if (itemsListEl) {
+        itemsListEl.innerHTML = "";
+
+        const items = Array.isArray(cart.items) ? cart.items : [];
+        if (items.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "order-detail-text";
+            empty.textContent = "— нет товаров —";
+            itemsListEl.appendChild(empty);
+        } else {
+            items.forEach((it) => {
+                itemsListEl.appendChild(renderOrderItemRow(it));
+            });
+        }
+    }
+}
+
+function renderOrderItemRow(it) {
+    // Best-effort renderer; adjust to your real CartItem shape
+    const name =
+        it?.product?.name ??
+        it?.product_name ??
+        it?.name ??
+        "Товар";
+
+    const variant =
+        it?.feature?.name ??
+        it?.feature_name ??
+        it?.variation ??
+        "";
+
+    const qty = Number(it?.quantity ?? it?.qty ?? 1) || 1;
+    const price = toNumber(it?.feature?.price ?? it?.price ?? 0);
+    const line = price * qty;
+
+    const row = document.createElement("div");
+    row.className = "order-item-row";
+    row.innerHTML = `
+    <div class="order-item-row__top">
+      <div class="order-item-row__name">${escapeHtml(name)}</div>
+      <div class="order-item-row__sum">${escapeHtml(formatMoney(line))}</div>
+    </div>
+    <div class="order-item-row__bottom">
+      ${variant ? `<div class="order-item-row__variant">${escapeHtml(variant)}</div>` : ""}
+      <div class="order-item-row__meta">Кол-во: ${escapeHtml(qty)} • Цена: ${escapeHtml(formatMoney(price))}</div>
+    </div>
+  `;
+    return row;
+}
+
+/* =========================
+   Normalization
+   ========================= */
+
 function normalizeCart(raw) {
     const created = raw.created_at || raw.createdAt || raw.created;
     const updated = raw.updated_at || raw.updatedAt || raw.updated;
@@ -275,6 +391,11 @@ function normalizeCart(raw) {
         delivery_sum: toNumber(raw.delivery_sum),
         delivery_string: raw.delivery_string,
         commentary: raw.commentary,
+
+        // ✅ NEW (contact info on cart)
+        phone: raw.phone ?? null,
+        email: raw.email ?? null,
+
         is_active: Boolean(raw.is_active),
         created_at: created,
         updated_at: updated,
@@ -283,10 +404,10 @@ function normalizeCart(raw) {
     };
 }
 
-/**
- * Optional: collapse sections that are empty (nice UX).
- * Delete if you dislike.
- */
+/* =========================
+   Optional UX: auto-collapse empty sections
+   ========================= */
+
 function autoCollapseIfEmpty() {
     const activeSection = document.querySelector("#orders-page .orders-section:nth-of-type(1)");
     const processedSection = document.querySelector("#orders-page .orders-section:nth-of-type(2)");

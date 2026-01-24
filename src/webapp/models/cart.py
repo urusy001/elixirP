@@ -38,6 +38,8 @@ class Cart(Base):
     )
 
     name = Column(String, nullable=True)
+    phone = Column(String, nullable=False)
+    email = Column(String, nullable=False)
 
     sum = Column(Numeric(8, 2), nullable=False, default=0, server_default="0")
     delivery_sum = Column(Numeric(8, 2), nullable=False, default=0, server_default="0")
