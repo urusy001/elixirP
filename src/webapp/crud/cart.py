@@ -1,8 +1,9 @@
 from typing import Optional, Sequence
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload, joinedload
 
-from src.webapp.models import CartItem
+from src.webapp.models import CartItem, Product
 from src.webapp.models.cart import Cart
 from src.webapp.schemas.cart import CartCreate, CartUpdate
 
@@ -25,7 +26,21 @@ async def get_user_carts(db: AsyncSession, user_id: int, is_active: Optional[boo
     - if is_active is True  -> only unpaid/unprocessed carts
     - if is_active is False -> only closed/processed carts
     """
-    query = select(Cart).where(Cart.user_id == user_id)
+    query = select(Cart).where(Cart.user_id == user_id).options(
+        # items + their product + categories
+        selectinload(Cart.items)
+        .selectinload(CartItem.product)
+        .selectinload(Product.tg_categories),
+
+        # items + their feature (variation/dosage)
+        selectinload(Cart.items).selectinload(CartItem.feature),
+
+        # promo (you set lazy="joined" but we make it explicit)
+        joinedload(Cart.promo),
+
+        # user (for fallback contact info etc.)
+        selectinload(Cart.user),
+    )
 
     if is_active is not None: query = query.where(Cart.is_active.is_(is_active))
     query = query.order_by(Cart.created_at.desc())
