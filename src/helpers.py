@@ -630,8 +630,7 @@ async def user_carts_analytics_text(db: AsyncSession, user_id: int, *, days: int
             pname = product_name or "Без названия"
             grams = feature_name
             parts.append(
-                f"• <b>{pname}</b> "
-                f"(ID продукта <b>{product_id}</b>) — граммовка <i>{grams}</i> — "
+                f"• <b>{pname}</b> — <i>{grams}</i> — "
                 f"<b>{int(qty)}</b> шт (≈ <b>{_money(rev):.2f}₽</b>)"
             )
 
