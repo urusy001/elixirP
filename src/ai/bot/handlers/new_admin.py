@@ -1,4 +1,5 @@
 import os
+import time
 import uuid
 import pandas as pd
 
@@ -12,6 +13,7 @@ from config import ADMIN_TG_IDS, MOSCOW_TZ, ELIXIR_CHAT_ID
 from src.ai.bot.texts import admin_texts
 from src.ai.bot.handlers import new_admin_router
 from src.ai.bot.keyboards import admin_keyboards
+from src.ai.bot.states import admin_states
 from src.helpers import make_excel_safe
 from src.tg_methods import get_user_id_by_phone, normalize_phone, get_user_id_by_username
 from src.webapp import get_session
@@ -203,9 +205,21 @@ async def handle_get_user(message: Message):
                      f" — Оплаченных: <i>{len(paid)} на сумму {paid_rub}₽</i>\n"
                      f" — Неоплаченных: <i>{len(unpaid)} на сумму {unpaid_rub}₽</i>\n\n"
                      f"🤖 <b>Запросов ИИ: {total_requests} на сумму {total_cost_usd}$</b>\n"
-                     f"💲 Стоимость запроса в среднем: <i>{avg_cost_per_request}</i>\n")
+                     f"💲 Стоимость запроса в среднем: <i>{avg_cost_per_request}</i>")
 
-        await message.answer(user_text)
+        if user.blocked_until and user.blocked_until > datetime.now(MOSCOW_TZ): user_text += f"\n\n‼️ <b>ЗАБЛОКИРОВАН ДО {user.blocked_until.date()} {user.blocked_until.hour}:{user.blocked_until.minute} по МСК ‼️</b>"
+        await message.answer(user_text, reply_markup=admin_keyboards.view_user_menu(user.tg_id, len(user_carts), bool(user.blocked_until and user.blocked_until > datetime.now(MOSCOW_TZ))))
+
+@new_admin_router.message(admin_states.ViewUser.block_days, lambda message: message.text.isdigit())
+async def handle_block_days(message: Message, state: FSMContext):
+    state_data = await state.get_data()
+    user_id = state_data["user_id"]
+    days = int(message.text.strip())
+    if days == 0: until = datetime.now(MOSCOW_TZ) + timedelta(days=int(time.time()))
+    else: until = datetime.now() + timedelta(days=abs(int(days)))
+    async with get_session() as session: user = await update_user(session, user_id, UserUpdate(blocked_until=until))
+    await message.answer(f"Пользователь {user.full_name} ({user.phone}) <b>успешно заблокирован до {until.date()} {until.hour}:{until.minute} по МСК</b>", reply_markup=admin_keyboards.fast_unblock(user.tg_id))
+
 
 @new_admin_router.callback_query()
 async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
@@ -213,6 +227,19 @@ async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
     state_data = await state.get_data()
     if data[0] == "users":
         if data[1] == "search": await call.message.edit_text(admin_texts.search_users_choice, reply_markup=admin_keyboards.search_users_choice)
+        elif data[1].isdigit():
+            user_id = int(data[1])
+            async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
+            if data[2] == "carts":
+                async with get_session() as session: carts = await get_user_carts(session, user.tg_id)
+
+            elif data[2] == "block":
+                await call.message.edit_text(admin_texts.block_days, reply_markup=admin_keyboards.back)
+                await state.set_state(admin_states.ViewUser.block_days)
+                await state.update_data(user_id=user.tg_id)
+
+            elif data[2] == "unblock":
+                async with get_session() as session: await update_user(session, user.tg_id, UserUpdate(blocked_until=None))
 
     elif data[0] == "spends":
         from .admin import handle_admin_callback

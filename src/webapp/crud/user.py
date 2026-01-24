@@ -160,4 +160,4 @@ async def update_premium_requests(db: AsyncSession, value: int = 2) -> int:
 
 async def update_user_name(i, first_name, last_name):
     from src.webapp import get_session
-    async with get_session() as _session: await update_user(_session, i, UserUpdate(name=first_name, surname=last_name))
+    async with get_session() as _session: await update_user(_session, i, UserUpdate(name=first_name or '', surname=last_name or ''))

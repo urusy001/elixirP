@@ -28,10 +28,22 @@ search_users_choice = InlineKeyboardMarkup(inline_keyboard=[
      InlineKeyboardButton(text="Почта", switch_inline_query_current_chat='search_user email ')]
 ])
 
-async def view_user_menu(user_id: int):
+back_button = InlineKeyboardButton(text="🔙 Главное меню", callback_data='admin:main_menu')
+back = InlineKeyboardMarkup(inline_keyboard=[[back_button]])
+
+backk_button = InlineKeyboardButton(text="🔙 Главное меню", callback_data='admin:main_menuu')
+backk = InlineKeyboardMarkup(inline_keyboard=[[backk_button]])
+
+def fast_unblock(user_id: int): return InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="🔓 Разблокировать", callback_data=f'admin:users:{user_id}:unblock')],
+    [back_button]
+])
+
+async def view_user_menu(user_id: int, carts_len: int, blocked: bool):
+    if not blocked: block_button = InlineKeyboardButton(text="🔐 Заблокировать", callback_data=f'admin:users:{user_id}:block')
+    else: block_button = InlineKeyboardButton(text="🔓 Разблокировать", callback_data=f'admin:users:{user_id}:unblock')
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🛍️ Заказы", callback_data=f"admin:users:{user_id}:orders"),
-         InlineKeyboardButton(text="История сообщений", callback_data=f"admin:users:{user_id}:history")],
-        [InlineKeyboardButton(text="⛔️ Заблокировать", callback_data=f'admin:users:{user_id}:block'),
-         InlineKeyboardButton(text="")]
+        [InlineKeyboardButton(text=f"🛍️ Заказы {carts_len}", callback_data=f"admin:users:{user_id}:orders"),
+         InlineKeyboardButton(text="💬 История сообщений", callback_data=f"admin:users:{user_id}:history")],
+        [block_button], [back_button]
     ])
