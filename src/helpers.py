@@ -600,7 +600,7 @@ async def user_carts_analytics_text(db: AsyncSession, user_id: int, *, days: int
             f"• строк: <b>{lines_total}</b> | всего штук: <b>{qty_total}</b>",
             f"• уникальных продуктов: <b>{products_distinct}</b>",
             f"• уникальных позиций: <b>{positions_distinct}</b>",
-            f"• уникальных TG категорий: <b>{int(cats_distinct)}</b>",
+            f"• уникальных категорий: <b>{int(cats_distinct)}</b>",
         ]
     )]
 
