@@ -322,10 +322,8 @@ function renderOrderItemRow(it) {
     const row = document.createElement("div");
     row.className = "order-item-row";
 
-    // ✅ Row 1: "Name (Variant)" .......... "sum"
     const title = variant ? `${name} (${variant})` : name;
 
-    // ✅ Row 2: "qty x price" ............. "= sum"
     row.innerHTML = `
     <div class="order-item-row__top">
       <div class="order-item-row__name">${escapeHtml(title)}</div>
