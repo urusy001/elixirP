@@ -715,7 +715,6 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
     grand_total_calc = items_total + delivery_sum
     grand_total_saved = cart_sum + delivery_sum
 
-    # ---------- user ----------
     user = getattr(cart, "user", None)
     user_lines: list[str] = []
     if user:
@@ -724,49 +723,35 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
         if contact_info: contact_info = contact_info.replace(", ", "\n")
         if full_name: user_lines.append(f"👤 <b>{full_name}</b>")
         if contact_info: user_lines.append(contact_info)
-    else:
-        user_lines.append(f"👤 АЙДИ ЗАКАЗЧИКА: <code>{cart.user_id}</code>")
+    else: user_lines.append(f"👤 АЙДИ ЗАКАЗЧИКА: <code>{cart.user_id}</code>")
 
-    # ---------- status/meta ----------
     status_flags: list[str] = []
     status_flags.append("✅ Оплачено" if getattr(cart, "is_paid", False) else "⏳ Ожидает оплаты")
     status_flags.append("🟢 В обработке" if getattr(cart, "is_active", False) else "⚪ Обработано")
-    if getattr(cart, "is_canceled", False):
-        status_flags.append("❌ Отменено")
-    if getattr(cart, "is_shipped", False):
-        status_flags.append("📦 Отправлено")
+    if getattr(cart, "is_canceled", False): status_flags.append("❌ Отменено")
+    if getattr(cart, "is_shipped", False): status_flags.append("📦 Отправлено")
 
     status_str = _s(cart, "status", "").strip()
-    yandex_request_id = _s(cart, "yandex_request_id", "").strip()
     delivery_string = _s(cart, "delivery_string", "").strip()
     commentary = _s(cart, "commentary", "").strip()
     created_at = _s(cart, "created_at", "")
     updated_at = _s(cart, "updated_at", "")
 
-    # ---------- promo ----------
     promo_txt = ""
     promo_code = _s(cart, "promo_code", "").strip()
     if promo_code:
         promo_owner = _s(getattr(cart, "promo", None), "owner_name", "").strip()
         promo_lines = [f"🎟 Промокод: <code>{promo_code}</code>"]
-        if promo_owner:
-            promo_lines[-1] += f" • владелец: <b>{promo_owner}</b>"
+        if promo_owner: promo_lines[-1] += f" • владелец: <b>{promo_owner}</b>"
         promo_lines.append(f"💸 Начисления по промо: <b>{promo_gains}₽</b>")
         promo_txt = "\n\n" + "\n".join(promo_lines)
 
-    # ---------- assemble blocks ----------
-    header = f"🧾 <b>{_s(cart, 'name', f'Заказ #{cart.id}')}</b>\n🆔 <code>{cart.id}</code>"
-
+    header = f"🧾 <b>{_s(cart, 'name', f'Заказ #{cart.id}')}</b>"
     meta_lines: list[str] = []
-    if status_str:
-        meta_lines.append(f"📄 <b>Статус:</b> <i>{status_str}</i>")
+    if status_str: meta_lines.append(f"📄 <b>Статус:</b> <i>{status_str}</i>")
     meta_lines.append(f"🏷️ <b>Флаги:</b> {', '.join(status_flags)}")
-    if yandex_request_id:
-        meta_lines.append(f"🪪 yandex_request_id: <code>{yandex_request_id}</code>")
-    if delivery_string:
-        meta_lines.append(f"🚚 Доставка: <i>{delivery_string}</i>")
-    if commentary:
-        meta_lines.append(f"💬 Комментарий: <i>{commentary}</i>")
+    if delivery_string: meta_lines.append(f"🚚 Доставка: <i>{delivery_string}</i>")
+    if commentary: meta_lines.append(f"💬 Комментарий: <i>{commentary}</i>")
     meta_lines.append(f"🕰️ Создано: <code>{created_at}</code>")
     meta_lines.append(f"🔁 Обновлено: <code>{updated_at}</code>")
 
@@ -790,6 +775,5 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
         items_block,
     ]
 
-    # ✅ remove empty blocks + ensure clean spacing
     out = "\n\n".join([b.strip() for b in blocks if b and b.strip()])
     return out
