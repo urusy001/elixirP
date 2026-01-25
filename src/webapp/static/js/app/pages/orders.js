@@ -336,9 +336,6 @@ function renderOrderItemRow(it) {
       <div class="order-item-row__meta">
         ${escapeHtml(qty)} × ${escapeHtml(formatMoney(price))}
       </div>
-      <div class="order-item-row__sum2">
-        = ${escapeHtml(formatMoney(line))}
-      </div>
     </div>
   `;
 
