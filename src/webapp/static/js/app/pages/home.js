@@ -900,6 +900,8 @@ async function openTosOverlay(user) {
                 delivery_sum: 0.0,
                 delivery_string: "Начальная",
                 commentary: "Начальная",
+                phone: "123456789",
+                email: "123456789@gmail.com"
             };
             await apiPost("/cart/create", payload);
 
