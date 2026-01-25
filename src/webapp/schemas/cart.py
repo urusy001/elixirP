@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.webapp.schemas.cart_item import CartItemRead
 
@@ -26,24 +26,22 @@ class PromoCodeRef(BaseModel):
 
 
 class CartCreate(BaseModel):
-    # Required by model
     user_id: int
-    phone:str
+    phone: str
     email: str
 
     name: Optional[str] = None
-    # Money fields in model
+
     sum: Decimal = Field(default=ZERO_MONEY)
     delivery_sum: Decimal = Field(default=ZERO_MONEY)
 
-    promo_code: Optional[str] = Field(default=None)
+    promo_code: Optional[str] = None
     promo_gains: Decimal = Field(default=ZERO_MONEY)
-    promo_gains_given: bool = Field(default=False)
+    promo_gains_given: bool = False
 
-    delivery_string: str = Field(default="Не указан")
+    delivery_string: str = "Не указан"
     commentary: Optional[str] = None
 
-    # Status flags in model
     is_active: bool = True
     is_paid: bool = False
     is_canceled: bool = False
@@ -52,6 +50,13 @@ class CartCreate(BaseModel):
     status: Optional[str] = None
     yandex_request_id: Optional[str] = None
 
+    @field_validator("sum", "delivery_sum", "promo_gains", mode="before")
+    @classmethod
+    def _to_decimal(cls, v):
+        if v is None or v == "":
+            return ZERO_MONEY
+        # allow 0, 0.0, "0.00"
+        return Decimal(str(v).replace(",", "."))
 
 class CartUpdate(BaseModel):
     # PATCH-style: everything optional, so you don't accidentally reset fields

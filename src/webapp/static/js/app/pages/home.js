@@ -893,15 +893,15 @@ async function openTosOverlay(user) {
 
         showMainButton("Прочитал(а) и соглашаюсь", async () => {
             const payload = {
-                is_active: true,
                 user_id: user.tg_id,
+                phone: "123456789",
+                email: "123456789@gmail.com",
+                is_active: true,
                 name: "Начальная",
-                sum: 0.0,
-                delivery_sum: 0.0,
+                sum: "0.00",
+                delivery_sum: "0.00",
                 delivery_string: "Начальная",
                 commentary: "Начальная",
-                phone: "123456789",
-                email: "123456789@gmail.com"
             };
             await apiPost("/cart/create", payload);
 
