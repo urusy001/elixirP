@@ -53,9 +53,7 @@ class CartCreate(BaseModel):
     @field_validator("sum", "delivery_sum", "promo_gains", mode="before")
     @classmethod
     def _to_decimal(cls, v):
-        if v is None or v == "":
-            return ZERO_MONEY
-        # allow 0, 0.0, "0.00"
+        if v is None or v == "": return ZERO_MONEY
         return Decimal(str(v).replace(",", "."))
 
 class CartUpdate(BaseModel):
