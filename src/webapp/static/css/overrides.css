@@ -291,3 +291,17 @@ input, textarea {
     line-height: 1;
     white-space: nowrap;
 }
+
+/* optional (if you want perfect alignment like a receipt) */
+.order-item-row__top,
+.order-item-row__bottom {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.order-item-row__name { font-weight: 600; }
+.order-item-row__sum,
+.order-item-row__sum2 { white-space: nowrap; }
+
+.order-item-row__meta { opacity: 0.8; }

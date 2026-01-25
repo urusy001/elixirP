@@ -323,12 +323,17 @@ function renderOrderItemRow(it) {
     row.className = "order-item-row";
     row.innerHTML = `
     <div class="order-item-row__top">
-      <div class="order-item-row__name">${escapeHtml(name)}</div>
+      <div class="order-item-row__name">${escapeHtml(title)}</div>
       <div class="order-item-row__sum">${escapeHtml(formatMoney(line))}</div>
     </div>
+
     <div class="order-item-row__bottom">
-      ${variant ? `<div class="order-item-row__variant">${escapeHtml(variant)}</div>` : ""}
-      <div class="order-item-row__meta">Кол-во: ${escapeHtml(qty)} • Цена: ${escapeHtml(formatMoney(price))}</div>
+      <div class="order-item-row__meta">
+        ${escapeHtml(qty)} × ${escapeHtml(formatMoney(price))}
+      </div>
+      <div class="order-item-row__sum2">
+        = ${escapeHtml(formatMoney(line))}
+      </div>
     </div>
   `;
     return row;
