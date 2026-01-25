@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import YANDEX_DELIVERY_TOKEN, YANDEX_DELIVERY_BASE_URL, YANDEX_DELIVERY_WAREHOUSE_ID
 from src.services.cdek import client as cdek_client
 from src.helpers import format_order_for_amocrm, normalize_address_for_cf
+from src.tg_methods import normalize_phone
 from src.webapp.crud import upsert_user, add_or_increment_item, create_cart, update_cart, get_promo_by_code, update_promo
 from src.webapp.database import get_db
 from src.webapp.models.checkout import CheckoutData
@@ -43,7 +44,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     commentary_text = payload.commentary or "Не указан"
     address_str = normalize_address_for_cf(delivery_data["address"])
     payload_dict = payload.model_dump()
-    cart_create = CartCreate(is_active=True, user_id=user_id, sum=total, delivery_sum=0, promo_code=promo_code.code if promo_code else None, commentary=commentary_text, delivery_string=f"{delivery_service.upper()}: {address_str}")
+    cart_create = CartCreate(is_active=True, user_id=user_id, sum=total, delivery_sum=0, promo_code=promo_code.code if promo_code else None, commentary=commentary_text, delivery_string=f"{delivery_service.upper()}: {address_str}", email=contact_info.email, phone=normalize_phone(contact_info.phone))
     cart = await create_cart(db, cart_create)
     for item in enriched_cart.get("items", []):
         cart_item_create = CartItemCreate(product_onec_id=item["id"], feature_onec_id=item["featureId"], quantity=item["qty"])
