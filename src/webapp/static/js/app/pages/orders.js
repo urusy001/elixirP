@@ -312,15 +312,20 @@ function openOrderDetail(cart) {
 }
 
 function renderOrderItemRow(it) {
-    // ✅ strict: we expect backend to return product + feature objects
+    // strict fields from backend
     const name = it.product?.name ?? "Товар";
-    const variant = it.feature?.name ?? "";
+    const variant = it.feature?.name ?? "";          // dosage/variation text
     const qty = Number(it.quantity) || 1;
     const price = toNumber(it.feature?.price);
     const line = price * qty;
 
     const row = document.createElement("div");
     row.className = "order-item-row";
+
+    // ✅ Row 1: "Name (Variant)" .......... "sum"
+    const title = variant ? `${name} (${variant})` : name;
+
+    // ✅ Row 2: "qty x price" ............. "= sum"
     row.innerHTML = `
     <div class="order-item-row__top">
       <div class="order-item-row__name">${escapeHtml(title)}</div>
@@ -336,6 +341,7 @@ function renderOrderItemRow(it) {
       </div>
     </div>
   `;
+
     return row;
 }
 
