@@ -21,25 +21,27 @@ async def get_carts(db: AsyncSession, exclude_starting: bool = True) -> Optional
     return [cart for cart in carts if "ачальная" not in cart.name] if exclude_starting else carts
 
 
+
 async def get_carts_by_date(db: AsyncSession, dt: datetime) -> list[Cart]:
     dt_msk = dt if dt.tzinfo else dt.replace(tzinfo=MOSCOW_TZ)
 
-    day_start_msk = dt_msk.astimezone(MOSCOW_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
-    day_end_msk = day_start_msk + timedelta(days=1)
+    start_msk = dt_msk.astimezone(MOSCOW_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
+    end_msk = start_msk + timedelta(days=1)
 
-    day_start_utc = day_start_msk.astimezone(timezone.utc)
-    day_end_utc = day_end_msk.astimezone(timezone.utc)
+    start_utc = start_msk.astimezone(timezone.utc)
+    end_utc = end_msk.astimezone(timezone.utc)
 
     stmt = (
         select(Cart)
-        .where(Cart.created_at >= day_start_utc)
-        .where(Cart.created_at < day_end_utc)
-        .order_by(Cart.created_at.desc())
+        .where(Cart.created_at >= start_utc, Cart.created_at < end_utc)
+        .options(
+            selectinload(Cart.user),   # ✅ IMPORTANT
+        )
+        .order_by(Cart.updated_at.desc())
     )
 
     carts = (await db.execute(stmt)).scalars().all()
     return [c for c in carts if "ачальная" not in (c.name or "")]
-
 async def get_user_carts(db: AsyncSession, user_id: int, is_active: Optional[bool] = None, exclude_starting: bool = True) -> Sequence[Cart]:
     """
     List carts for a user.
