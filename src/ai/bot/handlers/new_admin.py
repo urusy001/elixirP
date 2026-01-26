@@ -17,7 +17,7 @@ from src.helpers import make_excel_safe, user_carts_analytics_text, cart_analysi
 from src.tg_methods import get_user_id_by_phone, normalize_phone, get_user_id_by_username
 from src.webapp import get_session
 from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_user_usage_totals, \
-    get_user_carts, get_cart_by_id
+    get_user_carts, get_cart_by_id, get_carts_by_date
 from src.webapp.crud.search import search_users, search_carts
 from src.webapp.models import Cart
 from src.webapp.schemas import UserCreate, UserUpdate
@@ -285,13 +285,26 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
             else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено пользователей по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=start_input_content)]
 
     elif data[0] == "search_cart":
-        cart_id = data[1]
-        if not cart_id.isdigit(): results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="Введенный запрос не число", description="Поиск заказов возможен только по их номерам", input_message_content=start_input_content)]
+        value = data[1]
+        if not value.isdigit():
+            date_parts = value.split(".")
+            if len(date_parts) == 3:
+                day = date_parts[0]
+                month = date_parts[1]
+                year = date_parts[2]
+                if not all((x.isdigit() for x in [day, month, year])): results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="Введенный запрос не число и не дата", description="Поиск заказов возможен только по их номерам или дате (дд.мм.гггг)", input_message_content=start_input_content)]
+                else:
+                    dt = datetime(year=int(year), month=int(month), day=int(day), tzinfo=MOSCOW_TZ)
+                    async with get_session() as session: carts = await get_carts_by_date(session, dt)
+                    if carts: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"{cart.name} от {cart.user.full_name}", description=f"Статус: {cart.status}, Обновлено: {cart.updated_at.hour}:{cart.updated_at.minute}, {cart.updated_at.date()}", input_message_content=InputTextMessageContent(message_text=f"/get_cart {cart.id}")) for cart in carts]
+                    else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено заказов по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=start_input_content)]
+
+            else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="Введенный запрос не число и не дата", description="Поиск заказов возможен только по их номерам или дате (дд.мм.гггг)", input_message_content=start_input_content)]
         else:
-            cart_id = int(cart_id)
+            cart_id = int(value)
             async with get_session() as session: carts, total = await search_carts(session, cart_id, limit=50)
             if carts: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"{cart.name} от {cart.user.full_name}", description=f"Статус: {cart.status}, Обновлено: {cart.updated_at.hour}:{cart.updated_at.minute}, {cart.updated_at.date()}", input_message_content=InputTextMessageContent(message_text=f"/get_cart {cart.id}")) for cart in carts]
-            else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено пользователей по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=start_input_content)]
+            else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено заказов по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=start_input_content)]
 
     else: results = []
     await inline_query.answer(results)

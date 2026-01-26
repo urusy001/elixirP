@@ -2,6 +2,7 @@ from typing import Optional, Sequence
 from sqlalchemy import select, delete, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
+from datetime import datetime
 
 from src.webapp.models import CartItem, Product
 from src.webapp.models.cart import Cart
@@ -18,6 +19,11 @@ async def get_carts(db: AsyncSession, exclude_starting: bool = True) -> Optional
     carts: list[Cart] = result.scalars().all()
     return [cart for cart in carts if "ачальная" not in cart.name] if exclude_starting else carts
 
+async def get_carts_by_date(db: AsyncSession, dt: datetime) -> Optional[list[Cart]]:
+    """Get a single cart by its ID."""
+    result = await db.execute(select(Cart).where(Cart.created_at.date() == dt.date()))
+    carts: list[Cart] = result.scalars().all()
+    return [cart for cart in carts if "ачальная" not in cart.name]
 
 async def get_user_carts(db: AsyncSession, user_id: int, is_active: Optional[bool] = None, exclude_starting: bool = True) -> Sequence[Cart]:
     """
