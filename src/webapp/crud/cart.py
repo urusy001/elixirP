@@ -2,8 +2,9 @@ from typing import Optional, Sequence
 from sqlalchemy import select, delete, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
+from config import MOSCOW_TZ
 from src.webapp.models import CartItem, Product
 from src.webapp.models.cart import Cart
 from src.webapp.schemas.cart import CartCreate, CartUpdate
@@ -19,11 +20,25 @@ async def get_carts(db: AsyncSession, exclude_starting: bool = True) -> Optional
     carts: list[Cart] = result.scalars().all()
     return [cart for cart in carts if "ачальная" not in cart.name] if exclude_starting else carts
 
-async def get_carts_by_date(db: AsyncSession, dt: datetime) -> Optional[list[Cart]]:
-    """Get a single cart by its ID."""
-    result = await db.execute(select(Cart).where(Cart.created_at.date() == dt.date()))
-    carts: list[Cart] = result.scalars().all()
-    return [cart for cart in carts if "ачальная" not in cart.name]
+
+async def get_carts_by_date(db: AsyncSession, dt: datetime) -> list[Cart]:
+    dt_msk = dt if dt.tzinfo else dt.replace(tzinfo=MOSCOW_TZ)
+
+    day_start_msk = dt_msk.astimezone(MOSCOW_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end_msk = day_start_msk + timedelta(days=1)
+
+    day_start_utc = day_start_msk.astimezone(timezone.utc)
+    day_end_utc = day_end_msk.astimezone(timezone.utc)
+
+    stmt = (
+        select(Cart)
+        .where(Cart.created_at >= day_start_utc)
+        .where(Cart.created_at < day_end_utc)
+        .order_by(Cart.created_at.desc())
+    )
+
+    carts = (await db.execute(stmt)).scalars().all()
+    return [c for c in carts if "ачальная" not in (c.name or "")]
 
 async def get_user_carts(db: AsyncSession, user_id: int, is_active: Optional[bool] = None, exclude_starting: bool = True) -> Sequence[Cart]:
     """
