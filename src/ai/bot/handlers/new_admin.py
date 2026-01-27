@@ -200,6 +200,8 @@ async def handle_get_user(message: Message):
         user_text = (f"👤 <b>{user.full_name}</b>\n"
                      f"📞 Номер ТГ: <i>{user.tg_phone}</i>\n"
                      f"🆔 Айди ТГ: <i>{user.tg_id}</i>\n"
+                     f"📲 Последняя контактная информация в заказах\n"
+                     f"{user.phone} {user.email}"
                      f"📣 Состоит в чате: <i>{'❌ Нет' if not is_member else '✅ Да'}</i>\n\n"
                      f"🛍️ <b>Заказов: {len(user_carts)} на сумму {total_rub}₽\n</b>"
                      f" — Оплаченных: <i>{len(paid)} на сумму {paid_rub}₽</i>\n"
