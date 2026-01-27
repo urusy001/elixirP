@@ -17,7 +17,7 @@ from src.helpers import make_excel_safe, user_carts_analytics_text, cart_analysi
 from src.tg_methods import get_user_id_by_phone, normalize_phone, get_user_id_by_username
 from src.webapp import get_session
 from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_user_usage_totals, \
-    get_user_carts, get_cart_by_id, get_carts_by_date
+    get_user_carts, get_carts_by_date, get_cart_by_id
 from src.webapp.crud.search import search_users, search_carts
 from src.webapp.models import Cart
 from src.webapp.schemas import UserCreate, UserUpdate
@@ -225,7 +225,11 @@ async def handle_get_cart(message: Message, state: FSMContext):
     cart_id = message.text.removeprefix("/get_cart").strip()
     if not cart_id.isdigit(): await message.answer("Ошибка команды: <code>/get_cart номер_заказа</code>", reply_markup=admin_keyboards.back)
     else:
-        async with get_session() as session: await message.answer(await cart_analysis_text(session, int(cart_id)))
+        async with get_session() as session: cart = await get_cart_by_id(session, int(cart_id))
+        if cart: await message.answer(await cart_analysis_text(session, int(cart_id)), reply_markup=admin_keyboards.back_to_user(cart.user_id))
+        else:
+            await message.answer(f"Заказ по номеру {cart_id} не существует")
+            await handle_start(message, state)
 
 @new_admin_router.callback_query()
 async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
