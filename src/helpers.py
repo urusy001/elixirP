@@ -719,7 +719,7 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
     user_lines: list[str] = []
     if user:
         full_name = _s(user, "full_name", "").strip()
-        contact_info = (f"ID Тг: {_s(cart, "user_id", "")}\n"+ f"Телефон: {_s(cart, "email", "").strip()}" + ", " + f"Почта: {_s(cart, "phone", "").strip()}") or _s(user, "contact_info", "").strip()
+        contact_info = (f"ID Тг: {_s(cart, "user_id", "")}\n"+ f"Телефон: {_s(cart, "phone", "").strip()}" + ", " + f"Почта: {_s(cart, "email", "").strip()}") or _s(user, "contact_info", "").strip()
         if contact_info: contact_info = contact_info.replace(", ", "\n")
         if full_name: user_lines.append(f"👤 <b>{full_name}</b>")
         if contact_info: user_lines.append(contact_info)
