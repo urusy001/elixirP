@@ -420,7 +420,7 @@ async def handle_user_call(call: CallbackQuery, state: FSMContext):
 async def handle_text_message(message: Message, state: FSMContext, professor_bot, professor_client):
     user_id = message.from_user.id
     async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
-    if not user or not user.tg_phone: return await handle_user_start(message, state, professor_bot, professor_client)
+    if not user or not user.tg_phone: return await handle_user_start(message, state)
     else: asyncio.create_task(update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
 
     state_data = await state.get_data()
