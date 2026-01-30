@@ -11,6 +11,7 @@ from aiogram.types import Message, CallbackQuery, FSInputFile
 from config import ADMIN_TG_IDS, SPENDS_DIR, PROFESSOR_BOT_TOKEN, DOSE_BOT_TOKEN, MOSCOW_TZ
 from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
+from src.ai.bot.texts import admin_texts
 from src.tg_methods import get_user_id_by_phone, normalize_phone
 from src.webapp import get_session
 from src.webapp.crud import get_usages, get_user, update_user, get_users
@@ -27,6 +28,12 @@ new_admin_router.message.filter(lambda message: message.from_user.id in ADMIN_TG
 new_admin_router.callback_query.filter(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
 dose_admin_router.message.filter(lambda message: message.from_user.id in ADMIN_TG_IDS and message.chat.type == ChatType.PRIVATE)
 dose_admin_router.callback_query.filter(lambda call: call.data.startswith("admin") and call.from_user.id in ADMIN_TG_IDS and call.message.chat.type == ChatType.PRIVATE)
+
+@new_admin_router.message(CommandStart())
+async def handle_start(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer(admin_texts.greeting, reply_markup=admin_keyboards.admin_menu)
+    await message.delete()
 
 @new_admin_router.message(Command("send"))
 @dose_admin_router.message(Command("send"))

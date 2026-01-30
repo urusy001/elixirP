@@ -16,18 +16,12 @@ from src.ai.bot.states import admin_states
 from src.helpers import make_excel_safe, user_carts_analytics_text, cart_analysis_text
 from src.tg_methods import get_user_id_by_phone, normalize_phone, get_user_id_by_username
 from src.webapp import get_session
-from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_user_usage_totals, \
-    get_user_carts, get_carts_by_date, get_cart_by_id
+from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_user_usage_totals, get_user_carts, get_carts_by_date, get_cart_by_id
 from src.webapp.crud.search import search_users, search_carts
 from src.webapp.models import Cart
 from src.webapp.schemas import UserCreate, UserUpdate
 
 
-@new_admin_router.message(CommandStart())
-async def handle_start(message: Message, state: FSMContext):
-    await state.clear()
-    await message.answer(admin_texts.greeting, reply_markup=admin_keyboards.admin_menu)
-    await message.delete()
 
 @new_admin_router.message(Command('edit_and_pin'), lambda message: message.reply_to_message)
 async def handle_pin(message: Message):
