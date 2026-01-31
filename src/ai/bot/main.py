@@ -140,7 +140,7 @@ class ProfessorBot(Bot):
     
             return await self._reply_text_safe(message, chunks[-1], reply_markup=reply_markup)
     
-        self.__logger.info("OUTGOING text | len=%d | preview=%r", len(out_text), out_text[:200])
+        self.__logger.info("OUTGOING text | len=%d | preview=%r", len(out_text), out_text)
         return await self._reply_text_safe(message, out_text, reply_markup=reply_markup)
 
 professor_bot = ProfessorBot(PROFESSOR_BOT_TOKEN, BOT_NAMES[PROFESSOR_BOT_TOKEN])

@@ -31,38 +31,22 @@ class ProfessorClient(AsyncClient):
         )
 
         event_handler = ProfessorEventHandler(self)
+        await self.beta.threads.messages.create(thread_id=thread_id, role="user", content="Пожалуйста, проверь базу знаний перед тем как ответить. ИНАЧЕ ТВОИ ОТВЕТЫ ПРИВЕДУТ К НЕОБРАТИМЫМ ПОСЛЕДСТВИЯМ. в ответах НЕ ГОВОРИ что-то по типу /согласно базе знаний, я проверил базу знаний/, итп")
+        await self.beta.threads.messages.create(thread_id=thread_id, role="user", content=message)
 
-        # Step 1 — append user message to thread
-        await self.beta.threads.messages.create(
-            thread_id=thread_id,
-            role="user",
-            content="Пожалуйста, проверь базу знаний перед тем как ответить. ИНАЧЕ ТВОИ ОТВЕТЫ ПРИВЕДУТ К НЕОБРАТИМЫМ ПОСЛЕДСТВИЯМ"
-        )
-
-        await self.beta.threads.messages.create(
-            thread_id=thread_id,
-            role="user",
-            content=message
-        )
-
-        # Step 2 — run the assistant with tuned parameters
         async with self.beta.threads.runs.stream(
-                assistant_id=assistant_id,
-                event_handler=event_handler,
-                thread_id=thread_id,
-                additional_instructions=system_context,
-                temperature=.3,
-                top_p=.15,
-                # reasoning_effort="high",
-                metadata={"origin": "telegram_bot", "lang": "ru"},
+            assistant_id=assistant_id,
+            event_handler=event_handler,
+            thread_id=thread_id,
+            additional_instructions=system_context,
+            temperature=.3,
+            top_p=.15,
+            metadata={"origin": "telegram_bot", "lang": "ru"},
         ) as stream: await stream.until_done()
-
         return event_handler.response
 
     @property
-    def assistant_id(self) -> str:
-        return self.__assistant_id
+    def assistant_id(self) -> str: return self.__assistant_id
 
     @property
-    def log(self):
-        return self.__logger
+    def log(self): return self.__logger
