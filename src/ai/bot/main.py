@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message, FSInputFile, InputMediaPhoto, ReplyKeyboardRemove, InlineKeyboardButton
 
@@ -70,23 +71,46 @@ class ProfessorBot(Bot):
         self.__logger.info("Created new user: %s, phone=%s", user_id, phone)
         return thread_id
 
-    # ---------------- PARSE RESPONSE ----------------
+    async def _reply_text_safe(self, message: Message, text: str, *, reply_markup=None) -> Message:
+        try: return await message.reply(text, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
+        except TelegramBadRequest as e:
+            self.__logger.warning("Markdown failed for text reply, retrying plain. err=%s", e)
+            return await message.reply(text, reply_markup=reply_markup)
+
+    async def _reply_photo_safe(self, message: Message, photo: FSInputFile, *, caption: str | None, reply_markup=None):
+        try: return await message.reply_photo(photo, caption=caption, parse_mode=ParseMode.MARKDOWN if caption else None, reply_markup=reply_markup)
+        except TelegramBadRequest as e:
+            self.__logger.warning("Markdown failed for photo caption, retrying plain. err=%s", e)
+            return await message.reply_photo(photo, caption=caption, reply_markup=reply_markup)
+
+    async def _reply_media_group_safe(self, message: Message, files: list[str], *, caption: str | None = None):
+        media_md = [InputMediaPhoto(media=FSInputFile(f), parse_mode=ParseMode.MARKDOWN) for f in files]
+        if caption: media_md[0].caption = caption
+    
+        try: return await message.reply_media_group(media_md)
+        except TelegramBadRequest as e: self.__logger.warning("Markdown failed for media group, retrying plain. err=%s", e)
+    
+        media_plain = [InputMediaPhoto(media=FSInputFile(f)) for f in files]
+        if caption: media_plain[0].caption = caption
+    
+        return await message.reply_media_group(media_plain)
+
     async def parse_response(self, response: dict, message: Message, back_menu: bool = False, adv: bool = False):
         user_id = message.from_user.id
-        logger = self.__logger  # one logger per bot
-
-        logger.info(
+        self.__logger = self.__logger  # one self.__logger per bot
+    
+        self.__logger.info(
             "INCOMING message | user_id=%s | text=%r",
             user_id,
             getattr(message, "text", None),
         )
-
+    
         files: list[str] = response.get("files") or []
         text: str = (response.get("text") or "").strip()
         input_tokens: int = int(response.get("input_tokens") or 0)
         output_tokens: int = int(response.get("output_tokens") or 0)
-
-        logger.info(
+    
+        self.__logger.info(
             "MODEL RESPONSE (raw) | user_id=%s | files=%d | text_len=%d | "
             "input_tokens=%d | output_tokens=%d",
             user_id,
@@ -95,36 +119,30 @@ class ProfessorBot(Bot):
             input_tokens,
             output_tokens,
         )
-
+    
         match = re.search(r"BLOCK_USER_TG_(\d+)", text, re.IGNORECASE)
         if match:
             days = int(match.group(1))
             text = re.sub(r"BLOCK_USER_TG_\d+", "", text, flags=re.IGNORECASE).strip()
-            blocked_until = (
-                datetime.now() + timedelta(days=days) if days > 0 else datetime.max
-            )
-
-            logger.warning(
-                "Blocking user for %s days (until %s)", days, blocked_until
-            )
-
+            blocked_until = (datetime.now() + timedelta(days=days) if days > 0 else datetime.max)
+    
+            self.__logger.warning("Blocking user for %s days (until %s)", days, blocked_until)
+    
             async with get_session() as session:
-                await update_user(
-                    session, user_id, UserUpdate(blocked_until=blocked_until)
-                )
-
+                await update_user(session, user_id, UserUpdate(blocked_until=blocked_until))
+    
         if input_tokens or output_tokens:
             async with get_session() as session:
                 db_users = await get_users(session)
                 db_user = next((u for u in db_users if u.tg_id == user_id), None)
-
+    
                 prev_input = getattr(db_user, "input_tokens", 0) if db_user else 0
                 prev_output = getattr(db_user, "output_tokens", 0) if db_user else 0
-
+    
                 new_input = prev_input + input_tokens
                 new_output = prev_output + output_tokens
-
-                logger.info(
+    
+                self.__logger.info(
                     "Token usage | +in=%d +out=%d | prev=%d/%d | new=%d/%d",
                     input_tokens,
                     output_tokens,
@@ -133,16 +151,13 @@ class ProfessorBot(Bot):
                     new_input,
                     new_output,
                 )
-
+    
                 await update_user(
                     session,
                     user_id,
-                    UserUpdate(
-                        input_tokens=new_input,
-                        output_tokens=new_output,
-                    ),
+                    UserUpdate(input_tokens=new_input, output_tokens=new_output),
                 )
-
+    
             self.__logger.info(
                 "Updated tokens for %s: +%d/%d (total %d/%d)",
                 user_id,
@@ -151,72 +166,62 @@ class ProfessorBot(Bot):
                 new_input,
                 new_output,
             )
+    
         keyboard = copy.deepcopy(user_keyboards.backk)
         if adv:
             keyboard.inline_keyboard.append([
                 InlineKeyboardButton(text="Ознакомиться с программой", url="https://t.me/obucheniepeptid/32"),
                 InlineKeyboardButton(text="Попасть на обучение", url="https://www.peptidecourse.ru/"),
             ])
+    
+        reply_markup = keyboard if back_menu else ReplyKeyboardRemove()
+    
         if not files and not text:
-            logger.warning("EMPTY response (no files, no text)")
-            return await message.reply("oshibochka vishla da", reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove())
-
+            self.__logger.warning("EMPTY response (no files, no text)")
+            return await self._reply_text_safe(message, "oshibochka vishla da", reply_markup=reply_markup)
+    
+        # clean citations everywhere before sending
+        clean_text = re.sub(r"【[^】]*】", "", text)
+    
         if files:
-            logger.info("OUTGOING response has %d file(s)", len(files))
+            self.__logger.info("OUTGOING response has %d file(s)", len(files))
+    
             if len(files) == 1:
-                caption = re.sub(r"【[^】]*】", "", text[:900])+(user_texts.blockquote if adv else '') or None
-                logger.info(
-                    "OUTGOING single photo | caption_len=%d",
-                    len(caption or ""),
-                )
-                return await message.reply_photo(
+                caption = (clean_text[:900] + (user_texts.blockquote if adv else "")) or None
+                self.__logger.info("OUTGOING single photo | caption_len=%d", len(caption or ""))
+    
+                return await self._reply_photo_safe(
+                    message,
                     FSInputFile(files[0]),
                     caption=caption,
-                    parse_mode=ParseMode.MARKDOWN,
-                    reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove(),
+                    reply_markup=reply_markup,
                 )
+    
             else:
-                media = [
-                    InputMediaPhoto(media=FSInputFile(f), parse_mode=ParseMode.MARKDOWN)
-                    for f in files
-                ]
-                if text: media[0].caption = re.sub(r"【[^】]*】", "", text[:1024])
-                logger.info(
+                caption0 = clean_text[:1024] if clean_text else None
+                self.__logger.info(
                     "OUTGOING media group | first_caption_len=%d",
-                    len(media[0].caption or ""),
+                    len(caption0 or ""),
                 )
-                return await message.reply_media_group(media)
-
-        if len(text) > MAX_TG_MSG_LEN:
-            logger.info("OUTGOING long text | len=%d | splitting", len(text))
-            chunks = await split_text(text)
+                return await self._reply_media_group_safe(
+                    message,
+                    files,
+                    caption=caption0,
+                )
+    
+        out_text = clean_text + (user_texts.blockquote if adv else "")
+        if len(out_text) > MAX_TG_MSG_LEN:
+            self.__logger.info("OUTGOING long text | len=%d | splitting", len(out_text))
+            chunks = await split_text(out_text)
+    
             for idx, chunk in enumerate(chunks[:-1], start=1):
-                clean_chunk = re.sub(r"【[^】]*】", "", chunk)
-                logger.info(
-                    "OUTGOING chunk %d/%d | len=%d",
-                    idx,
-                    len(chunks),
-                    len(clean_chunk),
-                )
-                await message.reply(
-                    clean_chunk,
-                    parse_mode=ParseMode.MARKDOWN,
-                    reply_markup=ReplyKeyboardRemove(),
-                )
-            return await message.reply(re.sub(r"【[^】]*】", "", chunks[-1])+(user_texts.blockquote if adv else ''), parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove())
-
-        clean_text = re.sub(r"【[^】]*】", "", text)
-        logger.info(
-            "OUTGOING text | len=%d | preview=%r",
-            len(clean_text),
-            clean_text[:200],
-        )
-        return await message.reply(
-            clean_text+(user_texts.blockquote if adv else ''),
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=keyboard if back_menu == True else ReplyKeyboardRemove()
-        )
-
+                self.__logger.info("OUTGOING chunk %d/%d | len=%d", idx, len(chunks), len(chunk))
+                await self._reply_text_safe(message, chunk, reply_markup=ReplyKeyboardRemove())
+    
+            return await self._reply_text_safe(message, chunks[-1], reply_markup=reply_markup)
+    
+        self.__logger.info("OUTGOING text | len=%d | preview=%r", len(out_text), out_text[:200])
+        return await self._reply_text_safe(message, out_text, reply_markup=reply_markup)
 
 professor_bot = ProfessorBot(PROFESSOR_BOT_TOKEN, BOT_NAMES[PROFESSOR_BOT_TOKEN])
 professor_client = ProfessorClient(PROFESSOR_OPENAI_API, PROFESSOR_ASSISTANT_ID)
