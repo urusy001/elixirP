@@ -65,7 +65,7 @@ async def handle_user_start(message: Message, state: FSMContext):
     await state.clear()
     await state.set_data(state_data)
     async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
-    if not user:
+    if not user or not user.tg_phone:
         await state.set_state(user_states.Registration.phone)
         return await message.answer(user_texts.verify_phone.replace('*', message.from_user.full_name), reply_markup=user_keyboards.phone)
 
@@ -197,7 +197,7 @@ async def handle_user_registration(message: Message, state: FSMContext, professo
     phone = message.contact.phone_number
     await state.clear()
     await professor_bot.create_user(message.from_user.id, normalize_phone(phone), message.from_user.first_name, message.from_user.last_name)
-    await (await message.answer('Проверка пройдена успешно ✅', reply_markup=ReplyKeyboardRemove())).delete()
+    await message.answer('Проверка пройдена успешно ✅', reply_markup=ReplyKeyboardRemove())
     return await handle_user_start(message, state)
 
 @new_user_router.message(user_states.CalculateClicks.cartridge_volume, lambda message: message.text and message.text.strip())

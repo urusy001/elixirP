@@ -62,7 +62,9 @@ async def handle_send(message: Message):
                 await message.bot.get_chat(user.tg_id)
                 try: await message.bot.send_message(user.tg_id, args[1]); i +=1
                 except Exception as e: await message.answer(f"Не удалось отправить сообщение пользователю с номером {user.tg_phone}: {e}")
-            except: await message.answer(f"Чат у пользователя с айди {user.tg_id} не был найден")
+            except:
+                try: await message.answer(f"Чат у пользователя с айди {user.tg_id} не был найден")
+                except: pass
         await message.answer(f"Успешно разослано {i} пользователям")
     else: await message.answer("Ошибка команды: <code>/send тг_айди/all текст</code>")
 
