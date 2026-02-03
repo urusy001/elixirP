@@ -28,10 +28,11 @@ class ProfessorClient(AsyncClient):
             "Дай ответ с подробными объяснениями, структурой и примерами, "
             "если уместно. БАЗИРУЙ СВОИ ОТВЕТЫ НА ИНФОРМАЦИИ ИЗ ВЕКТОРНОГО ХРАНИЛИЩА только потом сети\n"
             f"Текущее время: {current_time}."
+            f"ОБРАЩАЙСЯ СО МНОЙ ТОЛЬКО НА ВЫ"
         )
 
         event_handler = ProfessorEventHandler(self)
-        await self.beta.threads.messages.create(thread_id=thread_id, role="user", content="Пожалуйста, проверь базу знаний перед тем как ответить. ИНАЧЕ ТВОИ ОТВЕТЫ ПРИВЕДУТ К НЕОБРАТИМЫМ ПОСЛЕДСТВИЯМ. в ответах НЕ ГОВОРИ что-то по типу /согласно базе знаний, я проверил базу знаний/, итп")
+        await self.beta.threads.messages.create(thread_id=thread_id, role="user", content="ОБРАЩАЙСЯ СО МНОЙ ТОЛЬКО НА ВЫ, Пожалуйста, проверь базу знаний перед тем как ответить. ИНАЧЕ ТВОИ ОТВЕТЫ ПРИВЕДУТ К НЕОБРАТИМЫМ ПОСЛЕДСТВИЯМ. в ответах НЕ ГОВОРИ что-то по типу /согласно базе знаний, я проверил базу знаний/, итп")
         await self.beta.threads.messages.create(thread_id=thread_id, role="user", content=message)
 
         async with self.beta.threads.runs.stream(

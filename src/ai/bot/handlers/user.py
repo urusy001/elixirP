@@ -45,7 +45,7 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
     bot_id = str(message.bot.id)
     if bot_id == PROFESSOR_BOT_TOKEN.split(':')[0]: assistant_id = PROFESSOR_ASSISTANT_ID
     else: assistant_id = DOSE_ASSISTANT_ID
-    response = await professor_client.send_message(f"Я написал первое сообщение или возобновил наш диалог. Начни/возобнови диалог. Мое имя в Telegram — {message.from_user.full_name}.", user.thread_id, assistant_id)
+    response = await professor_client.send_message(f"ОБРАЩАЙСЯ ТОЛЬКО НА ВЫ, Я написал первое сообщение или возобновил наш диалог. Начни/возобнови диалог. Мое имя в Telegram — {message.from_user.full_name}.", user.thread_id, assistant_id)
     async with get_session() as session:
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens'])
         await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
@@ -67,7 +67,7 @@ async def handle_user_registration(message: Message, state: FSMContext, professo
     bot_id = str(message.bot.id)
     if bot_id == PROFESSOR_BOT_TOKEN.split(':')[0]: assistant_id = PROFESSOR_ASSISTANT_ID
     else: assistant_id = DOSE_ASSISTANT_ID
-    response = await professor_client.send_message(f"Я написал первое сообщение. Мое имя в Telegram — {message.from_user.full_name}.", thread_id, assistant_id)
+    response = await professor_client.send_message(f"ОБРАЩАЙСЯ ТОЛЬКО НА ВЫ, Я написал первое сообщение. Мое имя в Telegram — {message.from_user.full_name}.", thread_id, assistant_id)
 
     async with get_session() as session:
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens'])

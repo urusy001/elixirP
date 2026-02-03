@@ -15,7 +15,7 @@ logger = logging.getLogger("telethon")
 client = TelegramClient(TELETHON_API_ID, TELETHON_API_ID, TELETHON_API_HASH)
 
 
-def normalize_phone(raw: str, default_regions: Iterable[str] = ("US", "AM", "RU", "UA", "BY", "AZ", "KZ", "KG", "MD", "TJ", "TM", "UZ", "GE")) -> Optional[str]:
+def normalize_phone(raw: str, default_regions: Iterable[str] = ("AM", "RU", "UA", "BY", "AZ", "KZ", "KG", "MD", "TJ", "TM", "UZ", "GE")) -> Optional[str]:
     def _clean(x: str) -> str:
         x = x.strip()
         if x.startswith("+"): return "+" + re.sub(r"\D", "", x[1:])

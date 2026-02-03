@@ -132,7 +132,7 @@ class AsyncAmoCRM:
         )
         self.logger.warning("🔁 Launching Playwright to get new AUTH_CODE...")
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.chromium.launch(headless=False)
             page = await browser.new_page()
             await page.goto(auth_url)
 
