@@ -194,16 +194,14 @@ class AsyncAmoCRM:
 
     async def refresh(self):
         """Refresh token, auto reauthorize if refresh revoked."""
-        try:
-            return await self.__request_token("refresh_token")
+        try: return await self.__request_token("refresh_token")
         except Exception as e:
             self.logger.error(f"❌ Refresh failed: {e}, retrying with new AUTH_CODE...")
             return await self.authorize()
 
     async def ensure_token_valid(self):
         """Refresh token if expired."""
-        if not self.access_token or datetime.now(UTC) >= self.expires_at:
-            await self.refresh()
+        if not self.access_token or datetime.now(UTC) >= self.expires_at: await self.refresh()
 
     # ---------- HTTP REQUEST WRAPPERS ----------
 
@@ -215,7 +213,7 @@ class AsyncAmoCRM:
 
         async with httpx.AsyncClient() as client:
             res = await client.request(method, url, headers=headers, **kwargs)
-            if res.status_code == 401:
+            if res.status_code in [401, 403]:
                 self.logger.warning("Access token invalid, refreshing...")
                 await self.refresh()
                 headers["Authorization"] = f"Bearer {self.access_token}"
@@ -606,8 +604,7 @@ class AsyncAmoCRM:
                 cart_ids = res.scalars().all()  # <-- list[int]
 
             for cart_id in cart_ids:
-                try:
-                    await self.update_lead_status(cart_id)
+                try: await self.update_lead_status(cart_id)
                 except Exception:
                     self.logger.exception("Failed to update lead status for cart_id=%s", cart_id)
                     continue
