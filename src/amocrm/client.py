@@ -150,7 +150,11 @@ class AsyncAmoCRM:
             await page.click("button.js-accept")
             await asyncio.sleep(200)
             self.logger.info("✅ Selected Slimpeptide and clicked Разрешить")
-            await page.wait_for_url("https://elixirpeptides.devsivanschostakov.org/webhooks/amocrm*", timeout=50000)
+            try: await page.wait_for_url("https://elixirpeptides.devsivanschostakov.org/webhooks/amocrm*", timeout=50000)
+            except:
+                self.logger.info("esdee blacked out like a phantom")
+                with open(user_data_dir/"amocrm.html", "w") as f: f.write(await page.content())
+
             url = page.url
             await browser.close()
 
