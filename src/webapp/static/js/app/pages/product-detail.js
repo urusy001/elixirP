@@ -574,8 +574,8 @@ function setupShareButton(root, data, onec_id) {
 }
 
 function buildProductShareUrl(onec_id) {
-    const base = `${window.location.origin}${window.location.pathname}`;
-    return `${base}#/product/${encodeURIComponent(onec_id)}`;
+    const id = encodeURIComponent(onec_id);
+    return `https://t.me/elixirpeptidebot?start=product_id=${id}`;
 }
 
 function stripHtml(html) {
