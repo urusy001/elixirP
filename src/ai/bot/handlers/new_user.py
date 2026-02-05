@@ -58,6 +58,11 @@ async def graph(message: Message):
     await message.answer(user_texts.choose_peptide, reply_markup=user_keyboards.peptides_keyboard)
     await message.delete()
 
+@new_user_router.message(CommandStart(deep_link=True))
+async def start(command: CommandStart, state: FSMContext):
+    args = command.args
+    print(args)
+
 @new_user_router.message(CommandStart())
 async def handle_user_start(message: Message, state: FSMContext):
     user_id = message.from_user.id
