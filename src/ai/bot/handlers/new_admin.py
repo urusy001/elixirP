@@ -23,8 +23,8 @@ from src.webapp.schemas import UserCreate, UserUpdate
 
 
 @new_admin_router.message(CommandStart(deep_link=True))
-async def handle_deep_start(command: CommandStart, message: Message, state: FSMContext):
-    print(command, message, command.args or 131111)
+async def handle_deep_start(command: CommandStart, state: FSMContext):
+    print(command, command.args or 131111)
 
 
 @new_admin_router.message(CommandStart())
