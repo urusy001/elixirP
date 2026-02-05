@@ -22,6 +22,11 @@ from src.webapp.models import Cart
 from src.webapp.schemas import UserCreate, UserUpdate
 
 
+@new_admin_router.message(CommandStart(deep_link=True))
+async def start(command: CommandStart, state: FSMContext):
+    args = command.args
+    print(args)
+
 
 @new_admin_router.message(Command('edit_and_pin'), lambda message: message.reply_to_message)
 async def handle_pin(message: Message):
