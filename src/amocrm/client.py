@@ -148,12 +148,12 @@ class AsyncAmoCRM:
             await page.wait_for_selector("select.js-accounts-list", timeout=20000)
             await page.select_option("select.js-accounts-list", value="19843447")
             await page.click("button.js-accept")
-            self.logger.info("✅ Selected Slimpeptide and clicked Разрешить")
-            print(page.url)
-            await page.wait_for_url(
+            print("✅ Selected Slimpeptide and clicked Разрешить")
+            try: await page.wait_for_url(
                 "https://elixirpeptides.devsivanschostakov.org/webhooks/amocrm*",
                 timeout=30000,
             )
+            except: print(page.url)
             url = page.url
             await browser.close()
 
