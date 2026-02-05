@@ -26,6 +26,7 @@ async def main():
         asyncio.create_task(cdek_client.token_worker()),
         asyncio.create_task(promo_codes_worker()),
         asyncio.create_task(OneCEnterprise().postgres_worker()),
+        asyncio.create_task(amocrm.update_carts())
     ]
 
     async def shutdown():
