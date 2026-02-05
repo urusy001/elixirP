@@ -31,8 +31,9 @@ async def handle_deep_start(message: Message, command: CommandObject, state: FSM
     product_id = data.get("product_id", [None])[0]
     user_id = data.get("user_id", [None])[0]
     if product_id:
-        async with get_session() as session: product = await get_product(session, 'onec_id', product_id)
-        await message.answer_photo(photo=FSInputFile(IMAGES_DIR / f"{product_id}.png"), caption=str(product), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Купить", web_app=WebAppInfo(url=f"{WEBAPP_BASE_DOMAIN}/product/{product_id}"))]]))
+        async with get_session() as session:
+            product = await get_product(session, 'onec_id', product_id)
+            await message.answer_photo(photo=FSInputFile(IMAGES_DIR / f"{product_id}.png"), caption=str(product), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Купить", web_app=WebAppInfo(url=f"{WEBAPP_BASE_DOMAIN}/product/{product_id}"))]]))
 
 @new_admin_router.message(CommandStart())
 async def handle_start(message: Message, state: FSMContext):
