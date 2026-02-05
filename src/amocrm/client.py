@@ -137,21 +137,19 @@ class AsyncAmoCRM:
             browser = await p.chromium.launch_persistent_context(headless=False, user_data_dir=user_data_dir)
             page = await browser.new_page()
             await page.goto(auth_url)
-
             try:
                 await page.wait_for_selector('input[name="username"]', timeout=5000)
                 await page.fill('input[name="username"]', AMOCRM_LOGIN_EMAIL)
                 await page.fill('input[name="password"]', AMOCRM_LOGIN_PASSWORD)
                 await page.click('button[type="submit"]')
                 self.logger.info("🔐 Logged into AmoCRM")
-            except Exception:
-                self.logger.info("Already logged in (no login form shown).")
+            except Exception: self.logger.info("Already logged in (no login form shown).")
 
             await page.wait_for_selector("select.js-accounts-list", timeout=20000)
             await page.select_option("select.js-accounts-list", value="19843447")
             await page.click("button.js-accept")
             await asyncio.sleep(200)
-            print("✅ Selected Slimpeptide and clicked Разрешить")
+            self.logger.info("✅ Selected Slimpeptide and clicked Разрешить")
             await page.wait_for_url("https://elixirpeptides.devsivanschostakov.org/webhooks/amocrm*", timeout=50000)
             url = page.url
             await browser.close()
@@ -164,7 +162,7 @@ class AsyncAmoCRM:
     def _save_tokens_to_env(self, access_token: str, refresh_token: str):
         """Persist updated tokens to .env for future runs."""
         path = os.path.join(WORKING_DIR, ".env")
-        print(f"Saving tokens to {path}")
+        self.logger.info(f"Saving tokens to {path}")
         lines = []
         if os.path.exists(path):
             with open(path, "r") as f: lines = f.readlines()
@@ -433,7 +431,7 @@ class AsyncAmoCRM:
                 name = lead.get("name") or ""
                 status_id = lead.get("status_id")
                 created_at = lead.get("created_at")
-                print(lead, created_at, cutoff_ts)
+                self.logger.info(lead, created_at, cutoff_ts)
                 if isinstance(created_at, (int, float)) and created_at < cutoff_ts: continue
                 elif not isinstance(created_at, (int, float)): continue
                 if status_id in self.PAID_STATUS_IDS and rx.search(name):
