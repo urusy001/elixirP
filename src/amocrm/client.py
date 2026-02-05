@@ -139,27 +139,16 @@ class AsyncAmoCRM:
             await page.goto(auth_url)
             try:
                 await page.wait_for_selector('input[name="username"]', timeout=5000)
-                print(1)
                 await page.fill('input[name="username"]', AMOCRM_LOGIN_EMAIL)
-                print(2)
                 await page.fill('input[name="password"]', AMOCRM_LOGIN_PASSWORD)
-                print(3)
                 await page.click('button[type="submit"]')
-                print(4)
-                self.logger.info("🔐 Logged into AmoCRM")
+                print("🔐 Logged into AmoCRM")
             except Exception: self.logger.info("Already logged in (no login form shown).")
             await page.wait_for_selector("select.js-accounts-list", timeout=20000)
-            print(5)
             await page.select_option("select.js-accounts-list", value="19843447")
-            print(6)
             await page.click("button.js-accept")
-            self.logger.info("✅ Selected Slimpeptide and clicked Разрешить")
-            try: await page.wait_for_url("https://elixirpeptides.devsivanschostakov.org/webhooks/amocrm*", timeout=30000)
-            except:
-                self.logger.info("esdee blacked out like a phantom")
-                with open(user_data_dir/"amocrm.html", "w") as f:
-                    print(page.url)
-                    f.write(await page.content())
+            print("✅ Selected Slimpeptide and clicked Разрешить")
+            await page.wait_for_url("https://elixirpeptides.devsivanschostakov.org/webhooks/amocrm*", timeout=30000)
 
 
             url = page.url
