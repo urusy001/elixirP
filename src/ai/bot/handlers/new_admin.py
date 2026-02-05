@@ -19,7 +19,7 @@ from src.helpers import make_excel_safe, user_carts_analytics_text, cart_analysi
 from src.tg_methods import get_user_id_by_phone, normalize_phone, get_user_id_by_username
 from src.webapp import get_session
 from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_user_usage_totals, \
-    get_user_carts, get_carts_by_date, get_cart_by_id, get_product
+    get_user_carts, get_carts_by_date, get_cart_by_id, get_product, get_product_with_features
 from src.webapp.crud.search import search_users, search_carts
 from src.webapp.models import Cart
 from src.webapp.schemas import UserCreate, UserUpdate
@@ -32,7 +32,7 @@ async def handle_deep_start(message: Message, command: CommandObject, state: FSM
     user_id = data.get("user_id", [None])[0]
     if product_id:
         async with get_session() as session:
-            product = await get_product(session, 'onec_id', product_id)
+            product = await get_product_with_features(session, product_id)
             await message.answer_photo(photo=FSInputFile(IMAGES_DIR / f"{product_id}.png"), caption=str(product), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Купить", web_app=WebAppInfo(url=f"{WEBAPP_BASE_DOMAIN}/product/{product_id}"))]]))
 
 @new_admin_router.message(CommandStart())
