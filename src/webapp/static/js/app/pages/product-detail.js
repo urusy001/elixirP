@@ -8,6 +8,7 @@ import {
     hideMainButton,
     hideBackButton,
     isTelegramApp,
+    openTgLink,
 } from "../ui/telegram.js";
 import { navigateTo } from "../router.js";
 import {
@@ -165,6 +166,17 @@ export async function renderProductDetailPage(onec_id) {
             alt="${data.product.name || ""}"
             onerror="this.onerror=null;this.src='${defaultImgPath}';"
           >
+          <div class="product-media-actions">
+            <button class="product-media-action product-share-btn" type="button" aria-label="Поделиться">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+            </button>
+          </div>
         </div>
         <div class="product-info">
           <h1></h1>
@@ -183,6 +195,7 @@ export async function renderProductDetailPage(onec_id) {
     if (data.product.usage) infoEl.querySelector(".product-usage").innerHTML = data.product.usage;
     if (data.product.expiration) infoEl.querySelector(".product-expiration").innerHTML = data.product.expiration;
     detailEl.querySelector(".product-image img").alt = data.product.name;
+    setupShareButton(detailEl, data, onec_id);
 
     // Clamp / expand description
     const descEl = infoEl.querySelector(".product-description");
@@ -544,4 +557,66 @@ function setupDescriptionClamp(descEl) {
             }
         });
     });
+}
+
+function setupShareButton(root, data, onec_id) {
+    const shareBtn = root.querySelector(".product-share-btn");
+    if (!shareBtn) return;
+
+    shareBtn.addEventListener("click", async () => {
+        const name = data?.product?.name || "Товар";
+        const desc = stripHtml(data?.product?.description || "");
+        const trimmed = desc.replace(/\s+/g, " ").trim();
+        const text = trimmed ? `${name} — ${trimmed.slice(0, 140)}` : name;
+        const url = buildProductShareUrl(onec_id);
+        await shareProduct({ title: name, text, url });
+    });
+}
+
+function buildProductShareUrl(onec_id) {
+    const base = `${window.location.origin}${window.location.pathname}`;
+    return `${base}#/product/${encodeURIComponent(onec_id)}`;
+}
+
+function stripHtml(html) {
+    const div = document.createElement("div");
+    div.innerHTML = html || "";
+    return div.textContent || div.innerText || "";
+}
+
+async function shareProduct({ title, text, url }) {
+    const shareData = { title, text, url };
+
+    if (navigator.share) {
+        try {
+            await navigator.share(shareData);
+            return;
+        } catch (err) {
+            if (err?.name === "AbortError") return;
+            console.warn("Share failed, falling back:", err);
+        }
+    }
+
+    if (isTelegramApp()) {
+        try {
+            const tgText = text || title || "";
+            const tgPath = `/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(tgText)}`;
+            openTgLink(tgPath);
+            return;
+        } catch (err) {
+            console.warn("Telegram share failed, falling back:", err);
+        }
+    }
+
+    try {
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(url);
+            alert("Ссылка скопирована");
+            return;
+        }
+    } catch (err) {
+        console.warn("Clipboard copy failed:", err);
+    }
+
+    window.prompt("Скопируйте ссылку:", url);
 }

@@ -107,10 +107,8 @@ class AsyncAmoCRM:
             "redirect_uri": self.redirect_uri,
             "grant_type": grant_type,
         }
-        if grant_type == "authorization_code":
-            payload["code"] = code
-        elif grant_type == "refresh_token":
-            payload["refresh_token"] = self.refresh_token
+        if grant_type == "authorization_code": payload["code"] = code
+        elif grant_type == "refresh_token": payload["refresh_token"] = self.refresh_token
 
         async with httpx.AsyncClient(timeout=30) as client:
             res = await client.post(url, json=payload)
