@@ -151,9 +151,11 @@ class AsyncAmoCRM:
             print("✅ Selected Slimpeptide and clicked Разрешить")
             try: await page.wait_for_url(
                 "https://elixirpeptides.devsivanschostakov.org/webhooks/amocrm*",
-                timeout=30000,
+                timeout=300000,
             )
-            except: print(page.content)
+            except:
+                await asyncio.sleep(30)
+                print(page.url, page.content())
             url = page.url
             await browser.close()
 
