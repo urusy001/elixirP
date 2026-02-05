@@ -153,7 +153,7 @@ class AsyncAmoCRM:
                 "https://elixirpeptides.devsivanschostakov.org/webhooks/amocrm*",
                 timeout=30000,
             )
-            except: print(page.url)
+            except: print(page.content)
             url = page.url
             await browser.close()
 
