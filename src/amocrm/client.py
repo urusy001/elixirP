@@ -148,9 +148,8 @@ class AsyncAmoCRM:
             await page.select_option("select.js-accounts-list", value="19843447")
             await page.click("button.js-accept")
             print("✅ Selected Slimpeptide and clicked Разрешить")
-            await page.wait_for_url("https://elixirpeptides.devsivanschostakov.org/webhooks/amocrm*", timeout=30000)
-
-
+            try: await page.wait_for_url("https://elixirpeptides.devsivanschostakov.org/webhooks/amocrm*", timeout=30000)
+            except Exception: self.logger.info(f"Already logged in (no login form shown)., {page.url}")
             url = page.url
             await browser.close()
 
