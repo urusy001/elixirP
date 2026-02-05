@@ -134,7 +134,7 @@ class AsyncAmoCRM:
         async with async_playwright() as p:
             user_data_dir = WORKING_DIR/"src"/"amocrm"/"profile"
             user_data_dir.mkdir(parents=True, exist_ok=True)
-            browser = await p.chromium.launch_persistent_context(headless=True, user_data_dir=user_data_dir)
+            browser = await p.chromium.launch_persistent_context(headless=False, user_data_dir=user_data_dir)
             page = await browser.new_page()
             await page.goto(auth_url)
             try:
