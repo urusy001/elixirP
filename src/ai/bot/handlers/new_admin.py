@@ -4,7 +4,7 @@ import pandas as pd
 
 from typing import Literal, get_args
 from datetime import datetime, timedelta
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import CommandStart, Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
 
@@ -23,7 +23,7 @@ from src.webapp.schemas import UserCreate, UserUpdate
 
 
 @new_admin_router.message(CommandStart(deep_link=True))
-async def handle_deep_start(command: CommandStart, state: FSMContext):
+async def handle_deep_start(message: Message, command: CommandObject, state: FSMContext):
     print(command, command.args or 131111)
 
 
