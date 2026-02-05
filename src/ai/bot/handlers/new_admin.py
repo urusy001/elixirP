@@ -23,10 +23,15 @@ from src.webapp.schemas import UserCreate, UserUpdate
 
 
 @new_admin_router.message(CommandStart(deep_link=True))
-async def start(command: CommandStart, state: FSMContext):
-    args = command.args
-    print(args)
+async def handle_deep_start(command: CommandStart, message: Message, state: FSMContext):
+    print(command, message, command.args or 131111)
 
+
+@new_admin_router.message(CommandStart())
+async def handle_start(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer(admin_texts.greeting, reply_markup=admin_keyboards.main_menu)
+    await message.delete()
 
 @new_admin_router.message(Command('edit_and_pin'), lambda message: message.reply_to_message)
 async def handle_pin(message: Message):

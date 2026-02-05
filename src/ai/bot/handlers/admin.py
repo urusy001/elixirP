@@ -32,7 +32,7 @@ dose_admin_router.callback_query.filter(lambda call: call.data.startswith("admin
 @new_admin_router.message(CommandStart())
 async def handle_start(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer(admin_texts.greeting, reply_markup=admin_keyboards.admin_menu)
+    await message.answer(admin_texts.greeting, reply_markup=admin_keyboards.main_menu)
     await message.delete()
 
 @new_admin_router.message(Command("send"))
