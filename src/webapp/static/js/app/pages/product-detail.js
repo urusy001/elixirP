@@ -564,12 +564,8 @@ function setupShareButton(root, data, onec_id) {
     if (!shareBtn) return;
 
     shareBtn.addEventListener("click", async () => {
-        const name = data?.product?.name || "Товар";
-        const desc = stripHtml(data?.product?.description || "");
-        const trimmed = desc.replace(/\s+/g, " ").trim();
-        const text = trimmed ? `${name} — ${trimmed.slice(0, 140)}` : name;
         const url = buildProductShareUrl(onec_id);
-        await shareProduct({ title: name, text, url });
+        await shareProduct({ url });
     });
 }
 
@@ -578,14 +574,8 @@ function buildProductShareUrl(onec_id) {
     return `https://t.me/elixirpeptidebot?start=product_id=${id}`;
 }
 
-function stripHtml(html) {
-    const div = document.createElement("div");
-    div.innerHTML = html || "";
-    return div.textContent || div.innerText || "";
-}
-
-async function shareProduct({ title, text, url }) {
-    const shareData = { title, text, url };
+async function shareProduct({ url }) {
+    const shareData = { url };
 
     if (navigator.share) {
         try {
@@ -599,8 +589,7 @@ async function shareProduct({ title, text, url }) {
 
     if (isTelegramApp()) {
         try {
-            const tgText = text || title || "";
-            const tgPath = `/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(tgText)}`;
+            const tgPath = `/share/url?url=${encodeURIComponent(url)}`;
             openTgLink(tgPath);
             return;
         } catch (err) {
