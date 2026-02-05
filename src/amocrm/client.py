@@ -132,7 +132,7 @@ class AsyncAmoCRM:
         )
         self.logger.warning("🔁 Launching Playwright to get new AUTH_CODE...")
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=False)
+            browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
             await page.goto(auth_url)
 
@@ -149,7 +149,7 @@ class AsyncAmoCRM:
             await page.select_option("select.js-accounts-list", value="19843447")
             await page.click("button.js-accept")
             self.logger.info("✅ Selected Slimpeptide and clicked Разрешить")
-
+            print(page.url)
             await page.wait_for_url(
                 "https://elixirpeptides.devsivanschostakov.org/webhooks/amocrm*",
                 timeout=30000,
