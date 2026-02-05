@@ -348,14 +348,9 @@ class AsyncAmoCRM:
             await page.wait_for_selector("select.js-accounts-list", timeout=20000)
             await page.select_option("select.js-accounts-list", value="19843447")
             await page.click("button.js-accept")
-            print(await page.content())
             print("✅ Selected Slimpeptide and clicked Разрешить")
-            try: await page.wait_for_url(
-                "https://elixirpeptides.devsivanschostakov.org/webhooks/amocrm*",
-            )
-            except:
-                await asyncio.sleep(30)
-                print(page.url)
+            try: await page.wait_for_url("https://elixirpeptides.devsivanschostakov.org/webhooks/amocrm*", timeout=20000)
+            except: print(await page.content())
             url = page.url
             await browser.close()
 
@@ -367,6 +362,7 @@ class AsyncAmoCRM:
     def _save_tokens_to_env(self, access_token: str, refresh_token: str):
         """Persist updated tokens to .env for future runs."""
         path = os.path.join(WORKING_DIR, ".env")
+        print(f"Saving tokens to {path}")
         lines = []
         if os.path.exists(path):
             with open(path, "r") as f: lines = f.readlines()
@@ -385,8 +381,7 @@ class AsyncAmoCRM:
         if not found_a: new_lines.append(f'AMOCRM_ACCESS_TOKEN="{access_token}"\n')
         if not found_r: new_lines.append(f'AMOCRM_REFRESH_TOKEN="{refresh_token}"\n')
 
-        with open(path, "w") as f:
-            f.writelines(new_lines)
+        with open(path, "w") as f: f.writelines(new_lines)
         self.logger.info("💾 Saved new tokens to .env")
 
     async def authorize(self, code: str | None = None):
