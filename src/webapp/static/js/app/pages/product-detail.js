@@ -579,20 +579,8 @@ function getShareUserId() {
 }
 
 function buildProductShareUrl(onec_id, user_id) {
-    const payload =
-        user_id
-            ? `product_id=${onec_id}&user_id=${user_id}`
-            : `product_id=${onec_id}`;
-    const encoded = base64UrlEncode(payload);
-    return `https://t.me/elixirpeptidebot?start=${encoded}`;
-}
-
-function base64UrlEncode(value) {
-    const bytes = new TextEncoder().encode(String(value ?? ""));
-    let binary = "";
-    for (const b of bytes) binary += String.fromCharCode(b);
-    const b64 = btoa(binary);
-    return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    const userPart = user_id ? `&user_id=${user_id}` : "";
+    return `https://t.me/elixirpeptidebot?start=product_id=${onec_id}${userPart}`;
 }
 
 async function shareProduct({ url }) {
