@@ -156,7 +156,7 @@ class AsyncAmoCRM:
             )
             except:
                 await asyncio.sleep(30)
-                print(page.url, await page.content())
+                print(page.url)
             url = page.url
             await browser.close()
 
@@ -624,5 +624,3 @@ amocrm = AsyncAmoCRM(
     access_token=AMOCRM_ACCESS_TOKEN,
     refresh_token=AMOCRM_REFRESH_TOKEN,
 )
-
-print(asyncio.run(amocrm.get_main_pipeline_statuses()))
