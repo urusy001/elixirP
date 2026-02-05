@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
-from src.helpers import normalize_html_for_telegram
 from src.webapp.database import Base
 from src.webapp.models.product_tg_categories import product_tg_categories
 
@@ -58,7 +57,7 @@ class Product(Base):
         usage_text = f"<b>ИНСТРУКЦИИ К ПРИММЕНЕНИЮ</b>\n{self.usage or 'Не имеются или <i>указаны выше</i>'}"
         description_text = f"<b>ОПИСАНИЕ</b>\n{self.description or 'Не имеется'}"
         prices_text = "\n".join([f"{feature.name} — {feature.price}₽" for feature in self.features])
-
+        from src.helpers import normalize_html_for_telegram
         return normalize_html_for_telegram(
             f"<b>{self.name}</b>\n"
             f"Артикул: <i>{self.code}</i>\n"
