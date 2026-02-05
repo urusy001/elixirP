@@ -1,2 +1,3 @@
-2026/02/04-20:21:32.127 4448 Creating DB /Users/paylakurusyan/Desktop/elixirP/src/amocrm/profile/Default/Local Storage/leveldb since it was missing.
-2026/02/04-20:21:32.131 4448 Reusing MANIFEST /Users/paylakurusyan/Desktop/elixirP/src/amocrm/profile/Default/Local Storage/leveldb/MANIFEST-000001
+2026/02/04-20:25:43.162 5c69 Reusing MANIFEST /Users/paylakurusyan/Desktop/elixirP/src/amocrm/profile/Default/Local Storage/leveldb/MANIFEST-000001
+2026/02/04-20:25:43.164 5c69 Recovering log #3
+2026/02/04-20:25:43.164 5c69 Reusing old log /Users/paylakurusyan/Desktop/elixirP/src/amocrm/profile/Default/Local Storage/leveldb/000003.log 

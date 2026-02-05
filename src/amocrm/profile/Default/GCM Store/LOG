@@ -1,2 +1,3 @@
-2026/02/04-20:21:37.391 43da Creating DB /Users/paylakurusyan/Desktop/elixirP/src/amocrm/profile/Default/GCM Store since it was missing.
-2026/02/04-20:21:37.401 43da Reusing MANIFEST /Users/paylakurusyan/Desktop/elixirP/src/amocrm/profile/Default/GCM Store/MANIFEST-000001
+2026/02/04-20:25:46.792 5c1b Reusing MANIFEST /Users/paylakurusyan/Desktop/elixirP/src/amocrm/profile/Default/GCM Store/MANIFEST-000001
+2026/02/04-20:25:46.793 5c1b Recovering log #3
+2026/02/04-20:25:46.797 5c1b Reusing old log /Users/paylakurusyan/Desktop/elixirP/src/amocrm/profile/Default/GCM Store/000003.log 
