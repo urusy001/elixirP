@@ -38,9 +38,7 @@ async def handle_deep_start(message: Message, command: CommandObject, state: FSM
             async with aiohttp.ClientSession() as session:
                 result = await session.get(f"{WEBAPP_BASE_DOMAIN}/static/images/{product_id}.png")
                 bts = await result.content.read()
-            x, y = str(product).split("\n\n\n", maxsplit=1)
-            await message.answer_photo(photo=BufferedInputFile(file=bts, filename=f'{product_id}.png'), caption=x)
-            await message.answer(y, reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Купить", web_app=WebAppInfo(url=f"{WEBAPP_BASE_DOMAIN}/product/{product_id}"))]]))
+            await message.answer_photo(photo=BufferedInputFile(file=bts, filename=f'{product_id}.png'), caption=f"<b>{product.name}</b>\nАртикул: {product.code}", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Подробнее", web_app=WebAppInfo(url=f"{WEBAPP_BASE_DOMAIN}/product/{product_id}"))]]))
 
 @new_admin_router.message(CommandStart())
 async def handle_start(message: Message, state: FSMContext):
