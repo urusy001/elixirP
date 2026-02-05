@@ -26,7 +26,7 @@ from src.webapp.schemas import UserCreate, UserUpdate
 
 
 @new_admin_router.message(CommandStart(deep_link=True))
-async def handle_deep_start(command: CommandObject, message: Message, state: FSMContext):
+async def handle_deep_start(message: Message, command: CommandObject, state: FSMContext):
     data = parse_qs(command.args)
     product_id = data.get("product_id", [None])[0]
     user_id = data.get("user_id", [None])[0]
