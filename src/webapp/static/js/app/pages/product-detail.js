@@ -564,14 +564,26 @@ function setupShareButton(root, data, onec_id) {
     if (!shareBtn) return;
 
     shareBtn.addEventListener("click", async () => {
-        const url = buildProductShareUrl(onec_id);
+        const url = buildProductShareUrl(onec_id, getShareUserId());
         await shareProduct({ url });
     });
 }
 
-function buildProductShareUrl(onec_id) {
-    const id = encodeURIComponent(onec_id);
-    return `https://t.me/elixirpeptidebot?start=product_id=${id}`;
+function getShareUserId() {
+    return (
+        state.user?.tg_id ||
+        state.telegram?.initDataUnsafe?.user?.id ||
+        sessionStorage.getItem("tg_user_id") ||
+        ""
+    );
+}
+
+function buildProductShareUrl(onec_id, user_id) {
+    const payload =
+        user_id
+            ? `viewproduct?product_id=${onec_id}&user_id=${user_id}`
+            : `viewproduct?product_id=${onec_id}`;
+    return `https://t.me/elixirpeptidebot?start=${encodeURIComponent(payload)}`;
 }
 
 async function shareProduct({ url }) {

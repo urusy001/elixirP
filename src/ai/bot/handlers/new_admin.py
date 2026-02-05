@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from aiogram.filters import CommandStart, Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
+from urllib.parse import parse_qs
 
 from config import MOSCOW_TZ, ELIXIR_CHAT_ID
 from src.ai.bot.texts import admin_texts
@@ -22,9 +23,11 @@ from src.webapp.models import Cart
 from src.webapp.schemas import UserCreate, UserUpdate
 
 
-@new_admin_router.message(CommandStart(deep_link=True))
-async def handle_deep_start(message: Message, command: CommandObject, state: FSMContext):
-    print(command, command.args or 131111)
+@new_admin_router.message(CommandStart(deep_link=True, deep_link_encoded=True))
+async def handle_deep_start(command: CommandObject, state: FSMContext):
+    data = parse_qs(command.args)
+    product_id = data.get("product_id", [None])[0]
+    user_id = data.get("user_id", [None])[0]
 
 
 @new_admin_router.message(CommandStart())
