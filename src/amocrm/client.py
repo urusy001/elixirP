@@ -154,7 +154,7 @@ class AsyncAmoCRM:
             print(6)
             await page.click("button.js-accept")
             self.logger.info("✅ Selected Slimpeptide and clicked Разрешить")
-            try: await page.wait_for_url("https://elixirpeptides.devsivanschostakov.org/webhooks/amocrm*", timeout=50000)
+            try: await page.wait_for_url("https://elixirpeptides.devsivanschostakov.org/webhooks/amocrm*", timeout=30000)
             except:
                 self.logger.info("esdee blacked out like a phantom")
                 with open(user_data_dir/"amocrm.html", "w") as f:
@@ -165,7 +165,7 @@ class AsyncAmoCRM:
             await browser.close()
 
         code = parse_qs(urlparse(url).query).get("code", [None])[0]
-        if not code: raise RuntimeError("Failed to extract AUTH_CODE from redirect URL.")
+        if not code: raise RuntimeError(f"Failed to extract AUTH_CODE from redirect URL. {url}")
         self.logger.info("✅ Got new AUTH_CODE")
         return code
 
