@@ -158,8 +158,9 @@ class AsyncAmoCRM:
             except:
                 self.logger.info("esdee blacked out like a phantom")
                 with open(user_data_dir/"amocrm.html", "w") as f:
-                    try: f.write(await page.content())
-                    except: pass
+                    print(page.url)
+                    f.write(await page.content())
+
 
             url = page.url
             await browser.close()
@@ -416,8 +417,6 @@ class AsyncAmoCRM:
         code_str = str(code).strip()
         needle = f"№{code_str} "
         rx = re.compile(rf"№{re.escape(code_str)}\s")
-
-        # --- NEW: cutoff 2 months ---
         cutoff_ts = int((datetime.now(timezone.utc) - timedelta(days=62)).timestamp())
 
         page = 1
@@ -447,14 +446,10 @@ class AsyncAmoCRM:
                 if status_id in self.PAID_STATUS_IDS and rx.search(name):
                     raw_price = lead.get("price", None)
                     if not raw_price: return "old", None, None
-
                     price = int(raw_price) if raw_price else 0
-
                     if isinstance(price, (int, float)) and price > 5000:
                         email = await self._extract_lead_email(lead)
-                        if not email:
-                            return price, None, None
-
+                        if not email: return price, None, None
                         verification_code = self._generate_6_digit_code()
                         await self._send_verification_code_email(
                             to_email=email,
