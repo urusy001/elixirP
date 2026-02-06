@@ -1,20 +1,21 @@
 import asyncio
-from datetime import datetime, timedelta
-from typing import Optional
-
+import aiohttp
 import httpx
+
+from datetime import datetime, timedelta
+from urllib.parse import parse_qs
 from aiogram import Router
 from aiogram.enums import ChatType
 from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.fsm.context import FSMContext
-from aiogram.types import FSInputFile, Message, CallbackQuery, ReplyKeyboardRemove
+from aiogram.types import FSInputFile, Message, CallbackQuery, ReplyKeyboardRemove, BufferedInputFile, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
 from config import OWNER_TG_IDS, MOSCOW_TZ, DATA_DIR, PROFESSOR_ASSISTANT_ID, NEW_ASSISTANT_ID, BOT_KEYWORDS, WEBAPP_BASE_DOMAIN, INTERNAL_API_TOKEN
 from src.ai.calc import generate_drug_graphs, plot_filled_scale
 from src.helpers import CHAT_NOT_BANNED_FILTER, _notify_user, with_typing, _fmt, check_blocked
 from src.tg_methods import normalize_phone
 from src.webapp import get_session
-from src.webapp.crud import write_usage, increment_tokens, get_user, update_user, get_used_code_by_code, create_used_code, update_user_name
+from src.webapp.crud import write_usage, increment_tokens, get_user, update_user, get_used_code_by_code, create_used_code, update_user_name, get_product_with_features
 from src.webapp.schemas import UserUpdate, UsedCodeCreate
 from src.ai.bot.texts import user_texts
 from src.ai.bot.keyboards import user_keyboards
@@ -59,19 +60,19 @@ async def graph(message: Message):
     await message.answer(user_texts.choose_peptide, reply_markup=user_keyboards.peptides_keyboard)
     await message.delete()
 
-@new_user_router.message(CommandStart(deep_link=True))
-async def handle_deep_start(message: Message, *extra_args, command: Optional[CommandObject] = None, state: Optional[FSMContext] = None):
-    if command is None and extra_args:
-        possible_command = extra_args[0]
-        if isinstance(possible_command, CommandObject): command = possible_command
+async def handle_deep_start(message: Message, command: CommandObject, state: FSMContext):
+    data = parse_qs(command.args)
+    product_id = data.get("product_id", [None])[0]
+    user_id = data.get("user_id", [None])[0]
+    if product_id:
+        async with get_session() as session: product = await get_product_with_features(session, product_id)
+        async with aiohttp.ClientSession() as session:
+            result = await session.get(f"{WEBAPP_BASE_DOMAIN}/static/images/{product_id}.png")
+            bts = await result.content.read()
+        url = f"{WEBAPP_BASE_DOMAIN}/#/product/{product_id}"
+        print(url)
+        await message.answer_photo(photo=BufferedInputFile(file=bts, filename=f'{product_id}.png'), caption=f"<b>{product.name}</b>\nАртикул: {product.code}", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Подробнее", web_app=WebAppInfo(url=url))]]))
 
-    if command is not None: args = command.args
-    else:
-        text = message.text or message.caption or ""
-        parts = text.split(maxsplit=1)
-        args = parts[1] if len(parts) > 1 else None
-
-    print(args)
 
 @new_user_router.message(CommandStart())
 async def handle_user_start(message: Message, state: FSMContext):

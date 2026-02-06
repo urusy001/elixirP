@@ -23,9 +23,7 @@ const routes = [
 function getCurrentPath() {
     const raw = window.location.hash || "";
     const path = raw.replace(/^#/, "");
-    if (path) return path;
-    // Fallback for direct path-based loads like /product/<id>
-    return window.location.pathname || "/";
+    return path || "/";
 }
 
 export async function renderCurrentPath() {
@@ -55,9 +53,6 @@ export function navigateTo(path) {
 
 export function enablePopstate() {
     window.addEventListener("hashchange", () => {
-        void renderCurrentPath();
-    });
-    window.addEventListener("popstate", () => {
         void renderCurrentPath();
     });
 }
