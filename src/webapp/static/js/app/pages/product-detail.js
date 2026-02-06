@@ -114,7 +114,6 @@ export async function renderProductDetailPage(onec_id) {
             hideMainButton();
         }
     };
-    alert(onec_id);
     const data = await withLoader(() => getProductDetail(onec_id));
 
     if (data?.error) {
