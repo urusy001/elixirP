@@ -8,9 +8,21 @@ import {renderProfilePage} from "./pages/profile.js";
 import {renderOrdersPage} from "./pages/orders.js";
 import {hideLoader, showLoader} from "./ui/loader.js";
 
+function stripQuery(path) {
+    const q = path.indexOf("?");
+    return q === -1 ? path : path.slice(0, q);
+}
+
 const routes = [
     {match: p => p === "/" || p === "", action: renderHomePage},
-    {match: p => p.startsWith("/product/"), action: p => {const onecId = p.split("/product/")[1]; return renderProductDetailPage(onecId);}},
+    {
+        match: p => p.startsWith("/product/"),
+        action: p => {
+            const rawId = p.split("/product/")[1] || "";
+            const onecId = stripQuery(rawId).split("/")[0];
+            return renderProductDetailPage(onecId);
+        }
+    },
     {match: p => p === "/cart", action: renderCartPage},
     {match: p => p === "/checkout", action: renderCheckoutPage},
     {match: p => p === "/contact", action: renderContactPage},
@@ -23,7 +35,7 @@ const routes = [
 function getCurrentPath() {
     const raw = window.location.hash || "";
     const path = raw.replace(/^#/, "");
-    return path || "/";
+    return stripQuery(path) || "/";
 }
 
 export async function renderCurrentPath() {
