@@ -43,6 +43,7 @@ export async function renderCurrentPath() {
 }
 
 export function navigateTo(path) {
+    alert(path)
     setupBottomNav();
     const normalized = path.startsWith("/") ? path : `/${path}`;
     updateBottomNavActive(normalized);
