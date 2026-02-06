@@ -33,14 +33,13 @@ async def handle_deep_start(message: Message, command: CommandObject, state: FSM
     product_id = data.get("product_id", [None])[0]
     user_id = data.get("user_id", [None])[0]
     if product_id:
-        async with get_session() as session:
-            product = await get_product_with_features(session, product_id)
-            async with aiohttp.ClientSession() as session:
-                result = await session.get(f"{WEBAPP_BASE_DOMAIN}/static/images/{product_id}.png")
-                bts = await result.content.read()
-            url = f"{WEBAPP_BASE_DOMAIN}/product/{product_id}"
-            print(url)
-            await message.answer_photo(photo=BufferedInputFile(file=bts, filename=f'{product_id}.png'), caption=f"<b>{product.name}</b>\nАртикул: {product.code}", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Подробнее", web_app=WebAppInfo(url=url))]]))
+        async with get_session() as session: product = await get_product_with_features(session, product_id)
+        async with aiohttp.ClientSession() as session:
+            result = await session.get(f"{WEBAPP_BASE_DOMAIN}/static/images/{product_id}.png")
+            bts = await result.content.read()
+        url = f"{WEBAPP_BASE_DOMAIN}/product/{product_id}"
+        print(url)
+        await message.answer_photo(photo=BufferedInputFile(file=bts, filename=f'{product_id}.png'), caption=f"<b>{product.name}</b>\nАртикул: {product.code}", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Подробнее", web_app=WebAppInfo(url=url))]]))
 
 @new_admin_router.message(CommandStart())
 async def handle_start(message: Message, state: FSMContext):
