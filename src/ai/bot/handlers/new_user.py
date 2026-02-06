@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import httpx
 from aiogram import Router
 from aiogram.enums import ChatType
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile, Message, CallbackQuery, ReplyKeyboardRemove
 
@@ -59,7 +59,7 @@ async def graph(message: Message):
     await message.delete()
 
 @new_user_router.message(CommandStart(deep_link=True))
-async def start(command: CommandStart, state: FSMContext):
+async def start(command: CommandObject, state: FSMContext):
     args = command.args
     print(args)
 
