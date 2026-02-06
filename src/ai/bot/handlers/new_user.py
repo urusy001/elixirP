@@ -59,7 +59,7 @@ async def graph(message: Message):
     await message.delete()
 
 @new_user_router.message(CommandStart(deep_link=True))
-async def start(command: CommandObject, state: FSMContext):
+async def start(message: Message, command: CommandObject, state: FSMContext):
     args = command.args
     print(args)
 
