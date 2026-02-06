@@ -29,7 +29,7 @@ import {
     setFavoriteButtonActive,
     restoreSearchButtonToSearch // <--- IMPORTED THIS
 } from "./search.js";
-import { apiDelete, apiGet, apiPost } from "../../services/api.js";
+import { apiDelete, apiPost } from "../../services/api.js";
 
 function isProductFavorite(onec_id) {
     const favs = state?.user?.favourites || [];
@@ -114,7 +114,7 @@ export async function renderProductDetailPage(onec_id) {
             hideMainButton();
         }
     };
-
+    alert(onec_id);
     const data = await withLoader(() => getProductDetail(onec_id));
 
     if (data?.error) {
