@@ -59,8 +59,25 @@ async def graph(message: Message):
     await message.delete()
 
 @new_user_router.message(CommandStart(deep_link=True))
-async def start(message: Message, command: CommandObject, state: FSMContext):
-    args = command.args
+async def handle_deep_start(
+    message: Message,
+    *extra_args,
+    command: CommandObject | None = None,
+    state: FSMContext | None = None,
+):
+    # Be defensive: some middleware stacks may pass command as a positional arg.
+    if command is None and extra_args:
+        possible_command = extra_args[0]
+        if isinstance(possible_command, CommandObject):
+            command = possible_command
+
+    if command is not None:
+        args = command.args
+    else:
+        text = message.text or message.caption or ""
+        parts = text.split(maxsplit=1)
+        args = parts[1] if len(parts) > 1 else None
+
     print(args)
 
 @new_user_router.message(CommandStart())
