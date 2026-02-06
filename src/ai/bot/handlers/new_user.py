@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timedelta
+from typing import Optional
 
 import httpx
 from aiogram import Router
@@ -59,20 +60,12 @@ async def graph(message: Message):
     await message.delete()
 
 @new_user_router.message(CommandStart(deep_link=True))
-async def handle_deep_start(
-    message: Message,
-    *extra_args,
-    command: CommandObject | None = None,
-    state: FSMContext | None = None,
-):
-    # Be defensive: some middleware stacks may pass command as a positional arg.
+async def handle_deep_start(message: Message, *extra_args, command: Optional[CommandObject] = None, state: Optional[FSMContext] = None):
     if command is None and extra_args:
         possible_command = extra_args[0]
-        if isinstance(possible_command, CommandObject):
-            command = possible_command
+        if isinstance(possible_command, CommandObject): command = possible_command
 
-    if command is not None:
-        args = command.args
+    if command is not None: args = command.args
     else:
         text = message.text or message.caption or ""
         parts = text.split(maxsplit=1)
