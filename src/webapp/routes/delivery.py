@@ -199,6 +199,7 @@ async def get_pvz_all():
 async def yandex_availability(req: AvailabilityRequest):
     if req.delivery_mode == "self_pickup":
         pid = req.destination.platform_station_id
+        print(pid, req.destination.full_address)
         if not pid: raise HTTPException(422, detail="destination.platform_station_id is required for self_pickup")
         destination_node = {
             "type": "platform_station",
