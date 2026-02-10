@@ -2,7 +2,10 @@ import logging
 import httpx
 
 from decimal import Decimal
-from fastapi import Depends, HTTPException, APIRouter
+from fastapi import Depends, HTTPException, APIRouter, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.routing import APIRoute
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import YANDEX_DELIVERY_TOKEN, YANDEX_DELIVERY_BASE_URL, YANDEX_DELIVERY_WAREHOUSE_ID
@@ -15,7 +18,68 @@ from src.webapp.models.checkout import CheckoutData
 from src.webapp.routes.cart import cart_json
 from src.webapp.schemas import UserCreate, CartCreate, CartItemCreate, CartUpdate, PromoCodeUpdate
 
-router = APIRouter(prefix="/payments", tags=["payments"])
+
+def _format_validation_reasons(errors):
+    reasons = []
+    for error in errors:
+        location = ".".join(str(part) for part in error.get("loc", []))
+        message = error.get("msg", "Validation error")
+        reasons.append(f"{location}: {message}" if location else message)
+    return reasons
+
+
+def _extract_422_reason(detail):
+    if isinstance(detail, list):
+        if all(isinstance(item, dict) for item in detail):
+            return _format_validation_reasons(detail)
+        return [str(item) for item in detail]
+
+    if isinstance(detail, dict):
+        nested_detail = detail.get("detail")
+        if isinstance(nested_detail, list) and all(isinstance(item, dict) for item in nested_detail):
+            return _format_validation_reasons(nested_detail)
+        if "reason" in detail:
+            return detail["reason"]
+        return str(detail)
+
+    return str(detail)
+
+
+class PaymentLoggingRoute(APIRoute):
+    def get_route_handler(self):
+        original_route_handler = super().get_route_handler()
+
+        async def custom_route_handler(request: Request):
+            try:
+                return await original_route_handler(request)
+            except RequestValidationError as exc:
+                reasons = _format_validation_reasons(exc.errors())
+                log.exception("Validation error on %s: %s", request.url.path, reasons)
+                return JSONResponse(
+                    status_code=422,
+                    content={"detail": exc.errors(), "reason": reasons},
+                )
+            except HTTPException as exc:
+                log.exception(
+                    "HTTPException on %s: status=%s detail=%s",
+                    request.url.path,
+                    exc.status_code,
+                    exc.detail,
+                )
+                if exc.status_code == 422:
+                    return JSONResponse(
+                        status_code=422,
+                        content={"detail": exc.detail, "reason": _extract_422_reason(exc.detail)},
+                        headers=exc.headers,
+                    )
+                raise
+            except Exception:
+                log.exception("Unhandled exception on %s", request.url.path)
+                raise
+
+        return custom_route_handler
+
+router = APIRouter(prefix="/payments", tags=["payments"], route_class=PaymentLoggingRoute)
 log = logging.getLogger(__name__)
 
 

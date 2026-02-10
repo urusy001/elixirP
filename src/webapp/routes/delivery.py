@@ -269,6 +269,7 @@ async def yandex_availability(req: AvailabilityRequest):
             headers=headers,
         )
         if r.status_code >= 400:
+            print(r.text)
             try: raise HTTPException(status_code=400, detail=r.json())
             except Exception: raise HTTPException(status_code=400, detail={"message": r.text})
 
