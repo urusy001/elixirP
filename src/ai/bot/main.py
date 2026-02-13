@@ -95,7 +95,7 @@ class ProfessorBot(Bot):
             blocked_until = (datetime.now() + timedelta(days=days) if days > 0 else datetime.max)
             self.__logger.warning("Blocking user for %s days (until %s)", days, blocked_until)
             async with get_session() as session: await update_user(session, user_id, UserUpdate(blocked_until=blocked_until))
-    
+
         if input_tokens or output_tokens:
             async with get_session() as session:
                 db_users = await get_users(session)
@@ -108,14 +108,14 @@ class ProfessorBot(Bot):
                 self.__logger.info("Token usage | +in=%d +out=%d | prev=%d/%d | new=%d/%d",input_tokens, output_tokens, prev_input, prev_output, new_input, new_output)
 
             self.__logger.info("Updated tokens for %s: +%d/%d (total %d/%d)", user_id, input_tokens, output_tokens, new_input, new_output)
-    
+
         keyboard = copy.deepcopy(user_keyboards.backk)
         if adv: keyboard.inline_keyboard.append([InlineKeyboardButton(text="Ознакомиться с программой", url="https://t.me/obucheniepeptid/32"), InlineKeyboardButton(text="Попасть на обучение", url="https://www.peptidecourse.ru/")])
         reply_markup = keyboard if back_menu else ReplyKeyboardRemove()
         if not files and not text:
             self.__logger.warning("EMPTY response (no files, no text)")
             return await self._reply_text_safe(message, "oshibochka vishla da", reply_markup=reply_markup)
-    
+
         clean_text = re.sub(r"【[^】]*】", "", text).strip()
         if not files and not clean_text:
             self.__logger.warning("EMPTY response after citation cleanup")
@@ -126,23 +126,23 @@ class ProfessorBot(Bot):
                 caption = (clean_text[:900] + (user_texts.blockquote if adv else "")) or None
                 self.__logger.info("OUTGOING single photo | caption_len=%d", len(caption or ""))
                 return await self._reply_photo_safe(message, FSInputFile(files[0]), caption=caption, reply_markup=reply_markup)
-    
+
             else:
                 caption0 = clean_text[:1024] if clean_text else None
                 self.__logger.info("OUTGOING media group | first_caption_len=%d", len(caption0 or ""))
                 return await self._reply_media_group_safe(message, files, caption=caption0)
-    
+
         out_text = clean_text + (user_texts.blockquote if adv else "")
         if len(out_text) > MAX_TG_MSG_LEN:
             self.__logger.info("OUTGOING long text | len=%d | splitting", len(out_text))
             chunks = await split_text(out_text)
-    
+
             for idx, chunk in enumerate(chunks[:-1], start=1):
                 self.__logger.info("OUTGOING chunk %d/%d | len=%d", idx, len(chunks), len(chunk))
                 await self._reply_text_safe(message, chunk, reply_markup=ReplyKeyboardRemove())
-    
+
             return await self._reply_text_safe(message, chunks[-1], reply_markup=reply_markup)
-    
+
         self.__logger.info("OUTGOING text | len=%d | preview=%r", len(out_text), out_text)
         return await self._reply_text_safe(message, out_text, reply_markup=reply_markup)
 
@@ -179,5 +179,5 @@ async def run_dose_bot():
 
 
 async def run_new_bot():
-    await new_bot.delete_webhook(drop_pending_updates=False)
+    await new_bot.delete_webhook(drop_pending_updates=True)
     await new_dp.start_polling(new_bot)
