@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Dict, Optional, List, Tuple, Any
+from typing import Dict, Optional, List, Tuple, Any, Sequence
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -213,3 +213,16 @@ async def get_user_usage_totals(db: AsyncSession, user_id: int, start_date: Opti
         "by_bot": by_bot,
         "totals": totals,
     }
+
+
+async def get_user_total_requests(
+        db: AsyncSession,
+        user_id: int,
+        bots: Optional[Sequence[BotLiteral]] = None,
+) -> int:
+    stmt = select(func.coalesce(func.sum(UserTokenUsage.total_requests), 0)).where(
+        UserTokenUsage.user_id == user_id
+    )
+    if bots:
+        stmt = stmt.where(UserTokenUsage.bot.in_([BotEnum(bot) for bot in bots]))
+    return int((await db.execute(stmt)).scalar_one() or 0)

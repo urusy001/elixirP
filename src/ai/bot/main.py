@@ -116,7 +116,10 @@ class ProfessorBot(Bot):
             self.__logger.warning("EMPTY response (no files, no text)")
             return await self._reply_text_safe(message, "oshibochka vishla da", reply_markup=reply_markup)
     
-        clean_text = re.sub(r"【[^】]*】", "", text)
+        clean_text = re.sub(r"【[^】]*】", "", text).strip()
+        if not files and not clean_text:
+            self.__logger.warning("EMPTY response after citation cleanup")
+            return await self._reply_text_safe(message, "oshibochka vishla da", reply_markup=reply_markup)
         if files:
             self.__logger.info("OUTGOING response has %d file(s)", len(files))
             if len(files) == 1:
