@@ -4,35 +4,31 @@ import os
 import logging
 import pathlib
 
-from datetime import timezone, timedelta
 from urllib.parse import quote_plus
+from zoneinfo import ZoneInfo
+
 from dotenv import load_dotenv
 from starlette.templating import Jinja2Templates
 
 def env(name: str, default: str | None = None, *, strip: bool = True) -> str | None:
     v = os.getenv(name, default)
-    if v is None:
-        return None
+    if v is None: return None
     return v.strip() if strip else v
+
 def env_int(name: str, default: int | None = None) -> int | None:
     v = env(name)
-    if v is None or v == "":
-        return default
-    try:
-        return int(v)
-    except ValueError:
-        return default
+    if v is None or v == "": return default
+    try: return int(v)
+    except ValueError: return default
+
 def env_list_ints(name: str) -> list[int]:
     raw = env(name, "")
-    if not raw:
-        return []
+    if not raw: return []
     parts = [p.strip() for p in raw.split(",") if p.strip()]
     out: list[int] = []
     for p in parts:
-        try:
-            out.append(int(p))
-        except ValueError:
-            pass
+        try: out.append(int(p))
+        except ValueError: pass
     return out
 
 def build_sync_dsn(user: str, password: str, host: str, port: int, db: str) -> str:
@@ -48,7 +44,7 @@ def build_async_dsn(user: str, password: str, host: str, port: int, db: str) -> 
 
 load_dotenv()
 
-MOSCOW_TZ = timezone(timedelta(hours=3))
+UFA_TZ = ZoneInfo("Asia/Yekaterinburg")
 
 OWNER_TG_IDS      = env_list_ints("OWNER_TG_IDS")
 ADMIN_TG_IDS      = env_list_ints("ADMIN_TG_IDS")

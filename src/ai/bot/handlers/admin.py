@@ -8,7 +8,7 @@ from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, FSInputFile
 
-from config import ADMIN_TG_IDS, SPENDS_DIR, PROFESSOR_BOT_TOKEN, DOSE_BOT_TOKEN, MOSCOW_TZ
+from config import ADMIN_TG_IDS, SPENDS_DIR, PROFESSOR_BOT_TOKEN, DOSE_BOT_TOKEN, UFA_TZ
 from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
 from src.tg_methods import get_user_id_by_phone, normalize_phone
@@ -76,7 +76,7 @@ async def handle_block(message: Message):
     args = text.removeprefix("/block ").split()
     if len(args) != 2: return await message.answer("<b>Ошибка команды</b>\n<code>/block phone номер_телефона</code>\n<code>/block id айди_телеграм</code>")
     mode, value = args[0], args[1]
-    user_update = UserUpdate(blocked_until=datetime.max.replace(tzinfo=MOSCOW_TZ))
+    user_update = UserUpdate(blocked_until=datetime.max.replace(tzinfo=UFA_TZ))
     full_name = "Unknown"
 
     if mode == "id":

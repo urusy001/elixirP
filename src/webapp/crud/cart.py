@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
 from datetime import datetime, timezone, timedelta
 
-from config import MOSCOW_TZ
+from config import UFA_TZ
 from src.webapp.models import CartItem, Product
 from src.webapp.models.cart import Cart
 from src.webapp.schemas.cart import CartCreate, CartUpdate
@@ -23,9 +23,9 @@ async def get_carts(db: AsyncSession, exclude_starting: bool = True) -> Optional
 
 
 async def get_carts_by_date(db: AsyncSession, dt: datetime) -> list[Cart]:
-    dt_msk = dt if dt.tzinfo else dt.replace(tzinfo=MOSCOW_TZ)
+    dt_msk = dt if dt.tzinfo else dt.replace(tzinfo=UFA_TZ)
 
-    start_msk = dt_msk.astimezone(MOSCOW_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
+    start_msk = dt_msk.astimezone(UFA_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
     end_msk = start_msk + timedelta(days=1)
 
     start_utc = start_msk.astimezone(timezone.utc)

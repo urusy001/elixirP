@@ -12,7 +12,7 @@ from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, Inli
     InputTextMessageContent, InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, BufferedInputFile
 from urllib.parse import parse_qs
 
-from config import MOSCOW_TZ, ELIXIR_CHAT_ID, IMAGES_DIR, WEBAPP_BASE_DOMAIN
+from config import UFA_TZ, ELIXIR_CHAT_ID, IMAGES_DIR, WEBAPP_BASE_DOMAIN
 from src.ai.bot.texts import admin_texts
 from src.ai.bot.handlers import new_admin_router
 from src.ai.bot.keyboards import admin_keyboards
@@ -64,10 +64,10 @@ async def add_premium(message: Message):
         if not user_id: return await message.answer('Пользователь не найден по номеру в ТГ')
 
     else: return await message.answer('Ошибка команды: <code>/set_premium номер_в_тг</code>')
-    async with get_session() as session: user = await update_user(session, int(user_id), UserUpdate(premium_until=datetime.now(tz=MOSCOW_TZ) + timedelta(weeks=1044)))
+    async with get_session() as session: user = await update_user(session, int(user_id), UserUpdate(premium_until=datetime.now(tz=UFA_TZ) + timedelta(weeks=1044)))
     if user: return await message.answer(f'Пользователю с номером {user.tg_phone} выдан премиум доступ')
     else:
-        async with get_session() as session: user = await upsert_user(session, UserCreate(tg_phone=phone, tg_id=user_id, premium_until=datetime.now(tz=MOSCOW_TZ) + timedelta(weeks=1044)))
+        async with get_session() as session: user = await upsert_user(session, UserCreate(tg_phone=phone, tg_id=user_id, premium_until=datetime.now(tz=UFA_TZ) + timedelta(weeks=1044)))
         if user: await message.answer(f'Пользователю с номером {user.tg_phone} выдан премиум доступ')
         else: await message.answer("Ошибка команды: пользователь не пользовался ботом или не был найден в базе")
         return None
@@ -227,15 +227,15 @@ async def handle_get_user(message: Message):
                      f"🤖 <b>Запросов ИИ: {total_requests} на сумму {total_cost_usd}$</b>\n"
                      f"💲 Стоимость запроса в среднем: <i>{avg_cost_per_request}</i>")
 
-        if user.blocked_until and user.blocked_until > datetime.now(MOSCOW_TZ): user_text += f"\n\n‼️ <b>ЗАБЛОКИРОВАН ДО {user.blocked_until.date()} {user.blocked_until.hour}:{user.blocked_until.minute} по МСК ‼️</b>"
-        await message.answer(user_text, reply_markup=admin_keyboards.view_user_menu(user.tg_id, len(user_carts), bool(user.blocked_until and user.blocked_until > datetime.now(MOSCOW_TZ))))
+        if user.blocked_until and user.blocked_until > datetime.now(UFA_TZ): user_text += f"\n\n‼️ <b>ЗАБЛОКИРОВАН ДО {user.blocked_until.date()} {user.blocked_until.hour}:{user.blocked_until.minute} по МСК ‼️</b>"
+        await message.answer(user_text, reply_markup=admin_keyboards.view_user_menu(user.tg_id, len(user_carts), bool(user.blocked_until and user.blocked_until > datetime.now(UFA_TZ))))
 
 @new_admin_router.message(admin_states.ViewUser.block_days, lambda message: message.text.isdigit())
 async def handle_block_days(message: Message, state: FSMContext):
     state_data = await state.get_data()
     user_id = state_data["user_id"]
     days = int(message.text.strip())
-    if days == 0: until = datetime.max.replace(tzinfo=MOSCOW_TZ)
+    if days == 0: until = datetime.max.replace(tzinfo=UFA_TZ)
     else: until = datetime.now() + timedelta(days=abs(int(days)))
     async with get_session() as session: user = await update_user(session, user_id, UserUpdate(blocked_until=until))
     await message.answer(f"Пользователь {user.full_name} {user.tg_phone} <b>успешно заблокирован до {until.date()} {until.hour}:{until.minute} по МСК</b>", reply_markup=admin_keyboards.back_to_user(user.tg_id))
@@ -318,7 +318,7 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
                 year = date_parts[2]
                 if not all((x.isdigit() for x in [day, month, year])): results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="Введенный запрос не число и не дата", description="Поиск заказов возможен только по их номерам или дате (дд.мм.гггг)", input_message_content=start_input_content)]
                 else:
-                    dt = datetime(year=int(year), month=int(month), day=int(day), tzinfo=MOSCOW_TZ)
+                    dt = datetime(year=int(year), month=int(month), day=int(day), tzinfo=UFA_TZ)
                     async with get_session() as session: carts = await get_carts_by_date(session, dt)
                     if carts: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"{cart.name} от {cart.user.full_name}", description=f"Статус: {cart.status}, Обновлено: {cart.updated_at.hour}:{cart.updated_at.minute}, {cart.updated_at.date()}", input_message_content=InputTextMessageContent(message_text=f"/get_cart {cart.id}")) for cart in carts]
                     else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено заказов по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=start_input_content)]

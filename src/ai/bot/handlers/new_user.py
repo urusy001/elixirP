@@ -10,7 +10,7 @@ from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile, Message, CallbackQuery, ReplyKeyboardRemove, BufferedInputFile, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
-from config import OWNER_TG_IDS, MOSCOW_TZ, DATA_DIR, PROFESSOR_ASSISTANT_ID, NEW_ASSISTANT_ID, BOT_KEYWORDS, WEBAPP_BASE_DOMAIN, INTERNAL_API_TOKEN
+from config import OWNER_TG_IDS, UFA_TZ, DATA_DIR, PROFESSOR_ASSISTANT_ID, NEW_ASSISTANT_ID, BOT_KEYWORDS, WEBAPP_BASE_DOMAIN, INTERNAL_API_TOKEN
 from src.ai.calc import generate_drug_graphs, plot_filled_scale
 from src.helpers import CHAT_NOT_BANNED_FILTER, _notify_user, with_typing, _fmt, check_blocked
 from src.tg_methods import normalize_phone
@@ -208,7 +208,7 @@ async def handle_verification_code(message: Message, state: FSMContext):
         async with get_session() as session:
             user = await get_user(session, 'tg_id', message.from_user.id)
             premium_until = user.premium_until
-            if not user.premium_until or user.premium_until <= datetime.now(tz=MOSCOW_TZ): premium_until = datetime.now(tz=MOSCOW_TZ) + timedelta(days=add_months*30)
+            if not user.premium_until or user.premium_until <= datetime.now(tz=UFA_TZ): premium_until = datetime.now(tz=UFA_TZ) + timedelta(days=add_months * 30)
             else: premium_until += timedelta(days=add_months*30)
             user_update = UserUpdate(premium_until=premium_until)
             user = await update_user(session, message.from_user.id, user_update)
@@ -223,7 +223,7 @@ async def handle_verification_code(message: Message, state: FSMContext):
         if failed >= 3:
             async with get_session() as session:
                 await message.answer("Некорректных попыток: 3. Вы были заблокированы на 1 день")
-                user_update = UserUpdate(blocked_until=datetime.now(tz=MOSCOW_TZ)+timedelta(days=1))
+                user_update = UserUpdate(blocked_until=datetime.now(tz=UFA_TZ) + timedelta(days=1))
                 user = await update_user(session, message.from_user.id, user_update)
                 await state.clear()
                 return await handle_user_start(message, state)
@@ -474,12 +474,12 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
         await _notify_user(message, user_texts.pick_fallback_free, 10)
     used_requests = 0 if user.tg_phone else await _get_unverified_requests_count(user_id)
     if not user.tg_phone and (assistant_id == NEW_ASSISTANT_ID or used_requests >= UNVERIFIED_REQUEST_LIMIT): return await _request_phone(message, state)
-    if assistant_id == NEW_ASSISTANT_ID and (not user.premium_until or user.premium_until < datetime.now(tz=MOSCOW_TZ)) and user.premium_requests < 1: return await message.answer(user_texts.premium_limit_0, reply_markup=user_keyboards.only_free)
+    if assistant_id == NEW_ASSISTANT_ID and (not user.premium_until or user.premium_until < datetime.now(tz=UFA_TZ)) and user.premium_requests < 1: return await message.answer(user_texts.premium_limit_0, reply_markup=user_keyboards.only_free)
     response = await professor_client.send_message(message.text, user.thread_id, assistant_id)
     async with get_session() as session:
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens']),
         await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
-        if assistant_id == NEW_ASSISTANT_ID and (not user.premium_until or user.premium_until < datetime.now(tz=MOSCOW_TZ)):
+        if assistant_id == NEW_ASSISTANT_ID and (not user.premium_until or user.premium_until < datetime.now(tz=UFA_TZ)):
             user_update = UserUpdate(premium_requests=user.premium_requests-1)
             user = await update_user(session, message.from_user.id, user_update)
 

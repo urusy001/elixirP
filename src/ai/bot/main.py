@@ -20,7 +20,7 @@ from config import (
     NEW_BOT_TOKEN,
     NEW_ASSISTANT_ID,
     LOGS_DIR,
-    BOT_NAMES, NEW_OPENAI_API, PROFESSOR_OPENAI_API, PROFESSOR_ASSISTANT_ID, MOSCOW_TZ,
+    BOT_NAMES, NEW_OPENAI_API, PROFESSOR_OPENAI_API, PROFESSOR_ASSISTANT_ID, UFA_TZ,
 )
 from src.ai.bot.handlers import *
 from src.ai.bot.keyboards import user_keyboards

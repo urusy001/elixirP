@@ -29,7 +29,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from transliterate import translit
 
-from config import ELIXIR_CHAT_ID, NEW_BOT_TOKEN, INTERNAL_API_TOKEN, MOSCOW_TZ
+from config import ELIXIR_CHAT_ID, NEW_BOT_TOKEN, INTERNAL_API_TOKEN, UFA_TZ
 from src.ai.bot.texts import user_texts
 from src.webapp import get_session
 from src.webapp.models import Cart, CartItem, TgCategory, Feature, Product
@@ -440,7 +440,7 @@ async def check_blocked(message: Message):
         result = await session.execute(stmt)
         user = result.scalar_one_or_none()
 
-    if user and user.blocked_until and user.blocked_until.replace(tzinfo=MOSCOW_TZ) > datetime.now(MOSCOW_TZ):
+    if user and user.blocked_until and user.blocked_until.replace(tzinfo=UFA_TZ) > datetime.now(UFA_TZ):
         await message.answer(user_texts.banned_until.replace("name", message.from_user.full_name).replace("date", f'{user.blocked_until.date()}').replace("Блокировка до 9999-12-31, п", "П"))
         return False
     return True
