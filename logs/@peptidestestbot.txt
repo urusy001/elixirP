@@ -1,0 +1,7 @@
+2026-02-11 07:58:06 [INFO] ProfessorBot::@peptidestestbot: INCOMING message | user_id=8583028244 | text='привет'
+2026-02-11 07:58:06 [INFO] ProfessorBot::@peptidestestbot: MODEL RESPONSE (raw) | user_id=8583028244 | files=0 | text_len=0 | input_tokens=0 | output_tokens=0
+2026-02-11 07:58:06 [WARNING] ProfessorBot::@peptidestestbot: EMPTY response (no files, no text)
+2026-02-11 08:02:17 [INFO] ProfessorBot::@peptidestestbot: Created new user: 1323190798, phone=+79897098342
+2026-02-11 08:02:31 [INFO] ProfessorBot::@peptidestestbot: INCOMING message | user_id=8583028244 | text='привет'
+2026-02-11 08:02:31 [INFO] ProfessorBot::@peptidestestbot: MODEL RESPONSE (raw) | user_id=8583028244 | files=0 | text_len=0 | input_tokens=0 | output_tokens=0
+2026-02-11 08:02:31 [WARNING] ProfessorBot::@peptidestestbot: EMPTY response (no files, no text)

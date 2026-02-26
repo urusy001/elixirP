@@ -1,0 +1,15 @@
+2026-02-11 07:57:33 [INFO] ProfessorBot::@Peptideexpertbot: INCOMING message | user_id=1492386987 | text='Глоу 70 разведение, дозировка, курс'
+2026-02-11 07:57:33 [INFO] ProfessorBot::@Peptideexpertbot: MODEL RESPONSE (raw) | user_id=1492386987 | files=0 | text_len=0 | input_tokens=0 | output_tokens=0
+2026-02-11 07:57:33 [WARNING] ProfessorBot::@Peptideexpertbot: EMPTY response (no files, no text)
+2026-02-11 07:57:33 [INFO] ProfessorBot::@Peptideexpertbot: INCOMING message | user_id=1353456504 | text='А?'
+2026-02-11 07:57:33 [INFO] ProfessorBot::@Peptideexpertbot: MODEL RESPONSE (raw) | user_id=1353456504 | files=0 | text_len=0 | input_tokens=0 | output_tokens=0
+2026-02-11 07:57:33 [WARNING] ProfessorBot::@Peptideexpertbot: EMPTY response (no files, no text)
+2026-02-11 07:58:17 [INFO] ProfessorBot::@Peptideexpertbot: INCOMING message | user_id=1492386987 | text='Глоу 70 как разводить какую дозировку колоть'
+2026-02-11 07:58:17 [INFO] ProfessorBot::@Peptideexpertbot: MODEL RESPONSE (raw) | user_id=1492386987 | files=0 | text_len=0 | input_tokens=0 | output_tokens=0
+2026-02-11 07:58:17 [WARNING] ProfessorBot::@Peptideexpertbot: EMPTY response (no files, no text)
+2026-02-11 08:02:09 [INFO] ProfessorBot::@Peptideexpertbot: INCOMING message | user_id=1084458589 | text='нужно повысить уровень коллагена'
+2026-02-11 08:02:09 [INFO] ProfessorBot::@Peptideexpertbot: MODEL RESPONSE (raw) | user_id=1084458589 | files=0 | text_len=0 | input_tokens=0 | output_tokens=0
+2026-02-11 08:02:09 [WARNING] ProfessorBot::@Peptideexpertbot: EMPTY response (no files, no text)
+2026-02-11 08:02:09 [INFO] ProfessorBot::@Peptideexpertbot: INCOMING message | user_id=928293849 | text='Расскажи о пептидах для улучшения мозга'
+2026-02-11 08:02:09 [INFO] ProfessorBot::@Peptideexpertbot: MODEL RESPONSE (raw) | user_id=928293849 | files=0 | text_len=0 | input_tokens=0 | output_tokens=0
+2026-02-11 08:02:09 [WARNING] ProfessorBot::@Peptideexpertbot: EMPTY response (no files, no text)

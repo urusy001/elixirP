@@ -16,65 +16,51 @@ class ProfessorClient(AsyncClient):
 
     def _sync_usage_from_final_run(self, final_run, event_handler: ProfessorEventHandler) -> None:
         usage = getattr(final_run, "usage", None)
-        if not usage:
-            return
+        if not usage: return
+
         prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)
         completion_tokens = int(getattr(usage, "completion_tokens", 0) or 0)
         event_handler.response["input_tokens"] = max(event_handler.response["input_tokens"], prompt_tokens)
         event_handler.response["output_tokens"] = max(event_handler.response["output_tokens"], completion_tokens)
 
     async def _recover_response_if_empty(self, thread_id: str, stream, event_handler: ProfessorEventHandler) -> None:
-        if event_handler.has_payload():
-            return
+        if event_handler.has_payload(): return
 
         final_messages = []
-        try:
-            final_messages = await stream.get_final_messages()
-        except RuntimeError:
-            self.__logger.warning("No final messages found in stream snapshot.")
+        try: final_messages = await stream.get_final_messages()
+        except RuntimeError: self.__logger.warning("No final messages found in stream snapshot.")
 
         for message in final_messages:
-            if getattr(message, "role", None) == "assistant":
-                await event_handler.ingest_message(message, source="final_messages_snapshot")
+            if getattr(message, "role", None) == "assistant": await event_handler.ingest_message(message, source="final_messages_snapshot")
 
-        if event_handler.has_payload():
-            return
+        if event_handler.has_payload(): return
 
         run_steps = []
-        try:
-            run_steps = await stream.get_final_run_steps()
-        except RuntimeError:
-            self.__logger.warning("No run steps found for fallback parsing.")
+        try: run_steps = await stream.get_final_run_steps()
+        except RuntimeError: self.__logger.warning("No run steps found for fallback parsing.")
 
         if run_steps:
-            step_summary = ", ".join(
-                f"{step.id}:{getattr(getattr(step, 'step_details', None), 'type', 'unknown')}:{getattr(step, 'status', 'unknown')}"
-                for step in run_steps
-            )
+            step_summary = ", ".join(f"{step.id}:{getattr(getattr(step, 'step_details', None), 'type', 'unknown')}:{getattr(step, 'status', 'unknown')}" for step in run_steps)
             self.__logger.info("Run steps summary: %s", step_summary)
 
         message_ids: list[str] = []
         for step in run_steps:
             details = getattr(step, "step_details", None)
-            if getattr(details, "type", None) != "message_creation":
-                continue
-            message_id = getattr(getattr(details, "message_creation", None), "message_id", None)
-            if message_id:
-                message_ids.append(message_id)
+            if getattr(details, "type", None) != "message_creation": continue
 
-        if not message_ids:
-            return
+            message_id = getattr(getattr(details, "message_creation", None), "message_id", None)
+            if message_id:message_ids.append(message_id)
+
+        if not message_ids:return
 
         self.__logger.warning("Recovering assistant output from message_creation steps: %s", message_ids)
         for message_id in message_ids:
-            try:
-                message = await self.beta.threads.messages.retrieve(message_id=message_id, thread_id=thread_id)
+            try: message = await self.beta.threads.messages.retrieve(message_id=message_id, thread_id=thread_id)
             except Exception as exc:
                 self.__logger.warning("Failed to retrieve assistant message %s: %s", message_id, exc)
                 continue
 
-            if getattr(message, "role", None) == "assistant":
-                await event_handler.ingest_message(message, source="run_step_message_creation")
+            if getattr(message, "role", None) == "assistant": await event_handler.ingest_message(message, source="run_step_message_creation")
 
     async def create_thread(self):
         thread = await self.beta.threads.create()

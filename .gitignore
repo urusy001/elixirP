@@ -11,8 +11,6 @@ build/
 *.egg-info/
 .ipynb_checkpoints/
 /*.log
-logs/
-data/
-photos/
 *.DS_Store
+photos/
 .xlsx
