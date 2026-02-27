@@ -13,4 +13,5 @@ build/
 /*.log
 *.DS_Store
 photos/
+images/
 .xlsx
