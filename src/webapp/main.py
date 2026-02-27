@@ -25,9 +25,10 @@ app.include_router(yandex_router, prefix=API_PREFIX)
 app.include_router(payments_router, prefix=API_PREFIX)
 app.include_router(users_router, prefix=API_PREFIX)
 app.include_router(auth_router, prefix=API_PREFIX)
-app.include_router(favourite_router, prefix=API_PREFIX),
-app.include_router(categories_router, prefix=API_PREFIX),
-app.include_router(promo_codes_router, prefix=API_PREFIX),
+app.include_router(favourite_router, prefix=API_PREFIX)
+app.include_router(categories_router, prefix=API_PREFIX)
+app.include_router(promo_codes_router, prefix=API_PREFIX)
+app.include_router(internal_bot_router, prefix=API_PREFIX)
 app.include_router(webhooks_router)
 
 @app.get("/", response_class=HTMLResponse)

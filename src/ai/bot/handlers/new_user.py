@@ -13,11 +13,9 @@ from aiogram.types import FSInputFile, Message, CallbackQuery, ReplyKeyboardRemo
 from config import OWNER_TG_IDS, UFA_TZ, DATA_DIR, PROFESSOR_ASSISTANT_ID, NEW_ASSISTANT_ID, BOT_KEYWORDS, WEBAPP_BASE_DOMAIN, INTERNAL_API_TOKEN
 from src.ai.bot.handlers.new_user_helpers import _get_unverified_requests_count, _request_phone, _ensure_user
 from src.ai.calc import generate_drug_graphs, plot_filled_scale
+from src.ai.webapp_client import webapp_client
 from src.helpers import CHAT_NOT_BANNED_FILTER, _notify_user, with_typing, _fmt, check_blocked
 from src.tg_methods import normalize_phone
-from src.webapp import get_session
-from src.webapp.crud import write_usage, increment_tokens, get_user, update_user, get_used_code_by_code, create_used_code, update_user_name, get_product_with_features, upsert_user, get_user_total_requests
-from src.webapp.schemas import UserUpdate, UsedCodeCreate, UserCreate
 from src.ai.bot.texts import user_texts
 from src.ai.bot.keyboards import user_keyboards
 from src.ai.bot.states import user_states
@@ -68,7 +66,7 @@ async def handle_deep_start(message: Message, command: CommandObject):
     product_id = data.get("product_id", [None])[0]
     user_id = data.get("user_id", [None])[0]
     if product_id:
-        async with get_session() as session: product = await get_product_with_features(session, product_id)
+        product = await webapp_client.get_product_with_features(product_id)
         async with aiohttp.ClientSession() as session:
             result = await session.get(f"{WEBAPP_BASE_DOMAIN}/static/images/{product_id}.png")
             bts = await result.content.read()
@@ -84,15 +82,15 @@ async def handle_user_start(message: Message, state: FSMContext):
     state_data = await state.get_data()
     await state.clear()
     await state.set_data(state_data)
-    async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
-    if user and user.tg_phone: asyncio.create_task(update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
+    user = await webapp_client.get_user("tg_id", user_id)
+    if user and user.tg_phone: asyncio.create_task(webapp_client.update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
     return await message.answer(user_texts.greetings.replace('full_name', message.from_user.full_name), reply_markup=user_keyboards.main_menu)
 
 @new_user_router.message(user_states.Ai.activate_code)
 async def handle_activate_code(message: Message, state: FSMContext):
     code = (message.text or "").strip()
     if not code: return await message.answer("Введите номер заказа.")
-    async with get_session() as session: used_code = await get_used_code_by_code(session, code)
+    used_code = await webapp_client.get_used_code_by_code(code)
 
     if used_code:
         await message.answer(f"Номер заказа {code} уже использован")
@@ -166,15 +164,12 @@ async def handle_verification_code(message: Message, state: FSMContext):
         await handle_user_start(message, state)
 
     elif entered_code == f"{verification_code}":
-        async with get_session() as session:
-            user = await get_user(session, 'tg_id', message.from_user.id)
-            premium_until = user.premium_until
-            if not user.premium_until or user.premium_until <= datetime.now(tz=UFA_TZ): premium_until = datetime.now(tz=UFA_TZ) + timedelta(days=add_months * 30)
-            else: premium_until += timedelta(days=add_months*30)
-            user_update = UserUpdate(premium_until=premium_until)
-            user = await update_user(session, message.from_user.id, user_update)
-            used_code_create = UsedCodeCreate(user_id=message.from_user.id, code=order_code, price=price)
-            used_code = await create_used_code(session, used_code_create)
+        user = await webapp_client.get_user("tg_id", message.from_user.id)
+        premium_until = user.premium_until
+        if not user.premium_until or user.premium_until <= datetime.now(tz=UFA_TZ): premium_until = datetime.now(tz=UFA_TZ) + timedelta(days=add_months * 30)
+        else: premium_until += timedelta(days=add_months * 30)
+        await webapp_client.update_user(message.from_user.id, {"premium_until": premium_until})
+        await webapp_client.create_used_code({"user_id": message.from_user.id, "code": order_code, "price": price})
         await state.clear()
         await message.answer(f'Вам успешно начислено {add_months} месяцев безлимита, он теперь действителен до {premium_until.date()}')
         await handle_user_start(message, state)
@@ -182,12 +177,10 @@ async def handle_verification_code(message: Message, state: FSMContext):
     else:
         failed += 1
         if failed >= 3:
-            async with get_session() as session:
-                await message.answer("Некорректных попыток: 3. Вы были заблокированы на 1 день")
-                user_update = UserUpdate(blocked_until=datetime.now(tz=UFA_TZ) + timedelta(days=1))
-                user = await update_user(session, message.from_user.id, user_update)
-                await state.clear()
-                return await handle_user_start(message, state)
+            await message.answer("Некорректных попыток: 3. Вы были заблокированы на 1 день")
+            await webapp_client.update_user(message.from_user.id, {"blocked_until": datetime.now(tz=UFA_TZ) + timedelta(days=1)})
+            await state.clear()
+            return await handle_user_start(message, state)
         await message.answer(f"Код подтверждения некорректный, осталось {3-failed} попыток")
         await state.update_data(failed=failed)
 
@@ -360,7 +353,7 @@ async def handle_course_interval_days(message: Message, state: FSMContext):
 @new_user_router.message(Command('new_chat'))
 async def handle_new_chat(message: Message, state: FSMContext, professor_client):
     thread_id = await professor_client.create_thread()
-    async with get_session() as session: await update_user(session, message.from_user.id, UserUpdate(thread_id=thread_id))
+    await webapp_client.update_user(message.from_user.id, {"thread_id": thread_id})
     await state.update_data(thread_id=thread_id)
     return await message.answer(user_texts.new_chat)
 
@@ -378,7 +371,7 @@ async def handle_user_call(call: CallbackQuery, state: FSMContext):
             await call.message.edit_text(user_texts.pick_free, reply_markup=user_keyboards.back)
 
         elif data[1] == "premium":
-            async with get_session() as session: user = await get_user(session, 'tg_id', call.from_user.id)
+            user = await webapp_client.get_user("tg_id", call.from_user.id)
             if not user or not user.tg_phone: return await _request_phone(call.message, state, call.from_user.full_name)
             await state.update_data(assistant_id=NEW_ASSISTANT_ID)
             await call.message.edit_text(user_texts.pick_premium, reply_markup=user_keyboards.back)
@@ -425,7 +418,7 @@ async def handle_user_call(call: CallbackQuery, state: FSMContext):
 async def handle_text_message(message: Message, state: FSMContext, professor_bot, professor_client):
     user_id = message.from_user.id
     user = await _ensure_user(message, professor_client)
-    if user.tg_phone: asyncio.create_task(update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
+    if user.tg_phone: asyncio.create_task(webapp_client.update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
 
     state_data = await state.get_data()
     assistant_id = state_data.get("assistant_id", None)
@@ -439,11 +432,8 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
     if assistant_id == NEW_ASSISTANT_ID and (not user.premium_until or user.premium_until < datetime.now(tz=UFA_TZ)) and user.premium_requests < 1: return await message.answer(user_texts.premium_limit_0, reply_markup=user_keyboards.only_free)
 
     response = await professor_client.send_message(message.text, user.thread_id, assistant_id)
-    async with get_session() as session:
-        await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens']),
-        await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
-        if assistant_id == NEW_ASSISTANT_ID and (not user.premium_until or user.premium_until < datetime.now(tz=UFA_TZ)):
-            user_update = UserUpdate(premium_requests=user.premium_requests-1)
-            user = await update_user(session, message.from_user.id, user_update)
+    await webapp_client.increment_tokens(message.from_user.id, response['input_tokens'], response['output_tokens'])
+    await webapp_client.write_usage(message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
+    if assistant_id == NEW_ASSISTANT_ID and (not user.premium_until or user.premium_until < datetime.now(tz=UFA_TZ)): user = await webapp_client.update_user(message.from_user.id, {"premium_requests": user.premium_requests - 1})
 
     return await professor_bot.parse_response(response, message, back_menu=True)

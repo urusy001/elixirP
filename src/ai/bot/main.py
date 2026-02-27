@@ -27,10 +27,8 @@ from src.ai.bot.keyboards import user_keyboards
 from src.ai.bot.middleware import ContextMiddleware
 from src.ai.bot.texts import user_texts
 from src.ai.client import ProfessorClient
+from src.ai.webapp_client import webapp_client
 from src.helpers import split_text, MAX_TG_MSG_LEN
-from src.webapp import get_session
-from src.webapp.crud import get_users, update_user, upsert_user
-from src.webapp.schemas import UserUpdate, UserCreate
 
 
 class ProfessorBot(Bot):
@@ -51,10 +49,9 @@ class ProfessorBot(Bot):
     @property
     def log(self): return self.__logger
 
-    async def create_user(self, user_id: int, phone: str, name: str = None, surname: str = None) -> UserCreate:
+    async def create_user(self, user_id: int, phone: str, name: str = None, surname: str = None) -> str:
         thread_id = await professor_client.create_thread()
-        user_create = UserCreate(tg_id=user_id, tg_phone=phone, thread_id=thread_id)
-        async with get_session() as session: user = await upsert_user(session, user_create)
+        await webapp_client.upsert_user({"tg_id": user_id, "tg_phone": phone, "name": name, "surname": surname, "thread_id": thread_id})
         self.__logger.info("Created new user: %s, phone=%s", user_id, phone)
         return thread_id
 
@@ -94,19 +91,16 @@ class ProfessorBot(Bot):
             text = re.sub(r"BLOCK_USER_TG_\d+", "", text, flags=re.IGNORECASE).strip()
             blocked_until = (datetime.now() + timedelta(days=days) if days > 0 else datetime.max)
             self.__logger.warning("Blocking user for %s days (until %s)", days, blocked_until)
-            async with get_session() as session: await update_user(session, user_id, UserUpdate(blocked_until=blocked_until))
+            await webapp_client.update_user(user_id, {"blocked_until": blocked_until})
 
         if input_tokens or output_tokens:
-            async with get_session() as session:
-                db_users = await get_users(session)
-                db_user = next((u for u in db_users if u.tg_id == user_id), None)
-                prev_input = getattr(db_user, "input_tokens", 0) if db_user else 0
-                prev_output = getattr(db_user, "output_tokens", 0) if db_user else 0
-                new_input = prev_input + input_tokens
-                new_output = prev_output + output_tokens
-                await update_user(session, user_id, UserUpdate(input_tokens=new_input, output_tokens=new_output))
-                self.__logger.info("Token usage | +in=%d +out=%d | prev=%d/%d | new=%d/%d",input_tokens, output_tokens, prev_input, prev_output, new_input, new_output)
-
+            db_user = await webapp_client.get_user("tg_id", user_id)
+            prev_input = getattr(db_user, "input_tokens", 0) if db_user else 0
+            prev_output = getattr(db_user, "output_tokens", 0) if db_user else 0
+            new_input = prev_input + input_tokens
+            new_output = prev_output + output_tokens
+            await webapp_client.update_user(user_id, {"input_tokens": new_input, "output_tokens": new_output})
+            self.__logger.info("Token usage | +in=%d +out=%d | prev=%d/%d | new=%d/%d", input_tokens, output_tokens, prev_input, prev_output, new_input, new_output)
             self.__logger.info("Updated tokens for %s: +%d/%d (total %d/%d)", user_id, input_tokens, output_tokens, new_input, new_output)
 
         keyboard = copy.deepcopy(user_keyboards.backk)

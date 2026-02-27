@@ -4,12 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="64dd3c95-3045-456f-9426-1b89ccbfd60f" name="Changes" comment="Cleanup Done">
-      <change beforePath="$PROJECT_DIR$/run.py" beforeDir="false" afterPath="$PROJECT_DIR$/run.py" afterDir="false" />
+    <list default="true" id="64dd3c95-3045-456f-9426-1b89ccbfd60f" name="Changes" comment="Merge remote-tracking branch 'origin/main'&#10;&#10;# Conflicts:&#10;#&#9;.idea/workspace.xml&#10;#&#9;src/amocrm/client.py&#10;#&#9;src/webapp/crud/user.py&#10;#&#9;src/webapp/static/js/app/pages/yandex-pvz-widget.js">
+      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/admin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/new_admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/new_admin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/new_chat.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/new_chat.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/new_user.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/new_user.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/amocrm/client.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/amocrm/client.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/webapp/crud/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/user.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/pages/yandex-pvz-widget.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/pages/yandex-pvz-widget.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/new_user_helpers.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/new_user_helpers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/user.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ai/bot/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/routes/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/routes/__init__.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -26,48 +30,48 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "urusy001"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;urusy001&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/urusy001/elixirP.git",
-    "accountId": "3205de88-85dc-478f-b33d-862fb319dec6"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/urusy001/elixirP.git&quot;,
+    &quot;accountId&quot;: &quot;3205de88-85dc-478f-b33d-862fb319dec6&quot;
   }
-}]]></component>
+}</component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="ProjectErrors" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 4
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
   <component name="ProjectId" id="3AEHLcNkiuDHEOhfmfC9OEfLDfq" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "main",
-    "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "/Users/paylakurusyan/Desktop/elixirP/src",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/paylakurusyan/Desktop/elixirP/src&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src" />
@@ -87,7 +91,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1772150754977</updated>
-      <workItem from="1772150756074" duration="6523000" />
+      <workItem from="1772150756074" duration="7792000" />
     </task>
     <task id="LOCAL-00001" summary="Cleanup 1">
       <option name="closed" value="true" />
@@ -121,7 +125,23 @@
       <option name="project" value="LOCAL" />
       <updated>1772156862011</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Cleanup Done">
+      <option name="closed" value="true" />
+      <created>1772157335080</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1772157335080</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Merge remote-tracking branch 'origin/main'&#10;&#10;# Conflicts:&#10;#&#9;.idea/workspace.xml&#10;#&#9;src/amocrm/client.py&#10;#&#9;src/webapp/crud/user.py&#10;#&#9;src/webapp/static/js/app/pages/yandex-pvz-widget.js">
+      <option name="closed" value="true" />
+      <created>1772157361222</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1772157361222</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -131,6 +151,7 @@
     <MESSAGE value="m" />
     <MESSAGE value="Cleanup 1" />
     <MESSAGE value="Cleanup Done" />
-    <option name="LAST_COMMIT_MESSAGE" value="Cleanup Done" />
+    <MESSAGE value="Merge remote-tracking branch 'origin/main'&#10;&#10;# Conflicts:&#10;#&#9;.idea/workspace.xml&#10;#&#9;src/amocrm/client.py&#10;#&#9;src/webapp/crud/user.py&#10;#&#9;src/webapp/static/js/app/pages/yandex-pvz-widget.js" />
+    <option name="LAST_COMMIT_MESSAGE" value="Merge remote-tracking branch 'origin/main'&#10;&#10;# Conflicts:&#10;#&#9;.idea/workspace.xml&#10;#&#9;src/amocrm/client.py&#10;#&#9;src/webapp/crud/user.py&#10;#&#9;src/webapp/static/js/app/pages/yandex-pvz-widget.js" />
   </component>
 </project>

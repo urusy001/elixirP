@@ -10,10 +10,8 @@ from config import PROFESSOR_BOT_TOKEN, OWNER_TG_IDS, BOT_KEYWORDS, PROFESSOR_AS
 from src.ai.bot.keyboards import user_keyboards
 from src.ai.bot.states import user_states
 from src.ai.bot.texts import user_texts
+from src.ai.webapp_client import webapp_client
 from src.helpers import with_typing, CHAT_NOT_BANNED_FILTER, check_blocked
-from src.webapp import get_session
-from src.webapp.crud import update_user, increment_tokens, write_usage, get_user, update_user_name, upsert_user, get_user_total_requests
-from src.webapp.schemas import UserUpdate, UserCreate
 from src.tg_methods import normalize_phone
 
 professor_user_router = Router(name="user")
@@ -42,26 +40,19 @@ def _should_request_phone(user, assistant_id: str, used_requests: int) -> bool:
 
 async def _ensure_user(message: Message, professor_client):
     user_id = message.from_user.id
-    async with get_session() as session:
-        user = await get_user(session, 'tg_id', user_id)
-        if not user:
-            thread_id = await professor_client.create_thread()
-            user = await upsert_user(session, UserCreate(
-                tg_id=user_id,
-                name=message.from_user.first_name,
-                surname=message.from_user.last_name,
-                thread_id=thread_id,
-            ))
-            return user
-        if not user.thread_id:
-            thread_id = await professor_client.create_thread()
-            user = await update_user(session, user_id, UserUpdate(thread_id=thread_id))
+    user = await webapp_client.get_user("tg_id", user_id)
+    if not user:
+        thread_id = await professor_client.create_thread()
+        user = await webapp_client.upsert_user({"tg_id": user_id, "name": message.from_user.first_name, "surname": message.from_user.last_name, "thread_id": thread_id})
+        return user
+    if not user.thread_id:
+        thread_id = await professor_client.create_thread()
+        user = await webapp_client.update_user(user_id, {"thread_id": thread_id})
     return user
 
 
 async def _get_unverified_requests_count(user_id: int) -> int:
-    async with get_session() as session:
-        return await get_user_total_requests(session, user_id, PHONE_GATE_BOTS)
+    return await webapp_client.get_user_total_requests(user_id, PHONE_GATE_BOTS)
 
 
 @professor_user_router.message(CommandStart())
@@ -75,11 +66,10 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
     used_requests = 0 if user.tg_phone else await _get_unverified_requests_count(user_id)
     if _should_request_phone(user, assistant_id, used_requests): return await _request_phone(message, state)
 
-    if user.tg_phone: asyncio.create_task(update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
+    if user.tg_phone: asyncio.create_task(webapp_client.update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
     response = await professor_client.send_message(f"ОБРАЩАЙСЯ ТОЛЬКО НА ВЫ, Я написал первое сообщение или возобновил наш диалог. Начни/возобнови диалог. Мое имя в Telegram — {message.from_user.full_name}.", user.thread_id, assistant_id)
-    async with get_session() as session:
-        await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens'])
-        await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
+    await webapp_client.increment_tokens(message.from_user.id, response['input_tokens'], response['output_tokens'])
+    await webapp_client.write_usage(message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
 
     return await professor_bot.parse_response(response, message, back_menu=True)
 
@@ -97,9 +87,8 @@ async def handle_user_registration(message: Message, state: FSMContext, professo
     assistant_id = _resolve_assistant_id(message)
     response = await professor_client.send_message(f"ОБРАЩАЙСЯ ТОЛЬКО НА ВЫ, Я написал первое сообщение. Мое имя в Telegram — {message.from_user.full_name}.", thread_id, assistant_id)
 
-    async with get_session() as session:
-        await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens'])
-        await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
+    await webapp_client.increment_tokens(message.from_user.id, response['input_tokens'], response['output_tokens'])
+    await webapp_client.write_usage(message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
 
     await professor_bot.parse_response(response, message)
     return await message.delete()
@@ -111,7 +100,7 @@ async def handle_new_chat(message: Message, state: FSMContext, professor_client)
     result = await CHAT_NOT_BANNED_FILTER(message)
     if not result: return await message.answer(user_texts.banned_in_channel)
     thread_id = await professor_client.create_thread()
-    async with get_session() as session: await update_user(session, message.from_user.id, UserUpdate(thread_id=thread_id))
+    await webapp_client.update_user(message.from_user.id, {"thread_id": thread_id})
     await state.update_data(thread_id=thread_id)
     return await message.answer(user_texts.new_chat)
 
@@ -126,12 +115,11 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
     assistant_id = _resolve_assistant_id(message)
     used_requests = 0 if user.tg_phone else await _get_unverified_requests_count(user_id)
     if _should_request_phone(user, assistant_id, used_requests): return await _request_phone(message, state)
-    if user.tg_phone: asyncio.create_task(update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
+    if user.tg_phone: asyncio.create_task(webapp_client.update_user_name(user_id, message.from_user.first_name, message.from_user.last_name))
     response = await professor_client.send_message(message.text, user.thread_id, assistant_id)
 
-    async with get_session() as session:
-        await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens']),
-        await write_usage(session, message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
+    await webapp_client.increment_tokens(message.from_user.id, response['input_tokens'], response['output_tokens'])
+    await webapp_client.write_usage(message.from_user.id, response['input_tokens'], response['output_tokens'], BOT_KEYWORDS[assistant_id])
 
     return await professor_bot.parse_response(response, message, back_menu=True)
 

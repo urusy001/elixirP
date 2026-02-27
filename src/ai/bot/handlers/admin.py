@@ -11,10 +11,8 @@ from aiogram.types import Message, CallbackQuery, FSInputFile
 from config import ADMIN_TG_IDS, SPENDS_DIR, PROFESSOR_BOT_TOKEN, DOSE_BOT_TOKEN, UFA_TZ
 from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
+from src.ai.webapp_client import webapp_client
 from src.tg_methods import get_user_id_by_phone, normalize_phone
-from src.webapp import get_session
-from src.webapp.crud import get_usages, get_user, update_user, get_users
-from src.webapp.schemas import UserUpdate
 
 professor_admin_router = Router(name="admin_professor")
 new_admin_router = Router(name="admin_new")
@@ -36,7 +34,7 @@ async def handle_send(message: Message):
     who = args[0]
     if who.isdigit():
         user_id = int(who)
-        async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
+        user = await webapp_client.get_user("tg_id", user_id)
         if user:
             try:
                 await message.bot.get_chat(user_id)
@@ -48,7 +46,7 @@ async def handle_send(message: Message):
         else: await message.answer(f"Пользователь с айди {user_id} не был найден")
 
     elif who == "all":
-        async with get_session() as session: users = await get_users(session)
+        users = await webapp_client.get_users()
         i = 0
         for user in users:
             try:
@@ -76,16 +74,15 @@ async def handle_block(message: Message):
     args = text.removeprefix("/block ").split()
     if len(args) != 2: return await message.answer("<b>Ошибка команды</b>\n<code>/block phone номер_телефона</code>\n<code>/block id айди_телеграм</code>")
     mode, value = args[0], args[1]
-    user_update = UserUpdate(blocked_until=datetime.max.replace(tzinfo=UFA_TZ))
+    user_update = {"blocked_until": datetime.max.replace(tzinfo=UFA_TZ)}
     full_name = "Unknown"
 
     if mode == "id":
         if not value.isdigit(): return await message.answer("<b>Ошибка команды:</b> айди должен быть числом\n<code>/block id 123456789</code>")
         user_id = int(value)
-        async with get_session() as session:
-            user = await get_user(session, "tg_id", user_id)
-            if not user: return await message.answer(f"<b>Ошибка команды: пользователь с айди {user_id} не найден</b>")
-            await update_user(session, user.tg_id, user_update)
+        user = await webapp_client.get_user("tg_id", user_id)
+        if not user: return await message.answer(f"<b>Ошибка команды: пользователь с айди {user_id} не найден</b>")
+        await webapp_client.update_user(user.tg_id, user_update)
 
         try:
             chat = await message.bot.get_chat(user_id)
@@ -96,21 +93,16 @@ async def handle_block(message: Message):
     elif mode == "phone":
         phone = normalize_phone(value)
         full_name = phone
-
-        async with get_session() as session:
-            user = await get_user(session, "tg_phone", phone)
-            if not user: user = await get_user(session, "tg_id", f'+{phone}')
+        user = await webapp_client.get_user("tg_phone", phone)
+        if not user and not phone.startswith("+"): user = await webapp_client.get_user("tg_phone", f"+{phone}")
 
         if not user:
             user_id = await get_user_id_by_phone(phone)
             if not user_id:return await message.answer(f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>")
-            async with get_session() as session:
-                user = await get_user(session, "tg_id", user_id)
-                if not user: return await message.answer(f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>")
-                await update_user(session, user.tg_id, user_update)
-
-        else:
-            async with get_session() as session: await update_user(session, user.tg_id, user_update)
+            user = await webapp_client.get_user("tg_id", user_id)
+            if not user: return await message.answer(f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>")
+            await webapp_client.update_user(user.tg_id, user_update)
+        else: await webapp_client.update_user(user.tg_id, user_update)
 
         try:
             chat = await message.bot.get_chat(user.tg_id)
@@ -128,16 +120,15 @@ async def handle_unblock(message: Message):
     args = text.removeprefix("/unblock ").split()
     if len(args) != 2: return await message.answer("<b>Ошибка команды</b>\n<code>/unblock phone номер_телефона</code>\n<code>/unblock id айди_телеграм</code>")
     mode, value = args[0], args[1]
-    user_update = UserUpdate(blocked_until=None)
+    user_update = {"blocked_until": None}
     full_name = "Unknown"
 
     if mode == "id":
         if not value.isdigit(): return await message.answer("<b>Ошибка команды:</b> айди должен быть числом\n<code>/unblock id 123456789</code>")
         user_id = int(value)
-        async with get_session() as session:
-            user = await get_user(session, "tg_id", user_id)
-            if not user: return await message.answer(f"<b>Ошибка команды: пользователь с айди {user_id} не найден</b>")
-            await update_user(session, user.tg_id, user_update)
+        user = await webapp_client.get_user("tg_id", user_id)
+        if not user: return await message.answer(f"<b>Ошибка команды: пользователь с айди {user_id} не найден</b>")
+        await webapp_client.update_user(user.tg_id, user_update)
 
         try:
             chat = await message.bot.get_chat(user_id)
@@ -148,20 +139,16 @@ async def handle_unblock(message: Message):
     elif mode == "phone":
         phone = normalize_phone(value)
         full_name = phone
-        async with get_session() as session:
-            user = await get_user(session, "tg_phone", phone)
-            if not user: user = await get_user(session, "tg_id", f'+{phone}')
+        user = await webapp_client.get_user("tg_phone", phone)
+        if not user and not phone.startswith("+"): user = await webapp_client.get_user("tg_phone", f"+{phone}")
 
         if not user:
             user_id = await get_user_id_by_phone(phone)
             if not user_id:return await message.answer(f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>")
-            async with get_session() as session:
-                user = await get_user(session, "tg_id", user_id)
-                if not user: return await message.answer(f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>")
-                await update_user(session, user.tg_id, user_update)
-
-        else:
-            async with get_session() as session: await update_user(session, user.tg_id, user_update)
+            user = await webapp_client.get_user("tg_id", user_id)
+            if not user: return await message.answer(f"<b>Ошибка команды: пользователь с номером +{phone.removeprefix('+')} не найден</b>")
+            await webapp_client.update_user(user.tg_id, user_update)
+        else: await webapp_client.update_user(user.tg_id, user_update)
         try:
             chat = await message.bot.get_chat(user.tg_id)
             if chat: full_name = chat.full_name
@@ -188,7 +175,7 @@ async def handle_spends_time(message: Message):
     elif bot_id == DOSE_BOT_TOKEN.split(':')[0]: bot = "dose"
     else: bot = "new"
 
-    async with get_session() as session: period_label, usages = await get_usages(session, start_date, end_date, bot=bot)
+    period_label, usages = await webapp_client.get_usages(start_date, end_date, bot=bot)
     if not usages: return await message.answer(f"📭 Нет данных за период {period_label}.", reply_markup=admin_keyboards.main_menu, parse_mode="HTML")
 
     df = pd.DataFrame(usages)
@@ -225,7 +212,7 @@ async def handle_admin_callback(call: CallbackQuery, state: FSMContext):
     elif bot_id == DOSE_BOT_TOKEN.split(":")[0]: bot = "dose"
     else: bot = "new"
 
-    async with get_session() as session: period_label, usages = await get_usages(session, start_date, end_date, bot=bot)
+    period_label, usages = await webapp_client.get_usages(start_date, end_date, bot=bot)
     df = pd.DataFrame(usages)
     safe_label = (period_label or "").replace(":", "-").replace("/", "-")
     file_path = os.path.join(SPENDS_DIR, f"Расходы {safe_label}.xlsx")

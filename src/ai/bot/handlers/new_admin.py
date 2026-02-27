@@ -15,13 +15,9 @@ from src.ai.bot.texts import admin_texts
 from src.ai.bot.handlers import new_admin_router
 from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
-from src.helpers import make_excel_safe, user_carts_analytics_text, cart_analysis_text
+from src.ai.webapp_client import webapp_client
+from src.helpers import make_excel_safe
 from src.tg_methods import get_user_id_by_phone, normalize_phone, get_user_id_by_username
-from src.webapp import get_session
-from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_user_usage_totals, get_user_carts, get_carts_by_date, get_cart_by_id, get_product_with_features
-from src.webapp.crud.search import search_users, search_carts
-from src.webapp.models import Cart
-from src.webapp.schemas import UserCreate, UserUpdate
 
 
 @new_admin_router.message(CommandStart(deep_link=True))
@@ -30,7 +26,7 @@ async def handle_deep_start(message: Message, command: CommandObject, state: FSM
     product_id = data.get("product_id", [None])[0]
     user_id = data.get("user_id", [None])[0]
     if product_id:
-        async with get_session() as session: product = await get_product_with_features(session, product_id)
+        product = await webapp_client.get_product_with_features(product_id)
         async with aiohttp.ClientSession() as session:
             result = await session.get(f"{WEBAPP_BASE_DOMAIN}/static/images/{product_id}.png")
             bts = await result.content.read()
@@ -56,24 +52,23 @@ async def add_premium(message: Message):
     phone = message.text.removeprefix("/set_premium ").strip()
     if phone:
         phone = normalize_phone(phone)
-        async with get_session() as session: user = await get_user(session, 'tg_phone', phone)
+        user = await webapp_client.get_user("tg_phone", phone)
         user_id = await get_user_id_by_phone(phone) if not (user and user.tg_id) else user.tg_id
         if not user_id: return await message.answer('Пользователь не найден по номеру в ТГ')
 
     else: return await message.answer('Ошибка команды: <code>/set_premium номер_в_тг</code>')
-    async with get_session() as session: user = await update_user(session, int(user_id), UserUpdate(premium_until=datetime.now(tz=UFA_TZ) + timedelta(weeks=1044)))
+    user = await webapp_client.update_user(int(user_id), {"premium_until": datetime.now(tz=UFA_TZ) + timedelta(weeks=1044)})
     if user: return await message.answer(f'Пользователю с номером {user.tg_phone} выдан премиум доступ')
     else:
-        async with get_session() as session: user = await upsert_user(session, UserCreate(tg_phone=phone, tg_id=user_id, premium_until=datetime.now(tz=UFA_TZ) + timedelta(weeks=1044)))
+        user = await webapp_client.upsert_user({"tg_phone": phone, "tg_id": user_id, "premium_until": datetime.now(tz=UFA_TZ) + timedelta(weeks=1044)})
         if user: await message.answer(f'Пользователю с номером {user.tg_phone} выдан премиум доступ')
         else: await message.answer("Ошибка команды: пользователь не пользовался ботом или не был найден в базе")
         return None
 
 @new_admin_router.message(Command("statistics"))
 async def handle_statistics(message: Message):
-    async with get_session() as session:
-        promos = await list_promos(session)
-        carts = await get_carts(session)
+    promos = await webapp_client.list_promos()
+    carts = await webapp_client.get_carts()
 
     promos_rows = [{
         "ID": getattr(p, "id", None),
@@ -190,21 +185,21 @@ async def handle_get_user(message: Message):
     user_id = message.text.removeprefix("/get_user ").strip()
     if not user_id or not user_id.isdigit(): await message.answer("Ошибка команды: <code>/get_user айди_тг</code>", reply_markup=admin_keyboards.back)
     else:
-        async with get_session() as session:
-            user = await get_user(session, 'tg_id', user_id)
-            token_usages = await get_user_usage_totals(session, user.tg_id)
-            user_carts = [cart for cart in await get_user_carts(session, user.tg_id)]
+        user = await webapp_client.get_user("tg_id", int(user_id))
+        if not user: return await message.answer(f"Пользователь с айди {user_id} не найден", reply_markup=admin_keyboards.back)
+        token_usages = await webapp_client.get_user_usage_totals(user.tg_id)
+        user_carts = [cart for cart in await webapp_client.get_user_carts(user.tg_id)]
 
-        paid: list[Cart] = []
-        unpaid: list[Cart] = []
+        paid: list[object] = []
+        unpaid: list[object] = []
         for cart in user_carts: paid.append(cart) if cart.is_paid else unpaid.append(cart)
         totals = token_usages["totals"]
         total_requests = totals["total_requests"]
         total_cost_usd = totals["total_cost_usd"]
         avg_cost_per_request = totals["avg_cost_per_request"]
-        total_rub = sum([cart.sum for cart in user_carts])
-        paid_rub = sum([cart.sum for cart in paid])
-        unpaid_rub = sum([cart.sum for cart in unpaid])
+        total_rub = sum([(cart.sum or 0) for cart in user_carts])
+        paid_rub = sum([(cart.sum or 0) for cart in paid])
+        unpaid_rub = sum([(cart.sum or 0) for cart in unpaid])
         is_member = False
         try: is_member = await message.bot.get_chat_member(ELIXIR_CHAT_ID, user.tg_id)
         except Exception as e: print(e)
@@ -230,7 +225,7 @@ async def handle_block_days(message: Message, state: FSMContext):
     days = int(message.text.strip())
     if days == 0: until = datetime.max.replace(tzinfo=UFA_TZ)
     else: until = datetime.now() + timedelta(days=abs(int(days)))
-    async with get_session() as session: user = await update_user(session, user_id, UserUpdate(blocked_until=until))
+    user = await webapp_client.update_user(user_id, {"blocked_until": until})
     await message.answer(f"Пользователь {user.full_name} {user.tg_phone} <b>успешно заблокирован до {until.date()} {until.hour}:{until.minute} по МСК</b>", reply_markup=admin_keyboards.back_to_user(user.tg_id))
 
 @new_admin_router.message(Command("get_cart"))
@@ -238,8 +233,8 @@ async def handle_get_cart(message: Message, state: FSMContext):
     cart_id = message.text.removeprefix("/get_cart").strip()
     if not cart_id.isdigit(): await message.answer("Ошибка команды: <code>/get_cart номер_заказа</code>", reply_markup=admin_keyboards.back)
     else:
-        async with get_session() as session: cart = await get_cart_by_id(session, int(cart_id))
-        if cart: await message.answer(await cart_analysis_text(session, int(cart_id)), reply_markup=admin_keyboards.back_to_user(cart.user_id))
+        cart = await webapp_client.get_cart_by_id(int(cart_id))
+        if cart: await message.answer(await webapp_client.cart_analysis_text(int(cart_id)), reply_markup=admin_keyboards.back_to_user(cart.user_id))
         else:
             await message.answer(f"Заказ по номеру {cart_id} не существует")
             await handle_start(message, state)
@@ -252,9 +247,9 @@ async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
         if data[1] == "search": await call.message.edit_text(admin_texts.search_users_choice, reply_markup=admin_keyboards.search_users_choice)
         elif data[1].isdigit():
             user_id = int(data[1])
-            async with get_session() as session: user = await get_user(session, 'tg_id', user_id)
+            user = await webapp_client.get_user("tg_id", user_id)
             if data[2] == "carts":
-                async with get_session() as session: analysis_text = await user_carts_analytics_text(session, user_id)
+                analysis_text = await webapp_client.user_carts_analytics_text(user_id)
                 await call.message.edit_text(f"{call.message.html_text.splitlines()[0]}\n{analysis_text}")
 
             elif data[2] == "block":
@@ -263,7 +258,7 @@ async def handle_new_admin_callback(call: CallbackQuery, state: FSMContext):
                 await state.update_data(user_id=user.tg_id)
 
             elif data[2] == "unblock":
-                async with get_session() as session: user = await update_user(session, user.tg_id, UserUpdate(blocked_until=None))
+                user = await webapp_client.update_user(user.tg_id, {"blocked_until": None})
                 await call.message.edit_text(f"Пользователь {user.full_name} {user.tg_phone} успешно <b>разблокирован 🔓</b>", reply_markup=admin_keyboards.back_to_user(user.tg_id))
 
     elif data[0] == "spends":
@@ -290,14 +285,14 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
             value = await get_user_id_by_username(value.removeprefix("@"))
             if value:
                 column_name = "tg_id"
-                async with get_session() as session: rows, total = await search_users(session, column_name, value, limit=50)
+                rows, total = await webapp_client.search_users(column_name, value, limit=50)
                 if rows: results = [InlineQueryResultArticle(thumbnail_url=row.photo_url, id=str(uuid.uuid4()), title=row.full_name, description=row.contact_info, input_message_content=InputTextMessageContent(message_text=f"/get_user {row.tg_id}", parse_mode=None)) for row in rows]
                 else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено пользователей по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=start_input_content)]
 
             else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="Пользователя с таким username не существует", input_message_content=start_input_content)]
 
         else:
-            async with get_session() as session: rows, total = await search_users(session, column_name, value, limit=50)
+            rows, total = await webapp_client.search_users(column_name, value, limit=50)
             if rows: results = [InlineQueryResultArticle(thumbnail_url=row.photo_url, id=str(uuid.uuid4()), title=row.full_name, description=row.contact_info, input_message_content=InputTextMessageContent(message_text=f"/get_user {row.tg_id}", parse_mode=None)) for row in rows]
             else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено пользователей по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=start_input_content)]
 
@@ -312,14 +307,14 @@ async def handle_inline_query(inline_query: InlineQuery, state: FSMContext):
                 if not all((x.isdigit() for x in [day, month, year])): results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="Введенный запрос не число и не дата", description="Поиск заказов возможен только по их номерам или дате (дд.мм.гггг)", input_message_content=start_input_content)]
                 else:
                     dt = datetime(year=int(year), month=int(month), day=int(day), tzinfo=UFA_TZ)
-                    async with get_session() as session: carts = await get_carts_by_date(session, dt)
+                    carts = await webapp_client.get_carts_by_date(dt)
                     if carts: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"{cart.name} от {cart.user.full_name}", description=f"Статус: {cart.status}, Обновлено: {cart.updated_at.hour}:{cart.updated_at.minute}, {cart.updated_at.date()}", input_message_content=InputTextMessageContent(message_text=f"/get_cart {cart.id}")) for cart in carts]
                     else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено заказов по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=start_input_content)]
 
             else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="Введенный запрос не число и не дата", description="Поиск заказов возможен только по их номерам или дате (дд.мм.гггг)", input_message_content=start_input_content)]
         else:
             cart_id = int(value)
-            async with get_session() as session: carts, total = await search_carts(session, cart_id, limit=50)
+            carts, total = await webapp_client.search_carts(cart_id, limit=50)
             if carts: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title=f"{cart.name} от {cart.user.full_name}", description=f"Статус: {cart.status}, Обновлено: {cart.updated_at.hour}:{cart.updated_at.minute}, {cart.updated_at.date()}", input_message_content=InputTextMessageContent(message_text=f"/get_cart {cart.id}")) for cart in carts]
             else: results = [InlineQueryResultArticle(id=str(uuid.uuid4()), title="В баночке не найдено заказов по поисковому запросу 🫙", description="Попробуйте другой запрос", input_message_content=start_input_content)]
 
