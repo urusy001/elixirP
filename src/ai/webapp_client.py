@@ -50,8 +50,25 @@ def _to_jsonable(value: Any) -> Any:
     return value
 
 
+def _parse_iso_value(value: str) -> Any:
+    try: return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        try: return date.fromisoformat(value)
+        except ValueError: return value
+
+
+def _is_time_key(key: str | None) -> bool:
+    if not key: return False
+    return key.endswith(("_at", "_until", "_date")) or key in {"date", "start_date", "end_date"}
+
+
 def _to_obj(value: Any) -> Any:
-    if isinstance(value, dict): return SimpleNamespace(**{k: _to_obj(v) for k, v in value.items()})
+    if isinstance(value, dict):
+        parsed: dict[str, Any] = {}
+        for k, v in value.items():
+            if isinstance(v, str) and _is_time_key(k): parsed[k] = _parse_iso_value(v)
+            else: parsed[k] = _to_obj(v)
+        return SimpleNamespace(**parsed)
     if isinstance(value, list): return [_to_obj(v) for v in value]
     return value
 

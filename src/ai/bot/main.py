@@ -23,12 +23,12 @@ from config import (
     BOT_NAMES, NEW_OPENAI_API, PROFESSOR_OPENAI_API, PROFESSOR_ASSISTANT_ID, UFA_TZ,
 )
 from src.ai.bot.handlers import *
+from src.ai.helpers import split_text, MAX_TG_MSG_LEN
 from src.ai.bot.keyboards import user_keyboards
 from src.ai.bot.middleware import ContextMiddleware
 from src.ai.bot.texts import user_texts
 from src.ai.client import ProfessorClient
 from src.ai.webapp_client import webapp_client
-from src.helpers import split_text, MAX_TG_MSG_LEN
 
 
 class ProfessorBot(Bot):

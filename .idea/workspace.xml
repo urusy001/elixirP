@@ -4,16 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="64dd3c95-3045-456f-9426-1b89ccbfd60f" name="Changes" comment="Merge remote-tracking branch 'origin/main'&#10;&#10;# Conflicts:&#10;#&#9;.idea/workspace.xml&#10;#&#9;src/amocrm/client.py&#10;#&#9;src/webapp/crud/user.py&#10;#&#9;src/webapp/static/js/app/pages/yandex-pvz-widget.js">
-      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/admin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/new_admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/new_admin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/new_chat.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/new_chat.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/new_user.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/new_user.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/new_user_helpers.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/new_user_helpers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/user.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ai/bot/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/webapp/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/webapp/routes/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/routes/__init__.py" afterDir="false" />
+    <list default="true" id="64dd3c95-3045-456f-9426-1b89ccbfd60f" name="Changes" comment="RPC Migration">
+      <change beforePath="$PROJECT_DIR$/src/ai/webapp_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/webapp_client.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -91,7 +83,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1772150754977</updated>
-      <workItem from="1772150756074" duration="7792000" />
+      <workItem from="1772150756074" duration="9109000" />
     </task>
     <task id="LOCAL-00001" summary="Cleanup 1">
       <option name="closed" value="true" />
@@ -141,7 +133,23 @@
       <option name="project" value="LOCAL" />
       <updated>1772157361222</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="RPC Migration">
+      <option name="closed" value="true" />
+      <created>1772158592185</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1772158592185</updated>
+    </task>
+    <task id="LOCAL-00008" summary="RPC Migration">
+      <option name="closed" value="true" />
+      <created>1772158645672</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1772158645672</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -152,6 +160,7 @@
     <MESSAGE value="Cleanup 1" />
     <MESSAGE value="Cleanup Done" />
     <MESSAGE value="Merge remote-tracking branch 'origin/main'&#10;&#10;# Conflicts:&#10;#&#9;.idea/workspace.xml&#10;#&#9;src/amocrm/client.py&#10;#&#9;src/webapp/crud/user.py&#10;#&#9;src/webapp/static/js/app/pages/yandex-pvz-widget.js" />
-    <option name="LAST_COMMIT_MESSAGE" value="Merge remote-tracking branch 'origin/main'&#10;&#10;# Conflicts:&#10;#&#9;.idea/workspace.xml&#10;#&#9;src/amocrm/client.py&#10;#&#9;src/webapp/crud/user.py&#10;#&#9;src/webapp/static/js/app/pages/yandex-pvz-widget.js" />
+    <MESSAGE value="RPC Migration" />
+    <option name="LAST_COMMIT_MESSAGE" value="RPC Migration" />
   </component>
 </project>

@@ -3,7 +3,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 
 from config import NEW_ASSISTANT_ID, BOT_KEYWORDS
-from src.helpers import CHAT_ADMIN_REPLY_FILTER
+from src.ai.helpers import CHAT_ADMIN_REPLY_FILTER
 from src.ai.webapp_client import webapp_client
 
 new_chat_router = Router(name="new_chat")

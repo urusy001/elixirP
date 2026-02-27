@@ -10,8 +10,8 @@ from config import PROFESSOR_BOT_TOKEN, OWNER_TG_IDS, BOT_KEYWORDS, PROFESSOR_AS
 from src.ai.bot.keyboards import user_keyboards
 from src.ai.bot.states import user_states
 from src.ai.bot.texts import user_texts
+from src.ai.helpers import with_typing, CHAT_NOT_BANNED_FILTER, check_blocked
 from src.ai.webapp_client import webapp_client
-from src.helpers import with_typing, CHAT_NOT_BANNED_FILTER, check_blocked
 from src.tg_methods import normalize_phone
 
 professor_user_router = Router(name="user")

@@ -13,8 +13,8 @@ from aiogram.types import FSInputFile, Message, CallbackQuery, ReplyKeyboardRemo
 from config import OWNER_TG_IDS, UFA_TZ, DATA_DIR, PROFESSOR_ASSISTANT_ID, NEW_ASSISTANT_ID, BOT_KEYWORDS, WEBAPP_BASE_DOMAIN, INTERNAL_API_TOKEN
 from src.ai.bot.handlers.new_user_helpers import _get_unverified_requests_count, _request_phone, _ensure_user
 from src.ai.calc import generate_drug_graphs, plot_filled_scale
+from src.ai.helpers import CHAT_NOT_BANNED_FILTER, _notify_user, with_typing, _fmt, check_blocked
 from src.ai.webapp_client import webapp_client
-from src.helpers import CHAT_NOT_BANNED_FILTER, _notify_user, with_typing, _fmt, check_blocked
 from src.tg_methods import normalize_phone
 from src.ai.bot.texts import user_texts
 from src.ai.bot.keyboards import user_keyboards
