@@ -3,15 +3,9 @@ import asyncio
 import signal
 
 from src.ai.bot.main import run_new_bot, run_dose_bot, run_professor_bot
+from src.logger import setup_logging
 from src.tg_methods import client as tg_client
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
-logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
-logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
 logger = logging.getLogger("main")
 
 
@@ -25,8 +19,7 @@ async def main():
 
     async def shutdown():
         logger.warning("🛑 Shutting down gracefully...")
-        for task in tasks:
-            if not task.done(): task.cancel()
+        [task.cancel() for task in tasks if not task.done()]
         await asyncio.gather(*tasks, return_exceptions=True)
         logger.info("✅ All background tasks stopped cleanly.")
 
@@ -41,5 +34,6 @@ async def main():
 
 
 if __name__ == "__main__":
+    setup_logging()
     try: asyncio.run(main())
     except KeyboardInterrupt: logger.warning("Interrupted manually (Ctrl+C). Exiting.")

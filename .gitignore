@@ -1,8 +1,6 @@
 *.session
 node_modules/
 .venv/
-.idea/
-venv/
 .env
 __pycache__/
 *.pyc
@@ -13,4 +11,5 @@ build/
 /*.log
 *.DS_Store
 photos/
+images/
 .xlsx
