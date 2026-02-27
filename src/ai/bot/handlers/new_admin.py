@@ -15,8 +15,8 @@ from src.ai.bot.texts import admin_texts
 from src.ai.bot.handlers import new_admin_router
 from src.ai.bot.keyboards import admin_keyboards
 from src.ai.bot.states import admin_states
+from src.ai.helpers import make_excel_safe
 from src.ai.webapp_client import webapp_client
-from src.helpers import make_excel_safe
 from src.tg_methods import get_user_id_by_phone, normalize_phone, get_user_id_by_username
 
 
