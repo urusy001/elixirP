@@ -49,7 +49,7 @@ ALLOWED_TAGS = {
     "code", "pre",
     "blockquote",
 }
-_csv_lock = asyncio.Lock()  # чтобы несколько хендлеров не писали одновременно
+_csv_lock = asyncio.Lock()                                                    
 def _s(obj, attr: str, default: str = "") -> str:
     v = getattr(obj, attr, None)
     if v is None:
@@ -79,12 +79,12 @@ def with_typing(func):
                     try: await bot.send_chat_action(chat_id, "typing")
                     except Exception: pass
                     await asyncio.sleep(random.uniform(3, 5))
-            except asyncio.CancelledError: return  # exit immediately when cancelled
+            except asyncio.CancelledError: return                                   
 
         task = asyncio.create_task(loop())
         try: return await func(*args, **kwargs)
         finally:
-            task.cancel()  # cancel immediately
+            task.cancel()                      
             try: await task
             except asyncio.CancelledError: pass
     return wrapper
@@ -140,7 +140,7 @@ def normalize_user_value(column_name: str, raw_value: Any) -> Any:
     """
     col = _get_user_column(column_name)
     col_type = col.type
-    is_nullable = getattr(col.expression, "nullable", True)  # fallback True
+    is_nullable = getattr(col.expression, "nullable", True)                 
     if raw_value in _NULLY and is_nullable: return None
     if isinstance(col_type, (Integer, BigInteger)): return int(raw_value)
     if isinstance(col_type, String): return str(raw_value) if raw_value is not None else None
@@ -194,7 +194,7 @@ def format_order_for_amocrm(order_number: int | str, payload: dict[str, Any], de
         name = item.get("name", "Товар")
         qty = item.get("qty", 1)
         subtotal = int(item.get("subtotal", 0))
-        subtotal_str = f"{subtotal:,}".replace(",", " ")  # 37260 -> "37 260"
+        subtotal_str = f"{subtotal:,}".replace(",", " ")                     
         lines_items.append(f"{idx}. {name} {qty}шт. — {subtotal_str}руб.")
 
     items_block = "\n".join(lines_items) if lines_items else "Товары не указаны."
@@ -203,8 +203,8 @@ def format_order_for_amocrm(order_number: int | str, payload: dict[str, Any], de
     postal_code = address_data.get("postal_code") or ""
     formatted_cdek_addr = address_data.get("formatted") or address_data.get("name")
     yandex_addr = address_data.get("address") or ""
-    yandex_name = address_data.get("name") or ""  # for self_pickup PVZ label
-    delivery_mode = (delivery.get("deliveryMode") or "").strip()  # for Yandex
+    yandex_name = address_data.get("name") or ""                             
+    delivery_mode = (delivery.get("deliveryMode") or "").strip()              
 
     if delivery_service_norm == "CDEK":
         if tariff_norm == "office": prefix = "Доставка: Пункт выдачи СДЕК"
@@ -300,7 +300,7 @@ def normalize_html_for_telegram(raw_html: str) -> str:
         if text: p.replace_with(text + "\n")
         else: p.decompose()
 
-    for tag in list(soup.find_all(True)):  # True = любой тег
+    for tag in list(soup.find_all(True)):                    
         if not isinstance(tag, Tag): continue
         name = tag.name
         if name not in ALLOWED_TAGS:
@@ -331,7 +331,7 @@ def normalize_html_for_telegram(raw_html: str) -> str:
 
         elif name == "pre": tag.attrs = {}
         elif name == "blockquote":
-            if "expandable" in tag.attrs: tag.attrs = {"expandable": None}  # <blockquote expandable>
+            if "expandable" in tag.attrs: tag.attrs = {"expandable": None}                           
             else: tag.attrs = {}
 
         else: tag.attrs = {}
@@ -403,7 +403,7 @@ def validate_init_data(init_data: str, bot_token: str = NEW_BOT_TOKEN, max_age_s
         key=b"WebAppData",
         msg=bot_token.encode("utf-8"),
         digestmod=hashlib.sha256
-    ).digest()  # IMPORTANT: keep as raw bytes
+    ).digest()                                
     check_hash = hmac.new(
         key=secret_key,
         msg=data_check_string.encode("utf-8"),
@@ -512,7 +512,7 @@ async def user_carts_analytics_text(db: AsyncSession, user_id: int, *, days: int
         .where(Cart.user_id == user_id)
     )).one()
 
-    # ✅ Топ позиций: Product.name + граммовка (Feature.name) + product_onec_id
+                                                                              
     top_positions_rows = (await db.execute(
         select(
             CartItem.product_onec_id.label("product_id"),
@@ -532,7 +532,7 @@ async def user_carts_analytics_text(db: AsyncSession, user_id: int, *, days: int
         .limit(top_n)
     )).all()
 
-    # TG категории
+                  
     cat_rows = (await db.execute(
         select(
             TgCategory.id.label("cat_id"),
@@ -675,7 +675,7 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
     if not cart:
         return f"❌ Корзина/заказ не найден: <code>{cart_id}</code>"
 
-    # ---------- items ----------
+                                 
     lines: list[str] = []
     qty_total = 0
     items_total = Decimal("0")
@@ -689,12 +689,12 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
 
         p_name = _s(product, "name", "Без названия")
         p_code = _s(product, "code", "")
-        f_name = _s(feature, "name", "")  # дозировка/вариация
+        f_name = _s(feature, "name", "")                      
         unit_price = _money(getattr(feature, "price", None))
         line_total = unit_price * qty
         items_total += line_total
 
-        # "Название (CODE) — Вариация: ... | qty × price = total"
+                                                                 
         parts: list[str] = [f"• <b>{p_name}</b>"]
         if p_code:
             parts.append(f"<i>({p_code})</i>")
@@ -707,7 +707,7 @@ async def cart_analysis_text(db: AsyncSession, cart_id: int) -> str:
 
         lines.append(f"{head} — " + " | ".join(tail_bits))
 
-    # ---------- totals ----------
+                                  
     cart_sum = _money(getattr(cart, "sum", None))
     delivery_sum = _money(getattr(cart, "delivery_sum", None))
     promo_gains = _money(getattr(cart, "promo_gains", None))

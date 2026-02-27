@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -8,15 +7,11 @@ class CartItemBase(BaseModel):
     feature_onec_id: str
     quantity: int
 
-
 class CartItemCreate(CartItemBase):
-    """What frontend sends when adding to cart."""
     pass
 
-
 class CartItemUpdate(BaseModel):
-    quantity: Optional[int] = None
-
+    quantity: int | None = None
 
 class CartItemRead(CartItemBase):
     id: int

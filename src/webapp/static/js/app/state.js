@@ -1,18 +1,24 @@
-const persistedCart = JSON.parse(localStorage.getItem("cart") || "{}");
+function readJson(storage, key, fallback) {
+    const raw = storage.getItem(key);
+    if (raw == null) return fallback;
+    try { return JSON.parse(raw); } catch { return fallback; }
+}
+
+const persistedCart = readJson(localStorage, "cart", {});
 
 export const state = {
     user: null,
     cart: persistedCart,
-    checkout: JSON.parse(sessionStorage.getItem("checkout_data") || "null"),
-    delivery: JSON.parse(sessionStorage.getItem("selected_delivery") || "null"),
+    checkout: readJson(sessionStorage, "checkout_data", null),
+    delivery: readJson(sessionStorage, "selected_delivery", null),
     deliveryService: sessionStorage.getItem("selected_delivery_service") || null,
-    contact: JSON.parse(sessionStorage.getItem("yookassa_contact_info") || "null"),
+    contact: readJson(sessionStorage, "yookassa_contact_info", null),
     telegram: (typeof window !== "undefined" && window.Telegram?.WebApp) || null,
 };
 
 export function saveCart() {
     localStorage.setItem("cart", JSON.stringify(state.cart));
-    dispatchEvent(new CustomEvent("cart:updated"));
+    window.dispatchEvent(new CustomEvent("cart:updated"));
 }
 
 export function setCheckoutData(data) {

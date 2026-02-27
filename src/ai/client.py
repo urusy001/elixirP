@@ -14,7 +14,8 @@ class ProfessorClient(AsyncClient):
         self.__logger = logging.getLogger(self.__class__.__name__)
         self.__assistant_id = assistant_id or ""
 
-    def _sync_usage_from_final_run(self, final_run, event_handler: ProfessorEventHandler) -> None:
+    @staticmethod
+    def _sync_usage_from_final_run(final_run, event_handler: ProfessorEventHandler) -> None:
         usage = getattr(final_run, "usage", None)
         if not usage: return
 
@@ -105,12 +106,7 @@ class ProfessorClient(AsyncClient):
             self._sync_usage_from_final_run(final_run, event_handler)
             await self._recover_response_if_empty(thread_id, stream, event_handler)
 
-        if not event_handler.has_payload():
-            self.__logger.warning(
-                "Assistant run produced no text/files after all fallbacks | thread_id=%s assistant_id=%s",
-                thread_id,
-                assistant_id,
-            )
+        if not event_handler.has_payload(): self.__logger.warning("Assistant run produced no text/files after all fallbacks | thread_id=%s assistant_id=%s", thread_id, assistant_id)
         return event_handler.response
 
     @property

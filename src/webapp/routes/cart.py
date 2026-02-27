@@ -1,5 +1,4 @@
 from decimal import Decimal
-
 from fastapi import APIRouter, HTTPException, Query, Depends, Body
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,7 +43,7 @@ async def cart_json(cart_data: dict = Body(...), db: AsyncSession = Depends(get_
     items = cart_data.get("items", [])
     if not items: return {"items": [], "total": 0}
 
-    # Collect all featureIds in the cart
+                                        
     feature_ids = [item["featureId"] for item in items if item.get("featureId")]
     feature_map = {}
 
@@ -76,7 +75,4 @@ async def cart_json(cart_data: dict = Body(...), db: AsyncSession = Depends(get_
                 "subtotal": float(subtotal)
             })
 
-    return {
-        "items": enriched,
-        "total": float(total)
-    }
+    return {"items": enriched, "total": float(total)}

@@ -1,57 +1,33 @@
 from datetime import date
-from typing import Dict, Optional, List, Tuple, Any, Sequence
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.webapp.models import BotEnum, UserTokenUsage, User
 from src.webapp.schemas import BotLiteral
+from collections.abc import Sequence
 
-
-async def get_usages(
-        db: AsyncSession,
-        start_date: date,
-        end_date: Optional[date] = None,
-        bot: Optional[BotLiteral] = None,
-) -> Tuple[str, List[Dict[str, float]]]:
+async def get_usages(db: AsyncSession, start_date: date, end_date: date | None = None, bot: BotLiteral | None = None,) -> tuple[str, list[dict[str, float]]]:
     end_date = end_date or date.today()
-    if end_date < start_date:
-        raise ValueError("end_date cannot be earlier than start_date")
+    if end_date < start_date: raise ValueError("end_date cannot be earlier than start_date")
 
-    where_clauses = [
-        UserTokenUsage.date >= start_date,
-        UserTokenUsage.date <= end_date,
-        ]
-    if bot:
-        where_clauses.append(UserTokenUsage.bot == bot)
+    where_clauses = [UserTokenUsage.date >= start_date, UserTokenUsage.date <= end_date]
+    if bot: where_clauses.append(UserTokenUsage.bot == bot)
 
-    stmt = (
-        select(
-            UserTokenUsage.user_id,
-            User.tg_phone,
-            func.coalesce(func.sum(UserTokenUsage.total_requests), 0).label("total_requests"),  # ⬅️ changed
-            func.coalesce(func.sum(UserTokenUsage.input_tokens), 0).label("input_tokens"),
-            func.coalesce(func.sum(UserTokenUsage.output_tokens), 0).label("output_tokens"),
-            func.coalesce(func.sum(UserTokenUsage.input_cost_usd), 0).label("input_cost_usd"),
-            func.coalesce(func.sum(UserTokenUsage.output_cost_usd), 0).label("output_cost_usd"),
-        )
-        .join(User, UserTokenUsage.user_id == User.tg_id)
-        .where(*where_clauses)
-        .group_by(UserTokenUsage.user_id, User.tg_phone)
-    )
-
+    stmt = (select(UserTokenUsage.user_id, User.tg_phone, func.coalesce(func.sum(UserTokenUsage.total_requests), 0).label("total_requests"), func.coalesce(func.sum(UserTokenUsage.input_tokens), 0).label("input_tokens"), func.coalesce(func.sum(UserTokenUsage.output_tokens), 0).label("output_tokens"), func.coalesce(func.sum(UserTokenUsage.input_cost_usd), 0).label("input_cost_usd"), func.coalesce(func.sum(UserTokenUsage.output_cost_usd), 0).label("output_cost_usd")).join(User, UserTokenUsage.user_id == User.tg_id).where(*where_clauses).group_by(UserTokenUsage.user_id, User.tg_phone))
     period_label = f"С {start_date:%Y-%m-%d} по {end_date:%Y-%m-%d}" + (f" (бот: {bot})" if bot else "")
-
     result = await db.execute(stmt)
     rows = result.all()
-
-    usage_list: List[Dict[str, float]] = []
-    if bot == "new":  # gpt-4.1
+    usage_list: list[dict[str, float]] = []
+    if bot == "new":           
         input_per_m = 2.00
         output_per_m = 8.00
-    elif bot in ["dose", "professor"]:  # gpt-4.1-mini
+
+    elif bot in ["dose", "professor"]:                
         input_per_m = 0.40
         output_per_m = 1.60
+
     else:
         input_per_m = 0.40
         output_per_m = 1.60
@@ -65,7 +41,7 @@ async def get_usages(
         output_cost = (output_tokens / 1_000_000) * output_per_m
         total_cost = input_cost + output_cost
 
-        total_requests = int(row.total_requests)  # ⬅️ now sum from DB
+        total_requests = int(row.total_requests)                      
         avg_cost = round(total_cost / total_requests, 4) if total_requests else 0.0
 
         usage_list.append({
@@ -83,80 +59,37 @@ async def get_usages(
 
     return period_label, usage_list
 
-async def write_usage(
-        db: AsyncSession,
-        user_id: int,
-        input_tokens: int,
-        output_tokens: int,
-        bot: BotLiteral,
-        usage_date: Optional[date] = None,
-):
-    """
-    Create or increment token usage for (user_id, date, bot).
-    Every call is treated as 1 request.
-    """
+async def write_usage(db: AsyncSession, user_id: int, input_tokens: int, output_tokens: int, bot: BotLiteral, usage_date: date | None = None):
     usage_date = usage_date or date.today()
 
-    result = await db.execute(
-        select(UserTokenUsage).where(
-            UserTokenUsage.user_id == user_id,
-            UserTokenUsage.date == usage_date,
-            UserTokenUsage.bot == BotEnum(bot),
-            )
-    )
+    result = await db.execute(select(UserTokenUsage).where(UserTokenUsage.user_id == user_id, UserTokenUsage.date == usage_date, UserTokenUsage.bot == BotEnum(bot)))
     usage = result.scalar_one_or_none()
-
     if usage:
-        # triggers @validates to recompute costs
         usage.input_tokens += input_tokens
         usage.output_tokens += output_tokens
-        usage.total_requests = (usage.total_requests or 0) + 1   # ⬅️ increment
+        usage.total_requests = (usage.total_requests or 0) + 1
+
     else:
-        usage = UserTokenUsage(
-            user_id=user_id,
-            date=usage_date,
-            bot=BotEnum(bot),
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            total_requests=1,  # ⬅️ first request for this day/bot
-        )
+        usage = UserTokenUsage(user_id=user_id, date=usage_date, bot=BotEnum(bot), input_tokens=input_tokens, output_tokens=output_tokens, total_requests=1)
         db.add(usage)
 
     await db.commit()
     await db.refresh(usage)
     return usage
 
-async def get_user_usage_totals(db: AsyncSession, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None) -> Dict[str, Any]:
-    """
-    Return total usage sums for a single user grouped by bot, plus grand totals.
-    Costs are summed from DB columns: input_cost_usd/output_cost_usd.
-    """
+async def get_user_usage_totals(db: AsyncSession, user_id: int, start_date: date | None = None, end_date: date | None = None) -> dict[str, Any]:
     end_date = end_date or date.today()
     where_clauses = [UserTokenUsage.user_id == user_id]
     if start_date:
         if end_date < start_date: raise ValueError("end_date cannot be earlier than start_date")
         where_clauses += [UserTokenUsage.date >= start_date, UserTokenUsage.date <= end_date]
+
     else: where_clauses += [UserTokenUsage.date <= end_date]
-
     tg_phone = await db.scalar(select(User.tg_phone).where(User.tg_id == user_id))
-
-    stmt = (
-        select(
-            UserTokenUsage.bot.label("bot"),
-            func.coalesce(func.sum(UserTokenUsage.total_requests), 0).label("total_requests"),
-            func.coalesce(func.sum(UserTokenUsage.input_tokens), 0).label("input_tokens"),
-            func.coalesce(func.sum(UserTokenUsage.output_tokens), 0).label("output_tokens"),
-            func.coalesce(func.sum(UserTokenUsage.input_cost_usd), 0).label("input_cost_usd"),
-            func.coalesce(func.sum(UserTokenUsage.output_cost_usd), 0).label("output_cost_usd"),
-        )
-        .where(*where_clauses)
-        .group_by(UserTokenUsage.bot)
-        .order_by(UserTokenUsage.bot)
-    )
-
+    stmt = (select(UserTokenUsage.bot.label("bot"), func.coalesce(func.sum(UserTokenUsage.total_requests), 0).label("total_requests"), func.coalesce(func.sum(UserTokenUsage.input_tokens), 0).label("input_tokens"), func.coalesce(func.sum(UserTokenUsage.output_tokens), 0).label("output_tokens"), func.coalesce(func.sum(UserTokenUsage.input_cost_usd), 0).label("input_cost_usd"), func.coalesce(func.sum(UserTokenUsage.output_cost_usd), 0).label("output_cost_usd")).where(*where_clauses).group_by(UserTokenUsage.bot).order_by(UserTokenUsage.bot))
     rows = (await db.execute(stmt)).all()
 
-    by_bot: List[Dict[str, Any]] = []
+    by_bot: list[dict[str, Any]] = []
     grand_requests = grand_in = grand_out = 0
     grand_in_cost = grand_out_cost = 0.0
 
@@ -164,13 +97,10 @@ async def get_user_usage_totals(db: AsyncSession, user_id: int, start_date: Opti
         in_tokens = int(r.input_tokens)
         out_tokens = int(r.output_tokens)
         reqs = int(r.total_requests)
-
         in_cost = float(r.input_cost_usd or 0)
         out_cost = float(r.output_cost_usd or 0)
         total_cost = in_cost + out_cost
-
-        bot_name = getattr(r.bot, "value", str(r.bot))  # BotEnum -> "new"/"dose"/...
-
+        bot_name = getattr(r.bot, "value", str(r.bot))
         by_bot.append({
             "bot": bot_name,
             "total_requests": reqs,
@@ -200,11 +130,7 @@ async def get_user_usage_totals(db: AsyncSession, user_id: int, start_date: Opti
         "avg_cost_per_request": round((grand_in_cost + grand_out_cost) / grand_requests, 6) if grand_requests else 0.0,
     }
 
-    period_label = (
-        f"С {start_date:%Y-%m-%d} по {end_date:%Y-%m-%d}"
-        if start_date else
-        f"До {end_date:%Y-%m-%d}"
-    )
+    period_label = (f"С {start_date:%Y-%m-%d} по {end_date:%Y-%m-%d}" if start_date else f"До {end_date:%Y-%m-%d}")
 
     return {
         "period": period_label,
@@ -214,15 +140,7 @@ async def get_user_usage_totals(db: AsyncSession, user_id: int, start_date: Opti
         "totals": totals,
     }
 
-
-async def get_user_total_requests(
-        db: AsyncSession,
-        user_id: int,
-        bots: Optional[Sequence[BotLiteral]] = None,
-) -> int:
-    stmt = select(func.coalesce(func.sum(UserTokenUsage.total_requests), 0)).where(
-        UserTokenUsage.user_id == user_id
-    )
-    if bots:
-        stmt = stmt.where(UserTokenUsage.bot.in_([BotEnum(bot) for bot in bots]))
+async def get_user_total_requests(db: AsyncSession, user_id: int, bots: Sequence[BotLiteral] | None = None,) -> int:
+    stmt = select(func.coalesce(func.sum(UserTokenUsage.total_requests), 0)).where(UserTokenUsage.user_id == user_id)
+    if bots: stmt = stmt.where(UserTokenUsage.bot.in_([BotEnum(bot) for bot in bots]))
     return int((await db.execute(stmt)).scalar_one() or 0)

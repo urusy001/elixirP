@@ -33,12 +33,7 @@ async def calculate_price(code: str = Query(...), init_price: Decimal = Query(..
     new_lvl1_gained  = (Decimal(promo_code.lvl1_amount_gained  or 0) + (result_price * lvl1_pct  / D100)).quantize(Q2, rounding=ROUND_HALF_UP)
     new_lvl2_gained  = (Decimal(promo_code.lvl2_amount_gained  or 0) + (result_price * lvl2_pct  / D100)).quantize(Q2, rounding=ROUND_HALF_UP)
 
-    promo_code_update = PromoCodeUpdate(
-        owner_amount_gained=new_owner_gained,
-        lvl1_amount_gained=new_lvl1_gained,
-        lvl2_amount_gained=new_lvl2_gained,
-        times_used=(promo_code.times_used or 0) + 1,
-    )
+    promo_code_update = PromoCodeUpdate(owner_amount_gained=new_owner_gained, lvl1_amount_gained=new_lvl1_gained, lvl2_amount_gained=new_lvl2_gained, times_used=(promo_code.times_used or 0) + 1)
 
     await update_promo(db, promo_code.id, promo_code_update)
     return {"result_price": result_price}

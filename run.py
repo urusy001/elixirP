@@ -8,7 +8,6 @@ from src.tg_methods import client as tg_client
 
 logger = logging.getLogger("main")
 
-
 async def main():
     await tg_client.start()
     tasks = [

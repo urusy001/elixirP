@@ -181,7 +181,7 @@ async def handle_spends_time(message: Message):
         start_date = datetime.strptime(dates[0], "%d.%m.%Y").date()
         end_date = datetime.strptime(dates[1], "%d.%m.%Y").date()
         if end_date < start_date: raise ValueError("End date is before start date")
-    except Exception: return await message.answer("<b>Ошибка формата промежутка.</b>\n""Пожалуйста, следуйте примеру:\n""<code>22.09.2025 12.10.2025</code>\n""(можно скопировать по нажатию)", reply_markup=admin_keyboards.main_menu, parse_mode="HTML")
+    except Exception: return await message.answer("<b>Ошибка формата промежутка.</b>\n" "Пожалуйста, следуйте примеру:\n" "<code>22.09.2025 12.10.2025</code>\n" "(можно скопировать по нажатию)", reply_markup=admin_keyboards.main_menu, parse_mode="HTML")
 
     bot_id = str(message.bot.id)
     if bot_id == PROFESSOR_BOT_TOKEN.split(':')[0]: bot = "professor"
@@ -215,7 +215,7 @@ async def handle_admin_callback(call: CallbackQuery, state: FSMContext):
 
     if preset == "0": start_date, end_date = date(1970, 1, 1), today
     else:
-        try: days = max(1, int(preset))  # 1/7/30
+        try: days = max(1, int(preset))          
         except ValueError: days = 1
         end_date = today
         start_date = end_date - timedelta(days=days - 1)

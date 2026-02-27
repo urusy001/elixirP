@@ -68,7 +68,7 @@ async def _get_unverified_requests_count(user_id: int) -> int:
 @dose_user_router.message(CommandStart())
 async def handle_user_start(message: Message, state: FSMContext, professor_bot, professor_client):
     user_id = message.from_user.id
-    result = await CHAT_NOT_BANNED_FILTER(user_id)
+    result = await CHAT_NOT_BANNED_FILTER(message)
     if not result: return await message.answer(user_texts.banned_in_channel)
     user = await _ensure_user(message, professor_client)
     assistant_id = _resolve_assistant_id(message)
@@ -87,8 +87,7 @@ async def handle_user_start(message: Message, state: FSMContext, professor_bot, 
 @professor_user_router.message(user_states.Registration.phone)
 @dose_user_router.message(user_states.Registration.phone)
 async def handle_user_registration(message: Message, state: FSMContext, professor_bot, professor_client):
-    user_id = message.from_user.id
-    result = await CHAT_NOT_BANNED_FILTER(user_id)
+    result = await CHAT_NOT_BANNED_FILTER(message)
     if not result: return await message.answer(user_texts.banned_in_channel)
     if not message.contact: return await message.answer(user_texts.verify_phone.replace('*', message.from_user.full_name), reply_markup=user_keyboards.phone)
 
@@ -109,8 +108,7 @@ async def handle_user_registration(message: Message, state: FSMContext, professo
 @professor_user_router.message(Command('new_chat'))
 @dose_user_router.message(Command('new_chat'))
 async def handle_new_chat(message: Message, state: FSMContext, professor_client):
-    user_id = message.from_user.id
-    result = await CHAT_NOT_BANNED_FILTER(user_id)
+    result = await CHAT_NOT_BANNED_FILTER(message)
     if not result: return await message.answer(user_texts.banned_in_channel)
     thread_id = await professor_client.create_thread()
     async with get_session() as session: await update_user(session, message.from_user.id, UserUpdate(thread_id=thread_id))
@@ -122,7 +120,7 @@ async def handle_new_chat(message: Message, state: FSMContext, professor_client)
 @with_typing
 async def handle_text_message(message: Message, state: FSMContext, professor_bot, professor_client):
     user_id = message.from_user.id
-    result = await CHAT_NOT_BANNED_FILTER(user_id)
+    result = await CHAT_NOT_BANNED_FILTER(message)
     if not result: return await message.answer(user_texts.banned_in_channel)
     user = await _ensure_user(message, professor_client)
     assistant_id = _resolve_assistant_id(message)

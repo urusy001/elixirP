@@ -19,7 +19,6 @@ async def get_webhook(request: Request):
     try: print(await request.json())
     except: print(await request.body())
 
-
 @router.post("/amocrm")
 async def get_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     body = await request.body()
@@ -77,18 +76,15 @@ async def get_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         amocrm.logger.exception("Webhook failed lead_id=%s", lead_id)
         return JSONResponse({"ok": True, "ignored": "exception"})
 
-
 @router.put("/amocrm")
 async def get_webhook(request: Request):
     try: print(await request.json())
     except: print(await request.body())
 
-
 @router.delete("/amocrm")
 async def get_webhook(request: Request):
     try: print(await request.json())
     except: print(await request.body())
-
 
 @router.post("/verify-order", response_model=VerifyOrderOut)
 async def verify_order(payload: VerifyOrderIn) -> VerifyOrderOut:
@@ -98,7 +94,7 @@ async def verify_order(payload: VerifyOrderIn) -> VerifyOrderOut:
     except (aiosmtplib.errors.SMTPException, OSError, TimeoutError) as e:
         return VerifyOrderOut(
             status="smtp_failed",
-            price="not_found",  # или None, как тебе удобнее
+            price="not_found",                              
             email=None,
             verification_code=None,
         )

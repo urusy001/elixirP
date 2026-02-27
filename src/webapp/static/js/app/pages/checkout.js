@@ -1,11 +1,8 @@
-// ============================================================================
-// checkout.js — Unified Delivery Checkout (CDEK + Yandex auto-locating PVZ widget)
-// ============================================================================
-import {showLoader, hideLoader} from "../ui/loader.js";
-import {isTelegramApp, showBackButton, showMainButton} from "../ui/telegram.js";
-import {navigateTo} from "../router.js";
-import {fetchPVZByCode, getSelectedPVZCode} from "../../services/pvzService.js";
-import {YandexPvzWidget} from "./yandex-pvz-widget.js";
+import { showLoader, hideLoader } from "../ui/loader.js";
+import { isTelegramApp, showBackButton, showMainButton } from "../ui/telegram.js";
+import { navigateTo } from "../router.js";
+import { fetchPVZByCode, getSelectedPVZCode } from "../../services/pvzService.js";
+import { YandexPvzWidget } from "./yandex-pvz-widget.js";
 import {
     cartPageEl,
     checkoutPageEl,
@@ -17,20 +14,12 @@ import {
     toolbarEl
 } from "./constants.js";
 
-// ---------------------------------------------------------------------------
-// DOM references
-// ---------------------------------------------------------------------------
-
-// Map container IDs
 const CDEK_ID = "cdek-map-container";
 const YANDEX_ID = "yandex-map-container";
 const YANDEX_LIST_ID = "yandex-list";
 
 let _toggleLock = false;
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 function ensureMapContainer(id) {
     let el = document.getElementById(id);
     if (!el) {
@@ -67,9 +56,6 @@ function ensureListContainer(id, afterEl) {
     return el;
 }
 
-// ---------------------------------------------------------------------------
-// Yandex Maps API Loader
-// ---------------------------------------------------------------------------
 let _ymapsReady;
 
 async function ensureYmapsReady() {
@@ -102,9 +88,6 @@ async function ensureYmapsReady() {
     await _ymapsReady;
 }
 
-// ---------------------------------------------------------------------------
-// Delivery service toggle header
-// ---------------------------------------------------------------------------
 function createDeliveryHeader(currentService = "CDEK") {
     document.querySelector(".delivery-toggle-container")?.remove();
 
@@ -194,9 +177,6 @@ function createDeliveryHeader(currentService = "CDEK") {
     updateSelection(currentService);
 }
 
-// ---------------------------------------------------------------------------
-// CDEK Widget initialization
-// ---------------------------------------------------------------------------
 async function initCDEKWidget(coords = [55.75, 37.61]) {
     if (!window.CDEKWidget) {
         hideLoader();
@@ -262,25 +242,18 @@ async function initCDEKWidget(coords = [55.75, 37.61]) {
     return window.cdekWidgetInstance;
 }
 
-// ---------------------------------------------------------------------------
-// Yandex PVZ Widget initialization (auto-locating)
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// Yandex PVZ Widget initialization (show/reopen without re-init on toggle)
-// ---------------------------------------------------------------------------
 let ydwInstance = null;
 
 async function initYandexWidget() {
     const container = document.getElementById(YANDEX_ID);
     if (!container) return;
 
-    // make visible & ensure height
     container.style.display = "block";
     if (!container.style.height) container.style.height = "500px";
     await new Promise((r) => requestAnimationFrame(r));
 
     if (!ydwInstance) {
-        // first time only: load API + init widget
+
         await ensureYmapsReady();
 
         ydwInstance = new YandexPvzWidget(YANDEX_ID, {
@@ -310,14 +283,13 @@ async function initYandexWidget() {
             },
         });
 
-        await ydwInstance.init(); // first load only
+        await ydwInstance.init();
     } else {
-        // subsequent toggles: DO NOT re-init — just reopen/refresh
+
         try {
-            // if the map exists, refresh sizing after container became visible
+
             ydwInstance.map?.container.fitToViewport?.();
 
-            // reopen last UI state (door placemark balloon > selected PVZ balloon)
             if (ydwInstance._doorPlacemark) {
                 ydwInstance._doorPlacemark.balloon?.open?.();
             } else if (ydwInstance._selectedId) {
@@ -329,7 +301,7 @@ async function initYandexWidget() {
             }
         } catch (e) {
             console.warn("Yandex widget reopen failed, falling back to init:", e);
-            // fallback: if something went wrong (e.g., map was destroyed), re-init once
+
             try {
                 await ydwInstance.init();
             } catch {
@@ -340,9 +312,6 @@ async function initYandexWidget() {
     hideLoader();
 }
 
-// ---------------------------------------------------------------------------
-// Proceed button
-// ---------------------------------------------------------------------------
 export function createProceedButton(
     label = "Продолжить оформление",
     onClick = () => navigateTo("/contact"),
@@ -361,9 +330,6 @@ export function createProceedButton(
     }
 }
 
-// ---------------------------------------------------------------------------
-// Entry point
-// ---------------------------------------------------------------------------
 export async function renderCheckoutPage() {
     showLoader();
     showBackButton();

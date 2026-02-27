@@ -1,6 +1,5 @@
 import os
 import uuid
-
 import aiohttp
 import pandas as pd
 
@@ -8,11 +7,10 @@ from typing import Literal, get_args
 from datetime import datetime, timedelta
 from aiogram.filters import CommandStart, Command, CommandObject
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, InlineQueryResultArticle, \
-    InputTextMessageContent, InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, BufferedInputFile
+from aiogram.types import Message, CallbackQuery, FSInputFile, InlineQuery, InlineQueryResultArticle, InputTextMessageContent, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, BufferedInputFile
 from urllib.parse import parse_qs
 
-from config import UFA_TZ, ELIXIR_CHAT_ID, IMAGES_DIR, WEBAPP_BASE_DOMAIN
+from config import UFA_TZ, ELIXIR_CHAT_ID, WEBAPP_BASE_DOMAIN
 from src.ai.bot.texts import admin_texts
 from src.ai.bot.handlers import new_admin_router
 from src.ai.bot.keyboards import admin_keyboards
@@ -20,8 +18,7 @@ from src.ai.bot.states import admin_states
 from src.helpers import make_excel_safe, user_carts_analytics_text, cart_analysis_text
 from src.tg_methods import get_user_id_by_phone, normalize_phone, get_user_id_by_username
 from src.webapp import get_session
-from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_user_usage_totals, \
-    get_user_carts, get_carts_by_date, get_cart_by_id, get_product, get_product_with_features
+from src.webapp.crud import get_carts, list_promos, upsert_user, update_user, get_user, get_user_usage_totals, get_user_carts, get_carts_by_date, get_cart_by_id, get_product_with_features
 from src.webapp.crud.search import search_users, search_carts
 from src.webapp.models import Cart
 from src.webapp.schemas import UserCreate, UserUpdate
@@ -78,42 +75,38 @@ async def handle_statistics(message: Message):
         promos = await list_promos(session)
         carts = await get_carts(session)
 
-    promos_rows = []
-    for p in promos:
-        promos_rows.append({
-            "ID": getattr(p, "id", None),
-            "Промокод": getattr(p, "code", None),
-            "Скидка, %": float(getattr(p, "discount_pct", 0) or 0),
-            "Владелец": getattr(p, "owner_name", None),
-            "Процент владельца, %": float(getattr(p, "owner_pct", 0) or 0),
-            "Начислено владельцу, ₽": float(getattr(p, "owner_amount_gained", 0) or 0),
-            "Уровень 1 (имя)": getattr(p, "lvl1_name", None),
-            "Уровень 1 (процент), %": float(getattr(p, "lvl1_pct", 0) or 0),
-            "Уровень 1 (начислено), ₽": float(getattr(p, "lvl1_amount_gained", 0) or 0),
-            "Уровень 2 (имя)": getattr(p, "lvl2_name", None),
-            "Уровень 2 (процент), %": float(getattr(p, "lvl2_pct", 0) or 0),
-            "Уровень 2 (начислено), ₽": float(getattr(p, "lvl2_amount_gained", 0) or 0),
-            "Использований": int(getattr(p, "times_used", 0) or 0),
-            "Создано": getattr(p, "created_at", None),
-            "Обновлено": getattr(p, "updated_at", None),
-        })
+    promos_rows = [{
+        "ID": getattr(p, "id", None),
+        "Промокод": getattr(p, "code", None),
+        "Скидка, %": float(getattr(p, "discount_pct", 0) or 0),
+        "Владелец": getattr(p, "owner_name", None),
+        "Процент владельца, %": float(getattr(p, "owner_pct", 0) or 0),
+        "Начислено владельцу, ₽": float(getattr(p, "owner_amount_gained", 0) or 0),
+        "Уровень 1 (имя)": getattr(p, "lvl1_name", None),
+        "Уровень 1 (процент), %": float(getattr(p, "lvl1_pct", 0) or 0),
+        "Уровень 1 (начислено), ₽": float(getattr(p, "lvl1_amount_gained", 0) or 0),
+        "Уровень 2 (имя)": getattr(p, "lvl2_name", None),
+        "Уровень 2 (процент), %": float(getattr(p, "lvl2_pct", 0) or 0),
+        "Уровень 2 (начислено), ₽": float(getattr(p, "lvl2_amount_gained", 0) or 0),
+        "Использований": int(getattr(p, "times_used", 0) or 0),
+        "Создано": getattr(p, "created_at", None),
+        "Обновлено": getattr(p, "updated_at", None),
+    } for p in promos]
 
-    carts_rows = []
-    for c in carts:
-        carts_rows.append({
-            "Заказ ID": getattr(c, "id", None),
-            "Пользователь ID": getattr(c, "user_id", None),
-            "Название": getattr(c, "name", None),
-            "Сумма товаров, ₽": float(getattr(c, "sum", 0) or 0),
-            "Доставка, ₽": float(getattr(c, "delivery_sum", 0) or 0),
-            "Доставка (текст)": getattr(c, "delivery_string", None),
-            "Комментарий": getattr(c, "commentary", None),
-            "Промокод": getattr(c, "promo_code", None),
-            "Статус": getattr(c, "status", None),
-            "Оплачен": False if not bool(getattr(c, "is_paid", False)) else True,
-            "Создано": getattr(c, "created_at", None),
-            "Обновлено": getattr(c, "updated_at", None),
-        })
+    carts_rows = [{
+        "Заказ ID": getattr(c, "id", None),
+        "Пользователь ID": getattr(c, "user_id", None),
+        "Название": getattr(c, "name", None),
+        "Сумма товаров, ₽": float(getattr(c, "sum", 0) or 0),
+        "Доставка, ₽": float(getattr(c, "delivery_sum", 0) or 0),
+        "Доставка (текст)": getattr(c, "delivery_string", None),
+        "Комментарий": getattr(c, "commentary", None),
+        "Промокод": getattr(c, "promo_code", None),
+        "Статус": getattr(c, "status", None),
+        "Оплачен": False if not bool(getattr(c, "is_paid", False)) else True,
+        "Создано": getattr(c, "created_at", None),
+        "Обновлено": getattr(c, "updated_at", None),
+    } for c in carts]
 
     promos_df = pd.DataFrame(promos_rows)
     carts_df = pd.DataFrame(carts_rows)

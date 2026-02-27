@@ -11,7 +11,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-# revision identifiers, used by Alembic.
+                                        
 revision: str = '444f15fd29b6'
 down_revision: Union[str, Sequence[str], None] = 'a79ceada2105'
 branch_labels: Union[str, Sequence[str], None] = None
@@ -52,7 +52,7 @@ def _shift_datetime_columns(hours: int) -> None:
 
 def upgrade() -> None:
     """Upgrade schema."""
-    # Moscow UTC+3 -> Yekaterinburg/Ufa UTC+5 = +2h shift.
+                                                          
     _shift_datetime_columns(hours=2)
 
 

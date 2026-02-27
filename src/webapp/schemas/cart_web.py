@@ -1,13 +1,10 @@
 from datetime import datetime
-from typing import Optional
 from pydantic import BaseModel, ConfigDict
-
 
 class TgCategoryMini(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     name: str
-
 
 class ProductMini(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -16,14 +13,12 @@ class ProductMini(BaseModel):
     code: str
     tg_categories: list[TgCategoryMini] = []
 
-
 class FeatureMini(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     onec_id: str
     name: str
     code: str
-    price: float  # Numeric/Decimal -> float
-
+    price: float                            
 
 class CartItemWebRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -36,24 +31,23 @@ class CartItemWebRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    # ✅ отношения, чтобы фронт видел названия/цену
-    product: Optional[ProductMini] = None
-    feature: Optional[FeatureMini] = None
-
+                                                  
+    product: ProductMini | None = None
+    feature: FeatureMini | None = None
 
 class CartWebRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    name: Optional[str] = None
+    name: str | None = None
     user_id: int
 
-    status: Optional[str] = None
+    status: str | None = None
 
     sum: float
     delivery_sum: float
     delivery_string: str
-    commentary: Optional[str] = None
+    commentary: str | None = None
 
     phone: str
     email: str
@@ -65,6 +59,4 @@ class CartWebRead(BaseModel):
 
     created_at: datetime
     updated_at: datetime
-
-    # ✅ ВАЖНО: items всегда list
     items: list[CartItemWebRead] = []

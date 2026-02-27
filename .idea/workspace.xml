@@ -1,4 +1,136 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PropertiesComponent">{}</component>
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="64dd3c95-3045-456f-9426-1b89ccbfd60f" name="Changes" comment="Cleanup Done">
+      <change beforePath="$PROJECT_DIR$/run.py" beforeDir="false" afterPath="$PROJECT_DIR$/run.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/new_user.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/new_user.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/amocrm/client.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/amocrm/client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/user.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/pages/yandex-pvz-widget.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/pages/yandex-pvz-widget.js" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "urusy001"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/urusy001/elixirP.git",
+    "accountId": "3205de88-85dc-478f-b33d-862fb319dec6"
+  }
+}]]></component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="ProjectErrors" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 4
+}]]></component>
+  <component name="ProjectId" id="3AEHLcNkiuDHEOhfmfC9OEfLDfq" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "main",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "/Users/paylakurusyan/Desktop/elixirP/src",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-3aa1da707db6-JavaScript-WS-252.27397.92" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="64dd3c95-3045-456f-9426-1b89ccbfd60f" name="Changes" comment="" />
+      <created>1772150754977</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1772150754977</updated>
+      <workItem from="1772150756074" duration="6523000" />
+    </task>
+    <task id="LOCAL-00001" summary="Cleanup 1">
+      <option name="closed" value="true" />
+      <created>1772150961956</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1772150961956</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Cleanup Done">
+      <option name="closed" value="true" />
+      <created>1772156848870</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1772156848870</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Cleanup Done">
+      <option name="closed" value="true" />
+      <created>1772156855973</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1772156855973</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Cleanup Done">
+      <option name="closed" value="true" />
+      <created>1772156862011</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1772156862011</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="m" />
+    <MESSAGE value="Cleanup 1" />
+    <MESSAGE value="Cleanup Done" />
+    <option name="LAST_COMMIT_MESSAGE" value="Cleanup Done" />
+  </component>
 </project>
