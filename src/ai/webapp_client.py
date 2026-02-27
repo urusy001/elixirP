@@ -12,7 +12,7 @@ from typing import Any
 
 import httpx
 
-from config import API_PREFIX, NEW_BOT_TOKEN, WEBAPP_BASE_DOMAIN
+from config import API_PREFIX, NEW_BOT_TOKEN, WEBAPP_BASE_DOMAIN, POSTGRES_HOST
 
 
 class WebappBotApiError(RuntimeError):
@@ -21,7 +21,7 @@ class WebappBotApiError(RuntimeError):
 
 def _base_url() -> str:
     if WEBAPP_BASE_DOMAIN: return WEBAPP_BASE_DOMAIN.rstrip("/")
-    return "http://127.0.0.1:8000"
+    return f"http://{POSTGRES_HOST}:8000"
 
 
 def _token_hash() -> str:
