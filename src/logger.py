@@ -25,7 +25,7 @@ class PerLoggerFileHandler(logging.Handler):
             if handler is None:
                 path = self.logs_dir / f"{safe}.log"
                 handler = logging.FileHandler(path, encoding=self.encoding)
-                handler.setLevel(self.level)  # inherit this handler's level
+                handler.setLevel(self.level)                                
                 handler.setFormatter(self.formatter)
                 self._handlers[safe] = handler
 

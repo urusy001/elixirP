@@ -11,6 +11,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile, Message, CallbackQuery, ReplyKeyboardRemove, BufferedInputFile, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
 from config import OWNER_TG_IDS, UFA_TZ, DATA_DIR, PROFESSOR_ASSISTANT_ID, NEW_ASSISTANT_ID, BOT_KEYWORDS, WEBAPP_BASE_DOMAIN, INTERNAL_API_TOKEN
+from src.ai.bot.handlers.new_user_helpers import _get_unverified_requests_count, _request_phone, _ensure_user
 from src.ai.calc import generate_drug_graphs, plot_filled_scale
 from src.helpers import CHAT_NOT_BANNED_FILTER, _notify_user, with_typing, _fmt, check_blocked
 from src.tg_methods import normalize_phone
@@ -27,37 +28,8 @@ async def _(x: Message):
 
 new_user_router = Router(name="shop_user")
 UNVERIFIED_REQUEST_LIMIT = 5
-PHONE_GATE_BOTS = ("professor", "dose")
 new_user_router.message.filter(lambda message: message.from_user.id not in OWNER_TG_IDS and message.chat.type == ChatType.PRIVATE, check_blocked, CHAT_NOT_BANNED_FILTER)
 new_user_router.callback_query.filter(lambda call: call.data.startswith("user") and call.from_user.id not in OWNER_TG_IDS and call.message.chat.type == ChatType.PRIVATE, check_blocked, CHAT_NOT_BANNED_FILTER)
-
-async def _request_phone(message: Message, state: FSMContext, full_name: str | None = None):
-    await state.set_state(user_states.Registration.phone)
-    display_name = full_name or message.from_user.full_name
-    return await message.answer(user_texts.verify_phone.replace('*', display_name), reply_markup=user_keyboards.phone)
-
-async def _ensure_user(message: Message, professor_client):
-    user_id = message.from_user.id
-    async with get_session() as session:
-        user = await get_user(session, 'tg_id', user_id)
-        if not user:
-            thread_id = await professor_client.create_thread()
-            user = await upsert_user(session, UserCreate(
-                tg_id=user_id,
-                name=message.from_user.first_name,
-                surname=message.from_user.last_name,
-                thread_id=thread_id,
-            ))
-            return user
-        if not user.thread_id:
-            thread_id = await professor_client.create_thread()
-            user = await update_user(session, user_id, UserUpdate(thread_id=thread_id))
-    return user
-
-
-async def _get_unverified_requests_count(user_id: int) -> int:
-    async with get_session() as session:
-        return await get_user_total_requests(session, user_id, PHONE_GATE_BOTS)
 
 @new_user_router.message(Command('shop'))
 async def app(message: Message):
@@ -126,16 +98,14 @@ async def handle_activate_code(message: Message, state: FSMContext):
 
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
-            r = await client.post(
-                f"{WEBAPP_BASE_DOMAIN}/webhooks/verify-order",
-                json={"code": code},
-                headers={"X-Internal-Token": INTERNAL_API_TOKEN},
-            )
+            r = await client.post(f"{WEBAPP_BASE_DOMAIN}/webhooks/verify-order", json={"code": code}, headers={"X-Internal-Token": INTERNAL_API_TOKEN})
             r.raise_for_status()
             data = r.json()
+
     except httpx.HTTPStatusError as e:
         await message.answer("Не удалось проверить заказ (ошибка сервера). Попробуйте позже.")
         return await handle_user_start(message, state)
+
     except Exception as e:
         await message.answer("Не удалось проверить заказ (ошибка сети). Попробуйте позже.")
         print(e)
@@ -145,7 +115,6 @@ async def handle_activate_code(message: Message, state: FSMContext):
     email = data.get("email")
     verification_code = data.get("verification_code")
 
-    # 3) handle statuses
     if price == "old":
         await message.answer("Для активации заказов со старого сайта, пожалуйста, обратитесь к администрации.")
         return await handle_user_start(message, state)
@@ -159,10 +128,7 @@ async def handle_activate_code(message: Message, state: FSMContext):
         return await handle_user_start(message, state)
 
     if not email or not verification_code:
-        await message.answer(
-            "Заказ найден, но не удалось отправить код подтверждения на почту. "
-            "Обратитесь в поддержку"
-        )
+        await message.answer("Заказ найден, но не удалось отправить код подтверждения на почту. Обратитесь в поддержку")
         return await handle_user_start(message, state)
 
     try: price = float(price)
@@ -176,14 +142,7 @@ async def handle_activate_code(message: Message, state: FSMContext):
         await message.answer("Сожалеем, считываются заказы от 5000р. Каждые 5000р = 1 месяц.")
         return await handle_user_start(message, state)
 
-    await state.update_data(
-        verification_code=verification_code,
-        add_months=add_months,
-        failed=0,
-        order_code=code,
-        price=int(price),
-        email=email,
-    )
+    await state.update_data(verification_code=verification_code, add_months=add_months, failed=0, order_code=code, price=int(price), email=email)
     await state.set_state(user_states.Ai.verification_code)
     return await message.answer(
         f"На вашу почту {email} был отправлен код подтверждения.\n\n"
@@ -314,10 +273,10 @@ async def handle_desired_dosage_divisions(message: Message, state: FSMContext):
     dosage_mcg = desired_dosage_mg * 1000.0
 
     mcg_per_ml = vial_mcg / water_volume
-    mcg_per_division = mcg_per_ml * 0.01  # 0.01 ml == 1 "единица"
-    divisions = dosage_mcg / mcg_per_division  # может быть float из-за деления
+    mcg_per_division = mcg_per_ml * 0.01                          
+    divisions = dosage_mcg / mcg_per_division                                  
 
-    total_units = int(round(divisions))  # 500.0 -> 500
+    total_units = int(round(divisions))                
     full_syringes = total_units // 100
     remainder_units = total_units % 100
 
@@ -331,11 +290,7 @@ async def handle_desired_dosage_divisions(message: Message, state: FSMContext):
 
     caption = "Визуализация делений на шприце"
 
-    if full_syringes > 0 and remainder_units > 0:
-        caption += (
-            f"\n<i>{full_syringes} {ru_plural(full_syringes, 'полный шприц', 'полных шприца', 'полных шприцев')}"
-            f" + 1 на {remainder_units} {ru_plural(remainder_units, 'единицу', 'единицы', 'единиц')}</i>"
-        )
+    if full_syringes > 0 and remainder_units > 0: caption += f"\n<i>{full_syringes} {ru_plural(full_syringes, 'полный шприц', 'полных шприца', 'полных шприцев')}" f" + 1 на {remainder_units} {ru_plural(remainder_units, 'единицу', 'единицы', 'единиц')}</i>"
     elif full_syringes > 0 and remainder_units == 0: caption += f"\n<i>{full_syringes} {ru_plural(full_syringes, 'полный шприц', 'полных шприца', 'полных шприцев')}</i>"
 
     if full_syringes > 0: value_for_plot = remainder_units if remainder_units > 0 else 100
@@ -414,11 +369,12 @@ async def handle_user_call(call: CallbackQuery, state: FSMContext):
     if data[0] == "about": return await about(call.message)
     elif data[0] == "offer": return await offer(call.message)
     elif data[0] == "ai":
-        if data[1] == "start":
-            await call.message.edit_text(user_texts.pick_ai, reply_markup=user_keyboards.pick_ai)
+        if data[1] == "start": await call.message.edit_text(user_texts.pick_ai, reply_markup=user_keyboards.pick_ai)
+
         elif data[1] == "free":
             await state.update_data(assistant_id=PROFESSOR_ASSISTANT_ID)
             await call.message.edit_text(user_texts.pick_free, reply_markup=user_keyboards.back)
+
         elif data[1] == "premium":
             async with get_session() as session: user = await get_user(session, 'tg_id', call.from_user.id)
             if not user or not user.tg_phone: return await _request_phone(call.message, state, call.from_user.full_name)
@@ -459,6 +415,9 @@ async def handle_user_call(call: CallbackQuery, state: FSMContext):
         await call.message.edit_reply_markup(reply_markup=None)
         await call.message.answer(user_texts.greetings.replace('full_name', call.from_user.full_name), reply_markup=user_keyboards.main_menu)
 
+    return None
+
+
 @new_user_router.message(lambda message: message.text)
 @with_typing
 async def handle_text_message(message: Message, state: FSMContext, professor_bot, professor_client):
@@ -472,9 +431,11 @@ async def handle_text_message(message: Message, state: FSMContext, professor_bot
         assistant_id = PROFESSOR_ASSISTANT_ID
         await state.update_data(assistant_id=assistant_id)
         await _notify_user(message, user_texts.pick_fallback_free, 10)
+
     used_requests = 0 if user.tg_phone else await _get_unverified_requests_count(user_id)
     if not user.tg_phone and (assistant_id == NEW_ASSISTANT_ID or used_requests >= UNVERIFIED_REQUEST_LIMIT): return await _request_phone(message, state)
     if assistant_id == NEW_ASSISTANT_ID and (not user.premium_until or user.premium_until < datetime.now(tz=UFA_TZ)) and user.premium_requests < 1: return await message.answer(user_texts.premium_limit_0, reply_markup=user_keyboards.only_free)
+
     response = await professor_client.send_message(message.text, user.thread_id, assistant_id)
     async with get_session() as session:
         await increment_tokens(session, message.from_user.id, response['input_tokens'], response['output_tokens']),

@@ -1,7 +1,7 @@
-import {withLoader} from "../ui/loader.js";
-import {state, saveCart, setCheckoutData} from "../state.js";
-import {navigateTo} from "../router.js";
-import {apiPost, apiGet} from "../../services/api.js";
+import { withLoader } from "../ui/loader.js";
+import { state, saveCart, setCheckoutData } from "../state.js";
+import { navigateTo } from "../router.js";
+import { apiPost, apiGet } from "../../services/api.js";
 import {
     hideMainButton,
     showBackButton,
@@ -27,16 +27,10 @@ const cartItemsEl = document.getElementById("cart-items");
 
 let cartRows = {};
 
-// small helper to read promo input
 function getPromoInput() {
     return document.getElementById("promo");
 }
 
-/* =========================
-   PROMO SESSION STORAGE
-   - promocode: JSON string or null (typed code)
-   - promocode_data: {code, discount_pct} or null (validated promo)
-   ========================= */
 function savePromocodeToSession(code) {
     const v = (code || "").trim();
     sessionStorage.setItem("promocode", JSON.stringify(v || null));
@@ -70,9 +64,6 @@ function clearPromoDataFromSession() {
     sessionStorage.removeItem("promocode_data");
 }
 
-/* =========================
-   PRICE HELPERS (PURE JS)
-   ========================= */
 function round2(n) {
     return Math.round((n + Number.EPSILON) * 100) / 100;
 }
@@ -109,12 +100,6 @@ function getCartTotalFinal() {
     return round2(raw * (100 - pct) / 100);
 }
 
-/* =========================
-   APPLY PROMO (VALIDATE ONLY)
-   ✅ calls /promocodes/?code=... to fetch discount_pct
-   ❌ does NOT call calculate-price
-   ❌ does NOT increment times_used / gained (no backend mutation)
-   ========================= */
 async function applyPromocode() {
     const promoInput = getPromoInput();
     const code = (promoInput?.value || "").trim();
@@ -129,7 +114,6 @@ async function applyPromocode() {
     try {
         const promo = await apiGet(`/promocodes/?code=${encodeURIComponent(code)}`);
 
-        // expects your response contains discount_pct
         const discountPct = promo?.discount_pct;
 
         if (discountPct === undefined || discountPct === null) {
@@ -148,21 +132,15 @@ async function applyPromocode() {
         console.error(err);
         alert("Промокод не найден ❌");
 
-        // keep typed input, but remove applied discount
         clearPromoDataFromSession();
-        // optional: also clear stored typed code:
-        // clearPromocodeFromSession();
 
         updateTotal();
         if (isTelegramApp()) showMainButton("Оформить заказ", () => handleCheckout());
     }
 }
 
-/* =========================
-   TOTAL & MAIN BUTTON
-   ========================= */
 function formatRUB(n) {
-    // ✅ NBSP before ₽ so it never wraps to next line
+
     const s = Number(n || 0).toLocaleString("ru-RU", { maximumFractionDigits: 2 });
     return `${s}\u00A0₽`;
 }
@@ -177,7 +155,7 @@ function updateTotal() {
         return;
     }
 
-    const rawTotal = getCartTotalRaw();      // from your JS (pure)
+    const rawTotal = getCartTotalRaw();
     const discountPct = getAppliedDiscountPct();
     const finalTotal = getCartTotalFinal();
 
@@ -219,9 +197,7 @@ function updateTotal() {
         else showMainButton("Оформить заказ", () => handleCheckout());
     }
 }
-/* =========================
-   QTY UPDATE
-   ========================= */
+
 function updateQuantity(key, delta) {
     state.cart[key] = (state.cart[key] || 0) + delta;
 
@@ -246,9 +222,6 @@ function updateQuantity(key, delta) {
     updateTotal();
 }
 
-/* =========================
-   RENDER CART
-   ========================= */
 async function renderCart() {
     const keys = Object.keys(state.cart);
     cartItemsEl.innerHTML = "";
@@ -347,14 +320,10 @@ async function renderCart() {
     updateTotal();
 }
 
-/* =========================
-   PROMO INPUT WATCHER
-   ========================= */
 function setupPromoWatcher() {
     const promoInput = getPromoInput();
     if (!promoInput) return;
 
-    // restore typed code
     const savedCode = loadPromocodeFromSession();
     if (savedCode && !promoInput.value) promoInput.value = savedCode;
 
@@ -362,7 +331,6 @@ function setupPromoWatcher() {
         promoInput.addEventListener("input", () => {
             savePromocodeToSession(promoInput.value);
 
-            // if user changed promo after applying, invalidate applied discount
             const data = loadPromoDataFromSession();
             const now = promoInput.value.trim();
             if (data && data.code && data.code !== now) {
@@ -378,11 +346,6 @@ function setupPromoWatcher() {
     if (Object.keys(state.cart).length) updateTotal();
 }
 
-/* =========================
-   CHECKOUT
-   - sends final_total computed in JS
-   - optional: send promo_code for backend to store/display, but backend MUST NOT mutate promo stats here
-   ========================= */
 export async function handleCheckout() {
     updateMainButton("Обработка…", true, true);
 
@@ -406,10 +369,10 @@ export async function handleCheckout() {
 
         const data = await apiPost("/cart/json", {
             items,
-            promo_code,     // optional for records
-            discount_pct,   // optional
-            raw_total,      // optional
-            final_total,    // ✅ this is your JS-calculated discounted price
+            promo_code,
+            discount_pct,
+            raw_total,
+            final_total,
         });
 
         setCheckoutData(data);
@@ -425,9 +388,6 @@ export async function handleCheckout() {
     }
 }
 
-/* =========================
-   PAGE ENTRYPOINT
-   ========================= */
 export async function renderCartPage() {
     toolbarEl.style.display = "none";
     listEl.style.display = "none";

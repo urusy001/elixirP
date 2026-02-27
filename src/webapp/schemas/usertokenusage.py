@@ -1,11 +1,9 @@
 from datetime import date
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel
 
 BotLiteral = Literal["dose", "professor", "new"]
-
-
 
 class UserTokenUsageBase(BaseModel):
     user_id: int
@@ -13,19 +11,16 @@ class UserTokenUsageBase(BaseModel):
     bot: BotLiteral
     input_tokens: int = 0
     output_tokens: int = 0
-    total_requests: int = 0   # ⬅️ NEW
-
+    total_requests: int = 0           
 
 class UserTokenUsageCreate(UserTokenUsageBase):
     pass
 
-
 class UserTokenUsageUpdate(BaseModel):
-    bot: Optional[BotLiteral] = None
-    input_tokens: Optional[int] = None
-    output_tokens: Optional[int] = None
-    total_requests: Optional[int] = None  # ⬅️ NEW
-
+    bot: BotLiteral | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    total_requests: int | None = None          
 
 class UserTokenUsageRead(UserTokenUsageBase):
     id: int

@@ -1,5 +1,5 @@
-import {showLoader, hideLoader} from "../ui/loader.js";
-import {state, saveCart} from "../state.js";
+import { showLoader, hideLoader } from "../ui/loader.js";
+import { state, saveCart } from "../state.js";
 import {
     isTelegramApp,
     showMainButton,
@@ -22,21 +22,19 @@ import {
     searchBtnEl,
     toolbarEl,
 } from "./constants.js";
-import {apiGet, apiPost} from "../../services/api.js";
-import {renderProcessPaymentPage} from "./process-payment.js";
+import { apiGet, apiPost } from "../../services/api.js";
+import { renderProcessPaymentPage } from "./process-payment.js";
 
 const form = document.getElementById("contact-form");
 
 export async function renderContactPage() {
     if (!checkoutPageEl || !contactPageEl || !form) return;
 
-    // Only run in Telegram
     if (!isTelegramApp()) {
         console.warn("[contact] Not in Telegram WebApp.");
         return;
     }
 
-    // Hide everything except contact page
     cartPageEl.style.display = "none";
     detailEl.style.display = "none";
     listEl.style.display = "none";
@@ -56,7 +54,6 @@ export async function renderContactPage() {
 
     contactPageEl.style.display = "block";
 
-    // Prevent default submit/enter
     form.addEventListener("submit", (e) => e.preventDefault());
     form.addEventListener("keydown", (e) => {
         if (e.key === "Enter") e.preventDefault();
@@ -65,20 +62,18 @@ export async function renderContactPage() {
     const tg = state.telegram;
     const user_id = tg?.initDataUnsafe?.user?.id ?? null;
 
-    // --- Input refs ---
     const nameInput = form.querySelector('[name="name"]');
     const surnameInput = form.querySelector('[name="surname"]');
     const emailInput = form.querySelector('[name="email"]');
     const phoneInput = form.querySelector('[name="phone"]');
     const commentaryInput = form.querySelector("#payment-commentary-input");
 
-    // Create / find error containers per input (attach right after input)
     function ensureErrorEl(input) {
         if (!input) return null;
         if (input._errorEl) return input._errorEl;
 
         const err = document.createElement("div");
-        err.className = "field-error"; // styles in contact.css
+        err.className = "field-error";
         input.insertAdjacentElement("afterend", err);
         input._errorEl = err;
         return err;
@@ -101,7 +96,6 @@ export async function renderContactPage() {
         errEl.textContent = message;
     }
 
-    // ---------- Helpers ----------
     function hasCompleteProfile(u) {
         return Boolean(u?.name && u?.surname && u?.email && u?.phone);
     }
@@ -128,16 +122,14 @@ export async function renderContactPage() {
         }
     }
 
-    // 💾 save contact info (used in order payload)
     function saveContactInfo(contact_info) {
         sessionStorage.setItem("contact_info", JSON.stringify(contact_info));
         if (user_id) sessionStorage.setItem("tg_user_id", String(user_id));
     }
 
-    // 🧺 clear cart after successful order create
     function clearCartAfterOrder() {
         state.cart = {};
-        saveCart(); // writes localStorage + dispatches "cart:updated"
+        saveCart();
     }
 
     async function handleSubmit() {
@@ -164,7 +156,6 @@ export async function renderContactPage() {
             const selected_delivery_service =
                 sessionStorage.getItem("selected_delivery_service") || "Yandex";
 
-            // ✅ ВАРИАНТ A: цена доставки берётся из localStorage и кладётся в selected_delivery.delivery_sum (только ₽)
             if (String(selected_delivery_service).toLowerCase() === "yandex") {
                 let costRub = 0;
 
@@ -174,7 +165,6 @@ export async function renderContactPage() {
                     if (Number.isFinite(n) && n > 0) costRub = Math.round(n);
                 }
 
-                // fallback: если вдруг cost не записали в localStorage, но он есть в selected_delivery.calc.price.pricing_total
                 if (!costRub && selected_delivery && typeof selected_delivery === "object") {
                     const pt =
                         selected_delivery?.calc?.price?.pricing_total ??
@@ -192,15 +182,13 @@ export async function renderContactPage() {
                     }
                 }
 
-                // гарантируем объект
                 if (!selected_delivery || typeof selected_delivery !== "object") selected_delivery = {};
                 selected_delivery.delivery_sum = costRub;
 
-                // на всякий — чтобы другие страницы тоже могли прочитать (если нужно)
                 if (costRub > 0) sessionStorage.setItem("delivery_sum", String(costRub));
             }
 
-            const payment_method = "later"; // only option now
+            const payment_method = "later";
             const payment_commentary = (commentaryInput?.value || "").trim();
 
             const payload = {
@@ -210,7 +198,7 @@ export async function renderContactPage() {
                 checkout_data,
                 selected_delivery,
                 selected_delivery_service,
-                payment_method, // fixed: "later"
+                payment_method,
                 commentary: payment_commentary,
                 promocode,
                 source: "telegram",
@@ -218,19 +206,16 @@ export async function renderContactPage() {
 
             const res = await apiPost("/payments/create", payload);
 
-            // If your apiPost returns JSON object, res?.status should be "success"
             if (res?.status !== "success") {
-                // fallback attempt if res is a fetch Response (kept from your original)
+
                 const text = await res?.text?.().catch(() => "");
                 throw new Error(`POST /payments/create failed: ${res?.status} ${text}`);
             }
 
-            // ✅ success -> clear comment + clear cart
             sessionStorage.removeItem("payment_commentary");
             sessionStorage.removeItem("delivery_sum");
             clearCartAfterOrder();
 
-            // go to next screen
             if (res?.order_number) {
                 await renderProcessPaymentPage(res.order_number);
             }
@@ -245,7 +230,6 @@ export async function renderContactPage() {
     hideMainButton();
     showBackButton();
 
-    // ---------- Validation ----------
     function validateEmail(v) {
         if (!v) return false;
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -260,7 +244,6 @@ export async function renderContactPage() {
     function validateForm() {
         let isValid = true;
 
-        // name
         if (!nameInput?.value.trim()) {
             setError(nameInput, nameErrorEl, "Введите имя");
             isValid = false;
@@ -268,7 +251,6 @@ export async function renderContactPage() {
             clearError(nameInput, nameErrorEl);
         }
 
-        // surname
         if (!surnameInput?.value.trim()) {
             setError(surnameInput, surnameErrorEl, "Введите фамилию");
             isValid = false;
@@ -276,7 +258,6 @@ export async function renderContactPage() {
             clearError(surnameInput, surnameErrorEl);
         }
 
-        // email
         const emailVal = emailInput?.value.trim() ?? "";
         if (!emailVal) {
             setError(emailInput, emailErrorEl, "Введите email");
@@ -288,7 +269,6 @@ export async function renderContactPage() {
             clearError(emailInput, emailErrorEl);
         }
 
-        // phone
         const phoneVal = phoneInput?.value.trim() ?? "";
         if (!phoneVal) {
             setError(phoneInput, phoneErrorEl, "Введите телефон");
@@ -300,7 +280,6 @@ export async function renderContactPage() {
             clearError(phoneInput, phoneErrorEl);
         }
 
-        // MainButton logic
         if (isValid) {
             showMainButton("Оформить заказ", () => {
                 handleSubmit();
@@ -312,7 +291,6 @@ export async function renderContactPage() {
         return isValid;
     }
 
-    // Attach listeners only once per page lifetime
     if (!form._contactValidationBound) {
         form._contactValidationBound = true;
 
@@ -330,13 +308,11 @@ export async function renderContactPage() {
         }
     }
 
-    // Restore saved commentary if exists
     const savedComment = sessionStorage.getItem("payment_commentary");
     if (savedComment && commentaryInput) {
         commentaryInput.value = savedComment;
     }
 
-    // ---------- Prefill / auto-skip ----------
     let userModel = null;
     if (user_id) {
         userModel = await fetchUserModel(user_id);

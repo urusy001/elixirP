@@ -1,4 +1,3 @@
-from typing import Union
 
 from .cart_web import CartWebRead
 from .category import *
@@ -30,22 +29,21 @@ __all__ = [
 ]
 
 class AvailabilityDestination(BaseModel):
-    platform_station_id: Optional[str] = None
-    full_address: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    platform_station_id: str | None = None
+    full_address: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
 
 class AvailabilityRequest(BaseModel):
     delivery_mode: Literal["self_pickup", "time_interval"]
     destination: AvailabilityDestination
     send_unix: bool = True
 
+PriceT = int | None | Literal["old", "not_found", "low"]
 
-PriceT = Union[int, None, Literal["old", "not_found", "low"]]
-
-class VerifyOrderIn(BaseModel): code: Union[str, int] = Field(..., description="Код заказа/сделки, который ищем в amoCRM (№{code} )")
+class VerifyOrderIn(BaseModel): code: str | int = Field(..., description="Код заказа/сделки, который ищем в amoCRM (№{code} )")
 class VerifyOrderOut(BaseModel):
     status: Literal["ok", "not_found", "no_email", "smtp_failed", "low"]
     price: PriceT
-    email: Optional[str] = None
-    verification_code: Optional[str] = None
+    email: str | None = None
+    verification_code: str | None = None

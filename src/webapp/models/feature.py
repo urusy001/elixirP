@@ -1,6 +1,6 @@
-# feature.py
-from sqlalchemy import Column, Integer, String, Numeric, ForeignKey
-from sqlalchemy.orm import relationship
+from decimal import Decimal
+from sqlalchemy import ForeignKey, Integer, Numeric, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.webapp.database import Base
 
@@ -8,27 +8,14 @@ from src.webapp.database import Base
 class Feature(Base):
     __tablename__ = "features"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    onec_id = Column(String, index=True, unique=True, nullable=False)
-    product_onec_id = Column(
-        String,
-        ForeignKey("products.onec_id", ondelete="CASCADE"),
-        index=True,
-        nullable=False,
-    )
-    name = Column(String, index=True, nullable=False)
-    code = Column(String, index=True, nullable=False)
-    file_id = Column(String, index=True, nullable=True)
-    price = Column(Numeric(10, 2), nullable=False, default=0)
-    balance = Column(Integer, nullable=False, default=0)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
+    onec_id: Mapped[str] = mapped_column(String, index=True, unique=True, nullable=False)
+    product_onec_id: Mapped[str] = mapped_column(String, ForeignKey("products.onec_id", ondelete="CASCADE"), index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    code: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    file_id: Mapped[str | None] = mapped_column(String, index=True, nullable=True)
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
+    balance: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
-    # Relationship
-    product = relationship("Product", back_populates="features")
-
-    cart_items = relationship(
-        "CartItem",
-        back_populates="feature",
-        foreign_keys="CartItem.feature_onec_id",
-        lazy="selectin",
-        passive_deletes=True,   # 👈 сюда тоже
-    )
+    product: Mapped["Product"] = relationship("Product", back_populates="features")
+    cart_items: Mapped[list["CartItem"]] = relationship("CartItem", back_populates="feature", foreign_keys="CartItem.feature_onec_id", lazy="selectin", passive_deletes=True)

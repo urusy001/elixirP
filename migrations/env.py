@@ -1,4 +1,4 @@
-# migrations/env.py
+                   
 from __future__ import annotations
 import asyncio
 from logging.config import fileConfig
@@ -8,23 +8,23 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-# ---- import your app bits ----
-from config import ASYNC_DATABASE_URL           # your DSN
-from src.webapp.database import Base            # your Declarative Base
-# Ensure models are imported so tables register on Base.metadata:
-from src.webapp import models  # noqa: F401  (keep this import!)
+                                
+from config import ASYNC_DATABASE_URL                     
+from src.webapp.database import Base                                   
+                                                                 
+from src.webapp import models                                   
 
-# Alembic Config object
+                       
 config = context.config
 
-# Logging
+         
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# >>> THIS is what autogenerate uses
+                                    
 target_metadata = Base.metadata
 
-# Put the URL into Alembic config (used for offline & engine_from_config)
+                                                                         
 config.set_main_option("sqlalchemy.url", ASYNC_DATABASE_URL)
 
 
@@ -35,7 +35,7 @@ def run_migrations_offline() -> None:
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
-        compare_type=True,          # detect type changes too
+        compare_type=True,                                   
         dialect_opts={"paramstyle": "named"},
     )
     with context.begin_transaction():
@@ -46,7 +46,7 @@ def do_run_migrations(connection: Connection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
-        compare_type=True,          # detect type changes too
+        compare_type=True,                                   
     )
     with context.begin_transaction():
         context.run_migrations()

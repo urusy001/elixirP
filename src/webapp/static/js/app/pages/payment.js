@@ -1,6 +1,6 @@
-import {showLoader, hideLoader} from "../ui/loader.js";
-import {isTelegramApp, showBackButton, showMainButton} from "../ui/telegram.js";
-import {navigateTo} from "../router.js";
+import { showLoader, hideLoader } from "../ui/loader.js";
+import { isTelegramApp, showBackButton, showMainButton } from "../ui/telegram.js";
+import { navigateTo } from "../router.js";
 import { state } from "../state.js";
 import {
     cartPageEl,
@@ -12,7 +12,7 @@ import {
     searchBtnEl,
     toolbarEl
 } from "./constants.js";
-import {apiPost} from "../../services/api.js";
+import { apiPost } from "../../services/api.js";
 
 export async function renderPaymentPage() {
     showLoader();
@@ -37,11 +37,9 @@ export async function renderPaymentPage() {
     if (isTelegramApp()) {
         showBackButton();
 
-        // MainButton now sends payment with selected method
         showMainButton("Оформить", handlePaymentSubmit);
     }
 
-    // optional: show totals from sessionStorage
     try {
         const totalEl = document.getElementById("payment-total");
         const deliveryEl = document.getElementById("payment-delivery-amount");
@@ -77,12 +75,10 @@ function setupPaymentPage() {
         later: 'Способ оплаты: Оплатить позже, через менеджера. Мы свяжемся с вами для подтверждения заказа и оплаты.'
     };
 
-    // avoid double-binding if renderPaymentPage is called again
     if (!methodsContainer.dataset.boundChange) {
         methodsContainer.addEventListener('change', (e) => {
             if (e.target.name !== 'payment_method') return;
 
-            // toggle active class on cards
             methodsContainer.querySelectorAll('.payment-method').forEach(label => {
                 const radio = label.querySelector('input[type="radio"]');
                 label.classList.toggle('active', radio.checked);
@@ -97,13 +93,11 @@ function setupPaymentPage() {
         methodsContainer.dataset.boundChange = "1";
     }
 
-    // Helper for other modules:
     window.getSelectedPaymentMethod = function () {
         const checked = document.querySelector('input[name="payment_method"]:checked');
         return checked ? checked.value : null;
     };
 
-    // 🔹 Set default active method = "later" once
     if (!methodsContainer.dataset.defaultSet) {
         const defaultRadio = methodsContainer.querySelector('input[name="payment_method"][value="later"]');
         if (defaultRadio) {
@@ -127,13 +121,11 @@ function setupPaymentCommentary() {
     const commentaryEl = document.getElementById("payment-commentary-input");
     if (!commentaryEl) return;
 
-    // Restore from sessionStorage if exists
     const saved = sessionStorage.getItem("payment_commentary");
     if (saved) {
         commentaryEl.value = saved;
     }
 
-    // Save to sessionStorage on input (once)
     if (!commentaryEl.dataset.boundInput) {
         commentaryEl.addEventListener("input", () => {
             sessionStorage.setItem("payment_commentary", commentaryEl.value);
@@ -164,7 +156,6 @@ async function handlePaymentSubmit() {
             ? window.getSelectedPaymentMethod()
             : null;
 
-        // read commentary from DOM (and fallback to session)
         const commentaryEl = document.getElementById("payment-commentary-input");
         const payment_commentary = commentaryEl
             ? commentaryEl.value.trim()
@@ -187,39 +178,11 @@ async function handlePaymentSubmit() {
             checkout_data,
             selected_delivery,
             selected_delivery_service,
-            payment_method,      // выбранный способ оплаты
+            payment_method,
             "commentary": payment_commentary,
-            promocode,// комментарий к заказу
+            promocode,
             source: "telegram",
         };
-
-        /* const res = await apiPost("/payments/create", payload);
-
-        if (!res.ok) {
-            const text = await res.text().catch(() => "");
-            throw new Error(`POST /payments/create failed: ${res.status} ${text}`);
-        }
-
-        const data = await res.json().catch(() => ({}));
-
-        if (data?.order_id) {
-            sessionStorage.setItem("order_id", String(data.order_id));
-        }
-
-        // комментарий уже ушёл на бэк — можно очистить локальное хранилище
-        sessionStorage.removeItem("payment_commentary");
-
-        // optional: handle method-specific redirects
-        if (payment_method === "yookassa" && data?.confirmation_url) {
-            // YooKassa: redirect to payment page
-            window.location.href = data.confirmation_url;
-            return;
-        } else if (payment_method === "usdt" && data?.usdt_address) {
-            // тут можно будет заполнить блок USDT (qr, адрес и т.д.)
-        }
-
-        // USDT / later: navigate to local "process" / success route
-        navigateTo("/process-payment"); */
 
     } catch (err) {
         console.error("Ошибка при создании платежа:", err);

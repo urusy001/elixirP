@@ -18,19 +18,8 @@ export class YandexPvzWidget {
             calculateUrl: "/delivery/yandex/calculate",
             availabilityUrl: "/delivery/yandex/availability",
 
-            // ✅ сохраняем ТОЛЬКО стоимость (RUB)
             costStorageKey: "yandex_delivery_cost_rub",
 
-            // Должен вернуть данные заказа ПОД backend CalcRequest:
-            // {
-            //   total_weight: number,
-            //   total_assessed_price: number,
-            //   client_price: number,
-            //   payment_method: "already_paid" | "card_on_receipt",
-            //   places: [ { physical_dims: { dx, dy, dz, weight_gross, predefined_volume? }, barcode?, description? } ],
-            //   is_oversized?: boolean,
-            //   send_unix?: boolean
-            // }
             getOrderData: null,
 
             defaultCenter: DEFAULT_CENTER,
@@ -47,12 +36,10 @@ export class YandexPvzWidget {
         this._pointsById = new Map();
         this._selectedId = null;
 
-        // Метка курьера (доставка до двери)
         this._doorPlacemark = null;
         this._doorAddress = "";
         this._doorSeq = 0;
 
-        // Кэш геокод-саджеста
         this._geocodeCache = new Map();
         this._geocodeCacheMax = 50;
 
@@ -85,7 +72,6 @@ export class YandexPvzWidget {
         this.suggestEl = this.root.querySelector("#ydw-suggest");
         this.costEl = this.root.querySelector("#ydw-cost");
 
-        // Клик по кнопке "Выбрать" внутри балуна ПВЗ
         this.root.addEventListener("click", (e) => {
             const btn = e.target.closest(".ydw-choose-btn");
             if (!btn) return;
@@ -101,14 +87,12 @@ export class YandexPvzWidget {
 
                 this._select(id, false);
 
-                // 1) Проверяем доступность доставки (offers/create на бэке)
                 const ok = await this._checkAvailabilityForSelectedPVZ();
                 if (!ok) {
                     btn.textContent = "❌ Недоступно";
                     return;
                 }
 
-                // 2) Если доступно — считаем доставку (твой calculate)
                 btn.textContent = "⏳ Считаю доставку...";
                 await this._emitChoosePVZ();
 
@@ -129,14 +113,12 @@ export class YandexPvzWidget {
         this.manager.clusters.options.set("preset", "islands#invertedBlueClusterIcons");
         this.map.geoObjects.add(this.manager);
 
-        // Клик по ПВЗ => выбираем ПВЗ (и убираем метку курьера)
         this.manager.objects.events.add("click", (e) => {
             const id = e.get("objectId");
             this._removeDoorPlacemark();
             this._select(id, true);
         });
 
-        // Клик по пустой карте => ставим метку курьера и снимаем выбор ПВЗ
         this.map.events.add("click", (e) => {
             if (e.get("target") !== this.map) return;
             const coords = e.get("coords");
@@ -144,7 +126,6 @@ export class YandexPvzWidget {
             this._setDoorPlacemark(coords);
         });
 
-        // Загружаем ПВЗ
         const all = await withLoader(async () => {
             try {
                 const data = await apiGet(this.options.dataUrl);
@@ -181,8 +162,6 @@ export class YandexPvzWidget {
 
         this.options.onReady?.();
     }
-
-    /* ------------------------ Поиск (саджест населённых пунктов) ----------------------- */
 
     _bindSearchUI() {
         const debounce = (fn, delay = 300) => {
@@ -329,8 +308,6 @@ export class YandexPvzWidget {
         }
     }
 
-    /* --------------------------- Логика курьера (метка на карте) --------------------------- */
-
     async _setDoorPlacemark(coords) {
         const mySeq = ++this._doorSeq;
 
@@ -387,7 +364,6 @@ export class YandexPvzWidget {
                 btn.style.opacity = "0.8";
                 btn.style.cursor = "default";
 
-                // 1) availability (всё заглушками, кроме адреса)
                 const ok = await this._checkAvailability({
                     delivery_mode: "time_interval",
                     destination: {
@@ -403,7 +379,6 @@ export class YandexPvzWidget {
                     return;
                 }
 
-                // 2) calculate (не сохраняем ничего кроме цены из availability)
                 btn.textContent = "⏳ Считаю доставку...";
                 const basePayload = { deliveryMode: "time_interval", coords, address: this._doorAddress || "" };
                 const enriched = await this._calcDelivery(basePayload);
@@ -480,8 +455,6 @@ export class YandexPvzWidget {
         } catch {}
     }
 
-    /* ------------------------------- Логика ПВЗ ------------------------------- */
-
     _normalizePoint(p) {
         const safeId = `pvz_${p.id}`;
         const addr = p.address ?? {};
@@ -543,7 +516,7 @@ export class YandexPvzWidget {
         if (prev === id) return;
 
         this._removeDoorPlacemark();
-        this._clearCost(); // ✅ сброс цены при смене выбора
+        this._clearCost();
 
         if (this.manager) {
             if (prev) this.manager.objects.setObjectOptions(prev, { preset: this.preset.default });
@@ -563,7 +536,7 @@ export class YandexPvzWidget {
     }
 
     _clearSelection() {
-        this._clearCost(); // ✅ сброс цены
+        this._clearCost();
         const prev = this._selectedId;
         if (prev && this.manager) this.manager.objects.setObjectOptions(prev, { preset: this.preset.default });
         this._selectedId = null;
@@ -602,14 +575,11 @@ export class YandexPvzWidget {
         this.options.onChoose?.(p, enriched);
     }
 
-    /* -------------------------- Availability интеграция -------------------------- */
-
     async _checkAvailability(body) {
         const result = await withLoader(async () => {
             try {
                 const res = await apiPost(this.options.availabilityUrl, body);
 
-                // поддержим: либо Response, либо сразу JSON
                 if (res && typeof res === "object" && typeof res.json === "function") {
                     const data = await res.json().catch(() => ({}));
                     if (!res.ok) return { ok: false, deliverable: false, detail: data?.detail || data };
@@ -622,7 +592,6 @@ export class YandexPvzWidget {
             }
         });
 
-        // ожидаем от бэка: { ok: true, deliverable: boolean, offers_count, offers, nearest? }
         const deliverable = Boolean(result?.deliverable);
 
         if (!deliverable) {
@@ -631,16 +600,13 @@ export class YandexPvzWidget {
             return false;
         }
 
-        // ✅ ТОЛЬКО стоимость (без дат/интервалов)
         let costRub = null;
 
-        // 1) если бэк отдал число
         if (result?.nearest && result.nearest.price_rub != null) {
             const n = Number(result.nearest.price_rub);
             if (Number.isFinite(n)) costRub = n;
         }
 
-        // 2) иначе парсим "204 RUB" / "204" / "204.5 RUB"
         if (costRub == null) {
             const s = (result?.nearest?.pricing_total ?? "").toString().trim();
             const m = s.match(/(\d+(?:[.,]\d+)?)/);
@@ -653,8 +619,6 @@ export class YandexPvzWidget {
         this._setCost(costRub);
         return true;
     }
-
-    /* -------------------------- CALCULATE интеграция -------------------------- */
 
     async _calcDelivery(destinationPayload) {
         const order = (typeof this.options.getOrderData === "function" ? this.options.getOrderData() : null) || null;
@@ -695,8 +659,6 @@ export class YandexPvzWidget {
         return { ...destinationPayload, calc };
     }
 
-    /* ------------------------------ Цена (ТОЛЬКО) ------------------------------ */
-
     _setCost(costRub) {
         const n = Number(costRub);
         if (!Number.isFinite(n) || n <= 0) {
@@ -723,8 +685,6 @@ export class YandexPvzWidget {
             localStorage.removeItem(this.options.costStorageKey);
         } catch {}
     }
-
-    /* ------------------------------ Форматирование ------------------------------- */
 
     _formatSchedule(schedule) {
         if (!schedule?.restrictions?.length) return "";

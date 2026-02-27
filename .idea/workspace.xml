@@ -1,4 +1,220 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PropertiesComponent">{}</component>
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="64dd3c95-3045-456f-9426-1b89ccbfd60f" name="Changes" comment="Cleanup 1">
+      <change afterPath="$PROJECT_DIR$/src/admin_panel/bot/helpers.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ai/bot/handlers/new_user_helpers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/env.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/env.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/0265d09edf20_change_to_double.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/0265d09edf20_change_to_double.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/07397c2ca89e_added_premium_until.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/07397c2ca89e_added_premium_until.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/3289bacafc2b_added_premium_until.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/3289bacafc2b_added_premium_until.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/37a4a1166144_adding_statuses_for_carts.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/37a4a1166144_adding_statuses_for_carts.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/3fb5ec99b0c4_xyz.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/3fb5ec99b0c4_xyz.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/444f15fd29b6_shift_datetimes_moscow_to_yekaterinburg.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/444f15fd29b6_shift_datetimes_moscow_to_yekaterinburg.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/5710822b18aa_added_premium_until.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/5710822b18aa_added_premium_until.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/5ef16b3a83d8_added_premium_until.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/5ef16b3a83d8_added_premium_until.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/840930dda000_changed80.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/840930dda000_changed80.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/a79ceada2105_adding_contact_info_for_carts.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/a79ceada2105_adding_contact_info_for_carts.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/bb2251f3cc81_adding_tg_categories.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/bb2251f3cc81_adding_tg_categories.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/bdb39b3644a0_fixing_shi.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/bdb39b3644a0_fixing_shi.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/c4def29cb91a_added_promo_gains.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/c4def29cb91a_added_promo_gains.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/d65678384de8_added_used_code.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/d65678384de8_added_used_code.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/d878ab301493_added_promo_discount_pct.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/d878ab301493_added_promo_discount_pct.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/e325df90d2cc_added_promo_codes.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/e325df90d2cc_added_promo_codes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/fbd8b39a868e_added_promo_gains.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/fbd8b39a868e_added_promo_gains.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/migrations/versions/fef8998aa482_adding_tg_categories.py" beforeDir="false" afterPath="$PROJECT_DIR$/migrations/versions/fef8998aa482_adding_tg_categories.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/admin_panel/bot/handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/admin_panel/bot/handler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/admin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/new_admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/new_admin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/new_user.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/new_user.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ai/bot/handlers/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/handlers/user.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ai/bot/middleware.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/bot/middleware.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ai/calc/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/calc/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ai/client.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ai/eventhandler.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ai/eventhandler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/amocrm/client.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/amocrm/client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/amocrm/sync_cart_contacts.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/helpers.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/helpers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/logger.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/onec/keywords.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/onec/keywords.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/onec/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/onec/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/cdek.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/cdek.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/yandex.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/yandex.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/bag.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/cart.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/cart.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/cart_item.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/cart_item.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/category.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/category.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/favourite.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/favourite.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/feature.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/feature.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/product.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/product.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/product_tg_categories.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/product_tg_categories.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/promo_code.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/promo_code.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/search.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/search.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/tg_category.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/tg_category.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/unit.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/unit.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/used_code.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/used_code.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/user.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/crud/user_token_usage.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/crud/user_token_usage.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/database.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/models/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/models/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/models/cart.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/models/cart.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/models/cart_item.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/models/cart_item.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/models/category.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/models/category.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/models/checkout.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/models/checkout.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/models/favourite.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/models/favourite.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/models/feature.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/models/feature.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/models/product.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/models/product.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/models/product_tg_categories.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/models/product_tg_categories.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/models/promo_code.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/models/promo_code.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/models/tg_category.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/models/tg_category.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/models/unit.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/models/unit.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/models/used_code.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/models/used_code.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/models/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/models/user.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/models/user_token_usage.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/models/user_token_usage.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/routes/auth.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/routes/auth.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/routes/cart.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/routes/cart.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/routes/categories.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/routes/categories.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/routes/delivery.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/routes/delivery.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/routes/favourite.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/routes/favourite.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/routes/payments.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/routes/payments.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/routes/product.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/routes/product.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/routes/promocodes.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/routes/promocodes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/routes/search.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/routes/search.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/routes/users.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/routes/users.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/routes/webhooks.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/routes/webhooks.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/schemas/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/schemas/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/schemas/cart.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/schemas/cart.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/schemas/cart_item.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/schemas/cart_item.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/schemas/cart_web.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/schemas/cart_web.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/schemas/category.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/schemas/category.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/schemas/favourite.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/schemas/favourite.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/schemas/feature.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/schemas/feature.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/schemas/product.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/schemas/product.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/schemas/promo_code.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/schemas/promo_code.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/schemas/tg_category.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/schemas/tg_category.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/schemas/unit.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/schemas/unit.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/schemas/used_code.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/schemas/used_code.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/schemas/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/schemas/user.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/schemas/usertokenusage.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/schemas/usertokenusage.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/main.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/pages/cart.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/pages/cart.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/pages/checkout.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/pages/checkout.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/pages/constants.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/pages/constants.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/pages/contact.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/pages/contact.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/pages/home.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/pages/home.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/pages/orders.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/pages/orders.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/pages/payment.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/pages/payment.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/pages/process-payment.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/pages/process-payment.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/pages/product-detail.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/pages/product-detail.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/pages/profile.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/pages/profile.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/pages/search.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/pages/search.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/pages/yandex-pvz-widget.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/pages/yandex-pvz-widget.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/router.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/router.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/state.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/state.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/ui/cart-badge.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/ui/cart-badge.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/ui/loader.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/ui/loader.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/ui/nav-bottom.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/ui/nav-bottom.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/app/ui/telegram.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/app/ui/telegram.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/services/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/services/api.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/services/productService.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/services/productService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/webapp/static/js/services/pvzService.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/webapp/static/js/services/pvzService.js" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "urusy001"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/urusy001/elixirP.git",
+    "accountId": "3205de88-85dc-478f-b33d-862fb319dec6"
+  }
+}]]></component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 4
+}]]></component>
+  <component name="ProjectId" id="3AEHLcNkiuDHEOhfmfC9OEfLDfq" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "main",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "/Users/paylakurusyan/Desktop/elixirP/src",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-3aa1da707db6-JavaScript-WS-252.27397.92" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="64dd3c95-3045-456f-9426-1b89ccbfd60f" name="Changes" comment="" />
+      <created>1772150754977</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1772150754977</updated>
+      <workItem from="1772150756074" duration="6002000" />
+    </task>
+    <task id="LOCAL-00001" summary="Cleanup 1">
+      <option name="closed" value="true" />
+      <created>1772150961956</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1772150961956</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="m" />
+    <MESSAGE value="Cleanup 1" />
+    <option name="LAST_COMMIT_MESSAGE" value="Cleanup 1" />
+  </component>
 </project>

@@ -1,7 +1,3 @@
-/* =========================
-   orders.js (FULL) — strict fields (no guessing)
-   ========================= */
-
 import {
     cartPageEl, checkoutPageEl, contactPageEl,
     detailEl,
@@ -15,10 +11,6 @@ import {
 
 import { state } from "../state.js";
 import { apiGet } from "../../services/api.js";
-
-/* =========================
-   Status badge mapping (TEXT ONLY)
-   ========================= */
 
 function getStatusText(cart) {
     const s = (cart.status ?? "").toString().trim();
@@ -41,10 +33,6 @@ function getStatusBadgeClass(statusText) {
     return "order-card-status--default";
 }
 
-/* =========================
-   Public
-   ========================= */
-
 export async function renderOrdersPage() {
     navBottomEl.style.display = "flex";
     headerTitle.textContent = "Мои заказы";
@@ -65,10 +53,6 @@ export async function renderOrdersPage() {
     initOrdersSectionToggles();
     await loadAndRenderOrders();
 }
-
-/* =========================
-   Data fetch + list render
-   ========================= */
 
 async function loadAndRenderOrders() {
     const user = state.user;
@@ -133,10 +117,6 @@ function renderOrdersLists(active, processed) {
     autoCollapseIfEmpty();
 }
 
-/* =========================
-   Orders section toggles
-   ========================= */
-
 function initOrdersSectionToggles() {
     const root = document.querySelector("#orders-page");
     if (!root) return;
@@ -193,10 +173,6 @@ function initOrdersSectionToggles() {
     });
 }
 
-/* =========================
-   Card renderer
-   ========================= */
-
 function renderOrderCard(cart) {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -236,16 +212,11 @@ function renderOrderCard(cart) {
     return btn;
 }
 
-/* =========================
-   Order detail renderer
-   ========================= */
-
 function openOrderDetail(cart) {
     ordersPageEl.style.display = "none";
     orderDetailEl.style.display = "block";
     detailEl.style.display = "block";
 
-    // header
     const idEl = document.getElementById("order-detail-id");
     const statusEl = document.getElementById("order-detail-status");
     const dateEl = document.getElementById("order-detail-date");
@@ -260,7 +231,6 @@ function openOrderDetail(cart) {
 
     if (dateEl) dateEl.textContent = cart.created_at ? formatDateTime(cart.created_at) : "—";
 
-    // delivery
     const deliverySummaryEl = document.getElementById("order-delivery-summary");
     if (deliverySummaryEl) {
         deliverySummaryEl.textContent =
@@ -269,15 +239,12 @@ function openOrderDetail(cart) {
                 : "Доставка не указана";
     }
 
-    // payment
     const paymentMethodEl = document.getElementById("order-payment-method");
     if (paymentMethodEl) paymentMethodEl.textContent = "—";
 
-    // comment
     const commentEl = document.getElementById("order-comment-text");
     if (commentEl) commentEl.textContent = cart.commentary ? String(cart.commentary) : "—";
 
-    // totals
     const subtotalEl = document.getElementById("order-subtotal");
     const deliveryPriceEl = document.getElementById("order-delivery-price");
     const totalEl = document.getElementById("order-total");
@@ -288,13 +255,11 @@ function openOrderDetail(cart) {
     const totalNum = toNumber(cart.sum) + toNumber(cart.delivery_sum);
     if (totalEl) totalEl.textContent = formatMoney(totalNum);
 
-    // contacts (cart.phone/cart.email always exist after your migration)
     const phoneEl = document.getElementById("order-contact-phone");
     const emailEl = document.getElementById("order-contact-email");
     if (phoneEl) phoneEl.textContent = (cart.phone || "").toString().trim() || "Не указан";
     if (emailEl) emailEl.textContent = (cart.email || "").toString().trim() || "Не указан";
 
-    // items
     const itemsListEl = document.getElementById("order-items-list");
     if (itemsListEl) {
         itemsListEl.innerHTML = "";
@@ -312,9 +277,9 @@ function openOrderDetail(cart) {
 }
 
 function renderOrderItemRow(it) {
-    // strict fields from backend
+
     const name = it.product?.name ?? "Товар";
-    const variant = it.feature?.name ?? "";          // dosage/variation text
+    const variant = it.feature?.name ?? "";
     const qty = Number(it.quantity) || 1;
     const price = toNumber(it.feature?.price);
     const line = price * qty;
@@ -340,12 +305,8 @@ function renderOrderItemRow(it) {
     return row;
 }
 
-/* =========================
-   Normalization (strict)
-   ========================= */
-
 function normalizeCart(raw) {
-    // backend uses snake_case and ISO timestamps
+
     const created = raw.created_at;
     const updated = raw.updated_at;
 
@@ -370,14 +331,9 @@ function normalizeCart(raw) {
         updated_at: updated,
         created_ts: created ? Date.parse(created) : 0,
 
-        // ✅ backend MUST return list
         items: Array.isArray(raw.items) ? raw.items : [],
     };
 }
-
-/* =========================
-   Optional UX: auto-collapse empty sections
-   ========================= */
 
 function autoCollapseIfEmpty() {
     const activeSection = document.querySelector("#orders-page .orders-section:nth-of-type(1)");
@@ -393,10 +349,6 @@ function autoCollapseIfEmpty() {
         processedSection.classList.add("is-collapsed");
     }
 }
-
-/* =========================
-   Helpers
-   ========================= */
 
 function toNumber(v) {
     if (v == null) return 0;

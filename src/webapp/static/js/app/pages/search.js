@@ -1,4 +1,3 @@
-// search.js
 import { renderProductDetailPage } from "./product-detail.js";
 import { searchProducts } from "../../services/productService.js";
 import { navBottomEl } from "./constants.js";
@@ -11,19 +10,15 @@ function debounce(fn, delay) {
     };
 }
 
-// ---- STATES ----
-let searchMode = "search";          // "search" | "favorite"
-let favoriteClickHandler = null;    // callback for heart click
-let searchBtnRef = null;            // cache for the button element
-let isFavoriteActive = false;       // local boolean tracking state
+let searchMode = "search";
+let favoriteClickHandler = null;
+let searchBtnRef = null;
+let isFavoriteActive = false;
 
 function getBtn() {
     return searchBtnRef || document.getElementById("search-btn");
 }
 
-/**
- * Updates the visual classes/attributes based on isFavoriteActive
- */
 function updateVisuals() {
     const btn = getBtn();
     if (!btn) return;
@@ -39,17 +34,11 @@ function updateVisuals() {
     }
 }
 
-/**
- * Public function to set the state (e.g. from API or optimistic update)
- */
 export function setFavoriteButtonActive(active) {
     isFavoriteActive = !!active;
     updateVisuals();
 }
 
-/**
- * Switches the Search button to a Favorite (Heart) button.
- */
 export function setSearchButtonToFavorite(onClick, initialActive = false) {
     searchMode = "favorite";
     favoriteClickHandler = typeof onClick === "function" ? onClick : null;
@@ -57,9 +46,8 @@ export function setSearchButtonToFavorite(onClick, initialActive = false) {
 
     const btn = getBtn();
     if (!btn) return;
-    searchBtnRef = btn; // ensure cache
+    searchBtnRef = btn;
 
-    // Save original HTML/Label if not already saved
     if (!btn.dataset.originalIconHtml) {
         btn.dataset.originalIconHtml = btn.innerHTML;
     }
@@ -67,7 +55,6 @@ export function setSearchButtonToFavorite(onClick, initialActive = false) {
         btn.dataset.originalAriaLabel = btn.getAttribute("aria-label");
     }
 
-    // Render Heart Icon
     btn.innerHTML = `
         <svg class="toolbar-icon toolbar-icon--heart" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
@@ -79,13 +66,9 @@ export function setSearchButtonToFavorite(onClick, initialActive = false) {
     `;
     btn.classList.add("toolbar-btn--favorite");
 
-    // Apply initial state
     updateVisuals();
 }
 
-/**
- * Restores the button back to the Search (Magnifying glass).
- */
 export function restoreSearchButtonToSearch() {
     searchMode = "search";
     favoriteClickHandler = null;
@@ -94,12 +77,10 @@ export function restoreSearchButtonToSearch() {
     const btn = getBtn();
     if (!btn) return;
 
-    // Restore original HTML
     if (btn.dataset.originalIconHtml) {
         btn.innerHTML = btn.dataset.originalIconHtml;
     }
 
-    // Restore label
     if (btn.dataset.originalAriaLabel) {
         btn.setAttribute("aria-label", btn.dataset.originalAriaLabel);
     } else {
@@ -109,8 +90,6 @@ export function restoreSearchButtonToSearch() {
 
     btn.classList.remove("toolbar-btn--favorite", "toolbar-btn--favorite-active");
 }
-
-// ---- INIT ----
 
 export function initSearchOverlay() {
     const searchBtn = document.getElementById("search-btn");
@@ -140,19 +119,18 @@ export function initSearchOverlay() {
         historyList.innerHTML = "";
     }
 
-    // MAIN CLICK HANDLER
     searchBtn?.addEventListener("click", async (e) => {
-        // Stop propagation just in case
+
         e.stopPropagation();
 
         if (searchMode === "favorite") {
-            // Logic for Heart
+
             if (favoriteClickHandler) {
-                // Pass the CURRENT state so handler knows what to do
+
                 favoriteClickHandler(isFavoriteActive);
             }
         } else {
-            // Logic for Search
+
             openSearchOverlay();
         }
     });

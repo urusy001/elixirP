@@ -8,11 +8,7 @@ from src.webapp.database import get_db
 router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("")
-async def get_users(
-        column_name: str = Query(..., description="Column name to filter by"),
-        value: str = Query(..., description="Value for the column"),
-        db: AsyncSession = Depends(get_db),
-):
+async def get_users(column_name: str = Query(..., description="Column name to filter by"), value: str = Query(..., description="Value for the column"), db: AsyncSession = Depends(get_db)):
     if column_name in ["tg_id"]:
         user = await get_user(db, column_name, value)
         return user

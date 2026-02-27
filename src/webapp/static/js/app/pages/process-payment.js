@@ -1,4 +1,4 @@
-import {launchConfettiBurst, showBackButton, showMainButton} from "../ui/telegram.js";
+import { launchConfettiBurst, showBackButton, showMainButton } from "../ui/telegram.js";
 import {
     cartPageEl,
     checkoutPageEl,
@@ -9,10 +9,10 @@ import {
     searchBtnEl,
     toolbarEl
 } from "./constants.js";
-import {navigateTo} from "../router.js";
+import { navigateTo } from "../router.js";
 
 export async function renderProcessPaymentPage(order_number) {
-    // Hide other pages
+
     toolbarEl.style.display = "none";
     listEl.style.display = "none";
     detailEl.style.display = "none";
@@ -23,19 +23,16 @@ export async function renderProcessPaymentPage(order_number) {
     processPaymentEl.style.display = "block";
     profilePageEl.style.display = "none";
 
-    // Header / nav
     headerTitle.textContent = `Номер заказа ${order_number ?? "—"}`;
     searchBtnEl.style.display = "flex";
     navBottomEl.style.display = "none";
 
-    // Scroll to top so the card is fully visible
     try {
         window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
     } catch (_) {
         window.scrollTo(0, 0);
     }
 
-    // ---- Lottie animation ----
     const lottieContainer = processPaymentEl.querySelector("#order-lottie");
 
     if (lottieContainer && typeof window !== "undefined" && window.lottie && !lottieContainer._lottieInited) {
@@ -50,14 +47,12 @@ export async function renderProcessPaymentPage(order_number) {
         });
     }
 
-    // ---- Confetti ----
     try {
         launchConfettiBurst && launchConfettiBurst();
     } catch (e) {
         console.warn("Confetti error:", e);
     }
 
-    // ---- Buttons ----
     showMainButton("В главное меню", () => navigateTo("/"));
     showBackButton(() => navigateTo("/"));
 }

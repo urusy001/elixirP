@@ -27,7 +27,7 @@ import {
 import {
     setSearchButtonToFavorite,
     setFavoriteButtonActive,
-    restoreSearchButtonToSearch // <--- IMPORTED THIS
+    restoreSearchButtonToSearch
 } from "./search.js";
 import { apiDelete, apiPost } from "../../services/api.js";
 
@@ -36,7 +36,6 @@ function isProductFavorite(onec_id) {
     return favs.some((id) => String(id) === String(onec_id));
 }
 
-// Helper to update local state array
 function updateLocalFavourites(onec_id, shouldBeFav) {
     const favs = state.user.favourites || [];
     if (shouldBeFav) {
@@ -51,7 +50,7 @@ function updateLocalFavourites(onec_id, shouldBeFav) {
 export async function renderProductDetailPage(onec_id) {
     const productImgPath = `/static/images/${onec_id}.png`;
     const defaultImgPath = "/static/images/product.png";
-    // Hide other views
+
     navBottomEl.style.display = "none";
     toolbarEl.style.display = "none";
     listEl.style.display = "none";
@@ -67,21 +66,16 @@ export async function renderProductDetailPage(onec_id) {
     ordersPageEl.style.display = "none";
     orderDetailEl.style.display = "none";
 
-    // ---- ИЗБРАННОЕ: CORRECTED LOGIC ----
     const initiallyFav = isProductFavorite(onec_id);
 
-    // This callback runs when user clicks the heart
     const onFavoriteClick = async (currentlyActive) => {
-        // 1. Determine next state (toggle)
+
         const nextState = !currentlyActive;
 
-        // 2. OPTIMISTIC UPDATE: Update UI immediately
         setFavoriteButtonActive(nextState);
 
-        // 3. OPTIMISTIC UPDATE: Update Local Data immediately
         updateLocalFavourites(onec_id, nextState);
 
-        // 4. Send Request in Background
         const payload = { user_id: state.user.tg_id, onec_id };
 
         try {
@@ -90,24 +84,20 @@ export async function renderProductDetailPage(onec_id) {
             } else {
                 await apiDelete("/favourites", payload);
             }
-            // Success: do nothing, UI is already correct
+
         } catch (err) {
             console.error("Failed to toggle favourite:", err);
 
-            // 5. ERROR: Revert UI and State
-            setFavoriteButtonActive(!nextState); // switch back
-            updateLocalFavourites(onec_id, !nextState); // switch data back
+            setFavoriteButtonActive(!nextState);
+            updateLocalFavourites(onec_id, !nextState);
 
-            // Optional: Show toast error here
         }
     };
 
-    // Initialize the button
     setSearchButtonToFavorite(onFavoriteClick, initiallyFav);
 
-    // ---- Cleanup Function (Crucial for Single Page Apps) ----
     const cleanupProductPage = () => {
-        // Restore search button icon
+
         restoreSearchButtonToSearch();
 
         if (isTelegramApp()) {
@@ -125,12 +115,12 @@ export async function renderProductDetailPage(onec_id) {
         if (isTelegramApp()) {
             hideMainButton();
             const offBack = showBackButton(() => {
-                cleanupProductPage(); // Clean up on back
+                cleanupProductPage();
                 navigateTo('/');
             });
             window.addEventListener("popstate", () => {
                 offBack?.();
-                cleanupProductPage(); // Clean up on popstate
+                cleanupProductPage();
             }, { once: true });
         }
         return;
@@ -187,7 +177,7 @@ export async function renderProductDetailPage(onec_id) {
         </div>
       </div>
     </div>`;
-    // Populate trusted HTML content
+
     const infoEl = detailEl.querySelector(".product-info");
     infoEl.querySelector("h1").textContent = data.product.name;
     infoEl.querySelector(".product-description").innerHTML = data.product.description || "Нет описания";
@@ -196,11 +186,9 @@ export async function renderProductDetailPage(onec_id) {
     detailEl.querySelector(".product-image img").alt = data.product.name;
     setupShareButton(detailEl, data, onec_id);
 
-    // Clamp / expand description
     const descEl = infoEl.querySelector(".product-description");
     setupDescriptionClamp(descEl);
 
-    // Create bottom sheet
     const sheet = createBottomSheet(featuresTableHtml);
     document.body.appendChild(sheet.root);
 
@@ -298,7 +286,6 @@ export async function renderProductDetailPage(onec_id) {
         });
     };
 
-    // Click sorting
     headers.forEach((h) => {
         h.style.cursor = "pointer";
         h.addEventListener("click", () => {
@@ -309,7 +296,6 @@ export async function renderProductDetailPage(onec_id) {
         });
     });
 
-    // Quantity logic
     tbody.addEventListener("click", (e) => {
         const dec = e.target.closest(".qty-dec");
         const inc = e.target.closest(".qty-inc");
@@ -332,8 +318,6 @@ export async function renderProductDetailPage(onec_id) {
 
     renderTableBody();
 
-    // Telegram MainButton + BackButton handling
-    // Telegram MainButton + BackButton handling
     if (isTelegramApp()) {
         let offBack;
 
@@ -352,9 +336,9 @@ export async function renderProductDetailPage(onec_id) {
         setBackForProduct();
 
         if (!productInStock) {
-            // ✅ Out of stock: main button says "Нет на складе" and does nothing
+
             showMainButton("Нет на складе", () => {});
-            // keep back behavior, and do not wire sheet toggles
+
             window.addEventListener(
                 "popstate",
                 () => {
@@ -365,7 +349,7 @@ export async function renderProductDetailPage(onec_id) {
                 { once: true }
             );
         } else {
-            // ✅ In stock: normal behavior
+
             const toggleSheet = () => {
                 if (sheet.isOpen()) {
                     sheet.close(false);
@@ -394,7 +378,7 @@ export async function renderProductDetailPage(onec_id) {
             );
         }
     } else {
-        // non-telegram fallback button
+
         const openSheetBtn = document.createElement("button");
         openSheetBtn.className = "buy-btn";
 
@@ -412,8 +396,6 @@ export async function renderProductDetailPage(onec_id) {
         detailEl.querySelector(".product-detail-container").appendChild(openSheetBtn);
     }
 }
-
-/* ============================ Helpers ============================ */
 
 function createBottomSheet(innerHTML) {
     const root = document.createElement("div");

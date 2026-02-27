@@ -50,17 +50,6 @@ async def cdek_proxy(request: Request):
 
 @yandex_router.get("/reverse-geocode")
 async def reverse_geocode(lat: float = Query(...), lon: float = Query(...)):
-    """
-    1) Yandex Geocoder 1.x -> extract city name from coords
-    2) Yandex B2B /location/detect -> return up to 2 variants as
-       [{'geo_id': <int>, 'address': <str>}, ...]
-
-    Response:
-    {
-      "city": "<resolved city name or 'Москва'>",
-      "variants": [{"geo_id": 213, "address": "Москва"}, ...]  # max 2
-    }
-    """
     if not YANDEX_GEOCODER_TOKEN: raise HTTPException(status_code=512, detail='YANDEX TOKEN NOT CONFIGURED')
 
     geo_url = "https://geocode-maps.yandex.ru/1.x/"
@@ -152,7 +141,7 @@ async def get_pvz(req: dict):
         lat = float(req["latitude"])
         lon = float(req["longitude"])
         radius = int(req.get("radius", 10000))
-        radius = max(100, min(40000, radius))  # clamp 100–40000 m
+        radius = max(100, min(40000, radius))                     
         km = radius / 1000
         dlat = km / 111.0
         dlon = km / (111.32 * max(0.1, abs(__import__("math").cos(lat * 3.1416 / 180))))

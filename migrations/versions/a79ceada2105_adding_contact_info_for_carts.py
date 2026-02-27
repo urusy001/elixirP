@@ -19,7 +19,7 @@ DEFAULT_STR = "Не указан"
 
 
 def upgrade() -> None:
-    # 1) add columns safe for existing rows
+                                           
     op.add_column(
         "carts",
         sa.Column("phone", sa.String(), nullable=True, server_default=DEFAULT_STR),
@@ -29,8 +29,8 @@ def upgrade() -> None:
         sa.Column("email", sa.String(), nullable=True, server_default=DEFAULT_STR),
     )
 
-    # 2) backfill from users (phone priority: phone -> tg_phone -> DEFAULT)
-    #    also treat empty strings as NULL via NULLIF
+                                                                           
+                                                    
     op.execute(
         sa.text(
             """
@@ -44,7 +44,7 @@ def upgrade() -> None:
         ).bindparams(sa.bindparam("d", DEFAULT_STR))
     )
 
-    # 3) fill anything still NULL (e.g. carts without matching user for some reason)
+                                                                                    
     op.execute(
         sa.text(
             """
@@ -55,7 +55,7 @@ def upgrade() -> None:
         ).bindparams(sa.bindparam("d", DEFAULT_STR))
     )
 
-    # 4) enforce NOT NULL (keep defaults for future inserts)
+                                                            
     op.alter_column("carts", "phone", nullable=False, server_default=DEFAULT_STR)
     op.alter_column("carts", "email", nullable=False, server_default=DEFAULT_STR)
 

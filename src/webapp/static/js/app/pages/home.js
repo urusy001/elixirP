@@ -1,8 +1,8 @@
-import {searchProducts} from "../../services/productService.js";
-import {hideLoader, showLoader, withLoader} from "../ui/loader.js";
-import {navigateTo} from "../router.js";
-import {saveCart, state} from "../state.js";
-import {hideBackButton, hideMainButton, showBackButton, showMainButton,} from "../ui/telegram.js";
+import { searchProducts } from "../../services/productService.js";
+import { hideLoader, showLoader, withLoader } from "../ui/loader.js";
+import { navigateTo } from "../router.js";
+import { saveCart, state } from "../state.js";
+import { hideBackButton, hideMainButton, showBackButton, showMainButton } from "../ui/telegram.js";
 import {
     cartPageEl,
     checkoutPageEl,
@@ -20,17 +20,14 @@ import {
     toolbarEl,
     tosOverlayEl,
 } from "./constants.js";
-import {apiGet, apiPost} from "../../services/api.js";
+import { apiGet, apiPost } from "../../services/api.js";
 
 let page = 0;
 let loading = false;
 let mode = "home";
 
-/* =========================
-   TG CATEGORIES (FILTERS)
-   ========================= */
-let tgCategoriesCache = null; // [{id,name,description}]
-let selectedTgCategoryIds = new Set(); // Set<number>
+let tgCategoriesCache = null;
+let selectedTgCategoryIds = new Set();
 let filterUiBound = false;
 
 function getSelectedCategoryIdsArray() {
@@ -163,7 +160,6 @@ async function openCategoryFilterOverlay() {
     overlay.style.display = "flex";
     document.body.style.overflow = "hidden";
 
-    // ✅ MainButton = APPLY
     showMainButton("Применить", async () => {
         await applyCategoryFilterFromOverlay();
         hideMainButton();
@@ -184,7 +180,7 @@ function closeCategoryFilterOverlay() {
     if (!overlay) return;
     overlay.style.display = "none";
     document.body.style.overflow = "";
-    hideMainButton(); // ✅ hide Apply button
+    hideMainButton();
 }
 
 async function applyCategoryFilterFromOverlay() {
@@ -207,12 +203,9 @@ async function applyCategoryFilterFromOverlay() {
     }
 }
 
-/* =========================
-   SORT (A-Z / Z-A / PRICE)
-   ========================= */
 let sortUiBound = false;
-let sortBy = "name"; // "name" | "price"
-let sortDir = "asc"; // "asc" | "desc"
+let sortBy = "name";
+let sortDir = "asc";
 
 function setSortBtnLabel() {
     const btn = document.getElementById("sort-btn");
@@ -300,7 +293,6 @@ async function openSortOverlay() {
     overlay.style.display = "flex";
     document.body.style.overflow = "hidden";
 
-    // ✅ MainButton = APPLY
     showMainButton("Применить", async () => {
         await applySortFromOverlay();
         hideMainButton();
@@ -312,7 +304,7 @@ function closeSortOverlay() {
     if (!overlay) return;
     overlay.style.display = "none";
     document.body.style.overflow = "";
-    hideMainButton(); // ✅ hide Apply button
+    hideMainButton();
 }
 
 async function applySortFromOverlay() {
@@ -344,9 +336,6 @@ async function applySortFromOverlay() {
     }
 }
 
-/* =========================
-   Bind UI once
-   ========================= */
 function bindCategoryFilterUIOnce() {
     if (filterUiBound) return;
 
@@ -419,11 +408,6 @@ function bindSortUIOnce() {
     sortUiBound = true;
 }
 
-/* =========================
-   EXISTING MECHANICS (UNCHANGED)
-   ========================= */
-
-// Helper: Handle image switching logic (Feature -> Product -> Default)
 function updateCardImage(selectElement) {
     const card = selectElement.closest(".product-card");
     const img = card?.querySelector(".product-img");
@@ -458,7 +442,6 @@ function productCardHTML(p) {
 
     const totalBalance = features.reduce((acc, f) => acc + (Number.isFinite(f.balance) ? f.balance : 0), 0);
 
-    // sort: in-stock first, then by price desc (your old behavior)
     const sortedFeatures = features.slice().sort((a, b) => {
         const aOos = a.balance <= 0 ? 1 : 0;
         const bOos = b.balance <= 0 ? 1 : 0;
@@ -469,7 +452,6 @@ function productCardHTML(p) {
     const productImgPath = `/static/images/${onecId}.png`;
     const defaultImgPath = "/static/images/product.png";
 
-    // pick first in-stock feature as default selected (if any)
     const firstInStockId = sortedFeatures.find((f) => f.balance > 0)?.id ?? null;
 
     const featureSelector = sortedFeatures.length
@@ -504,7 +486,6 @@ function productCardHTML(p) {
       </select>
     `;
 
-    // Buy area: if totalBalance == 0 -> show disabled "Нет на складе"
     const buyArea =
         totalBalance > 0
             ? `<button class="buy-btn" data-onec-id="${onecId}"></button>`
@@ -569,7 +550,7 @@ function renderBuyCounter(btn, onecId) {
         add.className = "buy-btn-initial";
         add.onclick = () => {
             const max = getMaxBalance();
-            if (max <= 0) return; // <-- if OOS selected, do nothing
+            if (max <= 0) return;
             state.cart[key] = 1;
             saveCart();
             renderBuyCounter(btn, onecId);
@@ -626,7 +607,6 @@ function attachProductInteractions(container) {
     container.querySelectorAll(".feature-select").forEach((select) => {
         if (select.dataset.imageBound) return;
 
-        // if current selected option is disabled, move to first enabled option
         const opt = select.selectedOptions?.[0];
         if (opt?.disabled) {
             const firstEnabled = Array.from(select.options).find((o) => !o.disabled);
@@ -643,7 +623,6 @@ function attachProductInteractions(container) {
     container.querySelectorAll(".buy-btn").forEach((btn) => {
         if (btn.dataset.initialized) return;
 
-        // if product total balance is 0 -> button is disabled label
         if (btn.dataset.disabled === "1") {
             btn.dataset.initialized = "1";
             return;
@@ -855,7 +834,6 @@ async function openFavouritesPage() {
     }
 }
 
-// закрытие только после согласия
 function closeTosOverlay() {
     if (!tosOverlayEl) return;
     tosOverlayEl.classList.add("hidden");

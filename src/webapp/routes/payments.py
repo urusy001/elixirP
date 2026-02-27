@@ -18,7 +18,6 @@ from src.webapp.models.checkout import CheckoutData
 from src.webapp.routes.cart import cart_json
 from src.webapp.schemas import UserCreate, CartCreate, CartItemCreate, CartUpdate, PromoCodeUpdate
 
-
 def _format_validation_reasons(errors):
     reasons = []
     for error in errors:
@@ -27,31 +26,25 @@ def _format_validation_reasons(errors):
         reasons.append(f"{location}: {message}" if location else message)
     return reasons
 
-
 def _extract_422_reason(detail):
     if isinstance(detail, list):
-        if all(isinstance(item, dict) for item in detail):
-            return _format_validation_reasons(detail)
+        if all(isinstance(item, dict) for item in detail): return _format_validation_reasons(detail)
         return [str(item) for item in detail]
 
     if isinstance(detail, dict):
         nested_detail = detail.get("detail")
-        if isinstance(nested_detail, list) and all(isinstance(item, dict) for item in nested_detail):
-            return _format_validation_reasons(nested_detail)
-        if "reason" in detail:
-            return detail["reason"]
+        if isinstance(nested_detail, list) and all(isinstance(item, dict) for item in nested_detail): return _format_validation_reasons(nested_detail)
+        if "reason" in detail: return detail["reason"]
         return str(detail)
 
     return str(detail)
-
 
 class PaymentLoggingRoute(APIRoute):
     def get_route_handler(self):
         original_route_handler = super().get_route_handler()
 
         async def custom_route_handler(request: Request):
-            try:
-                return await original_route_handler(request)
+            try: return await original_route_handler(request)
             except RequestValidationError as exc:
                 reasons = _format_validation_reasons(exc.errors())
                 log.exception("Validation error on %s: %s", request.url.path, reasons)
@@ -81,7 +74,6 @@ class PaymentLoggingRoute(APIRoute):
 
 router = APIRouter(prefix="/payments", tags=["payments"], route_class=PaymentLoggingRoute)
 log = logging.getLogger(__name__)
-
 
 @router.post("/create", response_model=None)
 async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_db)):
@@ -120,7 +112,7 @@ async def create_payment(payload: CheckoutData, db: AsyncSession = Depends(get_d
     log.info("Create payment payload: %s", ())
     order_number = cart.id
 
-    #TODO: Отсюда начинается интеграция с ЯДоставкой
+                                                    
     if delivery_service == "yandex":
         delivery_sum = payload.selected_delivery.get("delivery_sum", 0)
         if delivery_sum: await update_cart(db, cart.id, CartUpdate(delivery_sum=delivery_sum))

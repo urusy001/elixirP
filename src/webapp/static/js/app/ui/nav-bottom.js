@@ -1,11 +1,15 @@
-import {navigateTo} from "../router.js";
+import { navigateTo } from "../router.js";
+
+let bottomNavInitialized = false;
 
 export function setupBottomNav() {
+    if (bottomNavInitialized) return;
+    bottomNavInitialized = true;
     const items = document.querySelectorAll(".bottom-nav__item");
-    items.forEach(item => {
+    items.forEach((item) => {
         item.addEventListener("click", (e) => {
             e.preventDefault();
-            const route = item.dataset.route;
+            const route = item.dataset.route || "/";
             navigateTo(route);
         });
     });
@@ -13,12 +17,10 @@ export function setupBottomNav() {
 
 export function updateBottomNavActive(normalizedPath) {
     const navItems = document.querySelectorAll(".bottom-nav__item");
-    navItems.forEach(item => {
+    navItems.forEach((item) => {
         item.classList.remove("bottom-nav__item--active");
-
-        if (`/${item.dataset.route}` === normalizedPath) {
-            item.classList.add("bottom-nav__item--active");
-        }
+        if (`/${item.dataset.route}` !== normalizedPath) return;
+        item.classList.add("bottom-nav__item--active");
     });
 }
 

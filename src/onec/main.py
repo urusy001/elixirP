@@ -1,16 +1,15 @@
-from __future__ import annotations
-
 import asyncio
 import json
 import logging
 import xml.etree.ElementTree as ET
+import aiofiles
+import httpx
+
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Literal
-
-import aiofiles
-import httpx
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import ENTERPRISE_URL, ENTERPRISE_LOGIN, ENTERPRISE_PASSWORD
 from src.onec import endpoints, keywords
@@ -18,21 +17,17 @@ from src.webapp import get_session
 from src.webapp.database import get_db_items
 
 UPSERT_BATCH_SIZE = 500
-SLEEP_INTERVAL = 900  # 15 min
+SLEEP_INTERVAL = 900          
 
 
 def _dec(v: Any, default: str = "0") -> Decimal:
-    if v is None:
-        return Decimal(default)
+    if v is None: return Decimal(default)
     s = str(v).strip()
-    if not s:
-        return Decimal(default)
-    # 1C can return comma decimals sometimes
+    if not s: return Decimal(default)
+                                            
     s = s.replace(",", ".")
-    try:
-        return Decimal(s)
-    except Exception:
-        return Decimal(default)
+    try: return Decimal(s)
+    except Exception: return Decimal(default)
 
 
 class OneCEnterprise:
@@ -41,41 +36,26 @@ class OneCEnterprise:
 
     @staticmethod
     def _is_truthy(v: Any) -> bool:
-        if v is None:
-            return False
+        if v is None: return False
         s = str(v).strip().lower()
         return s in {"true", "1", "yes", "y", "да", "истина"}
 
     @classmethod
     def _not_sold_in_tg(cls, extras: Any) -> bool:
-        if not extras:
-            return False
+        if not extras: return False
         for r in extras:
-            if not isinstance(r, dict):
-                continue
-            if (r.get("Свойство_Key") or "").lower() == cls.TG_NOT_SOLD_PROP_KEY.lower():
-                return cls._is_truthy(r.get("Значение"))
+            if not isinstance(r, dict): continue
+            if (r.get("Свойство_Key") or "").lower() == cls.TG_NOT_SOLD_PROP_KEY.lower(): return cls._is_truthy(r.get("Значение"))
+
         return False
 
-    NS = {
-        "m": "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata",
-        "d": "http://schemas.microsoft.com/ado/2007/08/dataservices",
-        "atom": "http://www.w3.org/2005/Atom",
-    }
+    NS = {"m": "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata", "d": "http://schemas.microsoft.com/ado/2007/08/dataservices", "atom": "http://www.w3.org/2005/Atom"}
 
     def __init__(self, url=ENTERPRISE_URL, username=ENTERPRISE_LOGIN, password=ENTERPRISE_PASSWORD):
         limits = httpx.Limits(max_connections=20, max_keepalive_connections=10)
-        self.__client = httpx.AsyncClient(
-            auth=(username, password),
-            limits=limits,
-            timeout=httpx.Timeout(30.0),
-        )
+        self.__client = httpx.AsyncClient(auth=(username, password), limits=limits, timeout=httpx.Timeout(30.0))
         self.__url = url
         self.log = logging.getLogger(self.__class__.__name__)
-
-    # --------------------------------------------------------------------------
-    #                          FETCHING FROM 1C
-    # --------------------------------------------------------------------------
 
     async def __fetch_odata(self, endpoint: str, save: bool = False) -> list[dict[str, Any]]:
         url = f"{self.__url}{endpoint}"
@@ -85,42 +65,36 @@ class OneCEnterprise:
             try:
                 response = await self.__client.get(url)
                 response.raise_for_status()
-                if response.status_code == httpx.codes.OK:
-                    break
+                if response.status_code == httpx.codes.OK: break
             except Exception as e:
                 self.log.warning(f"⚠️ Attempt {attempt + 1} failed for {url}: {e}")
                 await asyncio.sleep(3)
 
-        if not response:
-            raise RuntimeError(f"❌ Failed to fetch {url} after 3 attempts")
-
+        if not response: raise RuntimeError(f"❌ Failed to fetch {url} after 3 attempts")
         root = ET.fromstring(response.content)
         entries: list[dict[str, Any]] = []
 
         for entry in root.findall("atom:entry", self.NS):
             content = entry.find("atom:content/m:properties", self.NS)
-            if content is None:
-                continue
+            if content is None: continue
 
             record: dict[str, Any] = {}
             for elem in content:
                 tag = elem.tag.split("}", 1)[1] if "}" in elem.tag else elem.tag
-
                 if tag == "ДополнительныеРеквизиты":
                     extras = []
                     for extra in elem.findall("d:element", self.NS):
                         extra_record = {sub.tag.split("}", 1)[1]: sub.text for sub in extra}
                         extras.append(extra_record)
                     record[tag] = extras
-                else:
-                    record[tag] = elem.text
+
+                else:record[tag] = elem.text
 
             entries.append(record)
 
         if save:
             fname = f"{endpoint.split('?')[0]}.json"
-            async with aiofiles.open(fname, "w", encoding="utf-8") as f:
-                await f.write(json.dumps(entries, ensure_ascii=False, indent=4))
+            async with aiofiles.open(fname, "w", encoding="utf-8") as f: await f.write(json.dumps(entries, ensure_ascii=False, indent=4))
             self.log.info(f"🧾 Saved {fname}")
 
         return entries
@@ -212,7 +186,6 @@ class OneCEnterprise:
 
         out: dict[str, dict[str, Any]] = {}
         for p in products:
-            # базовые фильтры как у тебя
             if not p.get("КатегорияНоменклатуры_Key"): continue
             if p.get("Недействителен") == "true": continue
             if p.get("DeletionMark") in [True, "true"]: continue
@@ -220,9 +193,7 @@ class OneCEnterprise:
             if p.get("Parent_Key", None) != self.PARENT_KEY: continue
 
             extras = p.get("ДополнительныеРеквизиты") or []
-
-            if self._not_sold_in_tg(extras):
-                continue
+            if self._not_sold_in_tg(extras): continue
 
             out[p.get("Ref_Key")] = {
                 "onec_id": p.get("Ref_Key"),
@@ -230,48 +201,19 @@ class OneCEnterprise:
                 "name": p.get("Description"),
                 "code": p.get("Code"),
                 "description": p.get("Комментарий"),
-                "usage": next(
-                    (
-                        t.get("ТекстоваяСтрока", None)
-                        for t in extras
-                        if any(k in (t.get("ТекстоваяСтрока", "") or "") for k in keywords.use)
-                    ),
-                    None,
-                ),
-                "expiration": next(
-                    (
-                        t.get("ТекстоваяСтрока", None)
-                        for t in extras
-                        if any(k in (t.get("ТекстоваяСтрока", "") or "") for k in keywords.expire)
-                    ),
-                    None,
-                ),
+                "usage": next((t.get("ТекстоваяСтрока", None) for t in extras if any(k in (t.get("ТекстоваяСтрока", "") or "") for k in keywords.use)), None),
+                "expiration": next((t.get("ТекстоваяСтрока", None) for t in extras if any(k in (t.get("ТекстоваяСтрока", "") or "") for k in keywords.expire)), None),
             }
 
         return out
 
-    # --------------------------------------------------------------------------
-    #                             DATABASE UPSERT
-    # --------------------------------------------------------------------------
-
-    async def _upsert_table(
-            self,
-            db,
-            table,
-            rows: list[dict[str, Any]],
-            conflict_cols: list[str],
-            update_cols: list[str],
-    ) -> None:
-        if not rows:
-            return
-
+    @staticmethod
+    async def _upsert_table(db: AsyncSession, table, rows: list[dict[str, Any]], conflict_cols: list[str], update_cols: list[str]) -> None:
+        if not rows: return
         for i in range(0, len(rows), UPSERT_BATCH_SIZE):
             chunk = rows[i : i + UPSERT_BATCH_SIZE]
             stmt = pg_insert(table).values(chunk)
-            stmt = stmt.on_conflict_do_update(
-                index_elements=[getattr(table.c, c) for c in conflict_cols],
-                set_={c: getattr(stmt.excluded, c) for c in update_cols},
-            )
+            stmt = stmt.on_conflict_do_update(index_elements=[getattr(table.c, c) for c in conflict_cols], set_={c: getattr(stmt.excluded, c) for c in update_cols})
             await db.execute(stmt)
 
     async def update_db(self, approach: Literal["json", "postgres"], save: bool = False) -> None:
@@ -280,17 +222,8 @@ class OneCEnterprise:
         categories_task = self.get_categories_1c(save)
         units_task = self.get_units_1c(save)
 
-        products, features, categories, units = await asyncio.gather(
-            products_task, features_task, categories_task, units_task
-        )
-
-        # ✅ keep only features that belong to TG products (KEEP AS DICT)
-        features = {
-            fid: f
-            for fid, f in features.items()
-            if f.get("product_onec_id") in products
-        }
-
+        products, features, categories, units = await asyncio.gather(products_task, features_task, categories_task, units_task)
+        features = {fid: f for fid, f in features.items() if f.get("product_onec_id") in products}
         self.log.info(f"Filtered TG products: {len(products)}")
         self.log.info(f"Filtered TG features: {len(features)}")
 
@@ -306,37 +239,12 @@ class OneCEnterprise:
             return
 
         from src.webapp.models import Unit, Category, Product, Feature
+        unit_rows = [{"onec_id": u["onec_id"], "name": u.get("name") or "", "description": u.get("description")} for u in units.values() if u.get("onec_id")]
+        category_rows = [{"onec_id": c["onec_id"], "unit_onec_id": c.get("unit_onec_id"), "name": c.get("name") or "", "code": c.get("code")} for c in categories.values() if c.get("onec_id")]
+        product_rows = [{"onec_id": p["onec_id"], "category_onec_id": p.get("category_onec_id"), "name": p.get("name") or "", "code": p.get("code"), "description": p.get("description"), "usage": p.get("usage"), "expiration": p.get("expiration")} for p in products.values() if p.get("onec_id")]
+        feature_rows = [{"onec_id": f["onec_id"], "product_onec_id": f.get("product_onec_id"), "name": f.get("name") or "", "code": f.get("code"), "file_id": f.get("file_id"), "price": _dec(f.get("price")), "balance": _dec(int(f.get("balance")) - 3 if int(f.get("balance")) >= 3 else 0)} for f in features.values() if f.get("onec_id")]
 
-        unit_rows = [
-            {"onec_id": u["onec_id"], "name": u.get("name") or "", "description": u.get("description")}
-            for u in units.values()
-            if u.get("onec_id")
-        ]
-
-        category_rows = [
-            {"onec_id": c["onec_id"], "unit_onec_id": c.get("unit_onec_id"), "name": c.get("name") or "", "code": c.get("code")}
-            for c in categories.values()
-            if c.get("onec_id")
-        ]
-
-        product_rows = [
-            {"onec_id": p["onec_id"], "category_onec_id": p.get("category_onec_id"), "name": p.get("name") or "",
-             "code": p.get("code"), "description": p.get("description"), "usage": p.get("usage"), "expiration": p.get("expiration")}
-            for p in products.values()
-            if p.get("onec_id")
-        ]
-
-        feature_rows = [
-            {"onec_id": f["onec_id"], "product_onec_id": f.get("product_onec_id"), "name": f.get("name") or "",
-             "code": f.get("code"), "file_id": f.get("file_id"), "price": _dec(f.get("price")), "balance": _dec(int(f.get("balance")) - 3 if int(f.get("balance")) >= 3 else 0)}
-            for f in features.values()
-            if f.get("onec_id")
-        ]
-
-        self.log.info(
-            f"🔁 UPSERT: units={len(unit_rows)} categories={len(category_rows)} "
-            f"products={len(product_rows)} features={len(feature_rows)}"
-        )
+        self.log.info(f"🔁 UPSERT: units={len(unit_rows)} categories={len(category_rows)} products={len(product_rows)} features={len(feature_rows)}")
 
         async with get_session() as db:
             await self._upsert_table(db, Unit.__table__, unit_rows, ["onec_id"], ["name", "description"])
@@ -347,8 +255,7 @@ class OneCEnterprise:
 
     @staticmethod
     async def _write_json(file, data):
-        async with aiofiles.open(file, "w", encoding="utf-8") as f:
-            await f.write(json.dumps(data, ensure_ascii=False, indent=4))
+        async with aiofiles.open(file, "w", encoding="utf-8") as f: await f.write(json.dumps(data, ensure_ascii=False, indent=4))
 
     async def postgres_worker(self):
         while True:
@@ -357,12 +264,8 @@ class OneCEnterprise:
                 await self.update_db("postgres", False)
                 self.log.info("✅ PostgreSQL updated successfully (upsert).")
                 await get_db_items(self.log)
-            except Exception as e:
-                self.log.exception(f"❌ Worker failed: {e}")
+
+            except Exception as e: self.log.exception(f"❌ Worker failed: {e}")
             await asyncio.sleep(SLEEP_INTERVAL)
 
-    async def close(self):
-        await self.__client.aclose()
-
-    async def test(self):
-        await self.__fetch_odata(endpoints.PRODUCTS, save=True)
+    async def close(self): await self.__client.aclose()

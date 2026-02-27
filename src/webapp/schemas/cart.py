@@ -1,54 +1,48 @@
-from __future__ import annotations
-
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.webapp.schemas.cart_item import CartItemRead
 
 ZERO_MONEY = Decimal("0.00")
 
-
 class PromoCodeRef(BaseModel):
-    """Small nested promo view for cart responses (avoids circular imports)."""
     model_config = ConfigDict(from_attributes=True)
 
     code: str
     owner_name: str
     owner_pct: Decimal
 
-    lvl1_name: Optional[str] = None
+    lvl1_name: str | None = None
     lvl1_pct: Decimal
 
-    lvl2_name: Optional[str] = None
+    lvl2_name: str | None = None
     lvl2_pct: Decimal
-
 
 class CartCreate(BaseModel):
     user_id: int
     phone: str
     email: str
 
-    name: Optional[str] = None
+    name: str | None = None
 
     sum: Decimal = Field(default=ZERO_MONEY)
     delivery_sum: Decimal = Field(default=ZERO_MONEY)
 
-    promo_code: Optional[str] = None
+    promo_code: str | None = None
     promo_gains: Decimal = Field(default=ZERO_MONEY)
     promo_gains_given: bool = False
 
     delivery_string: str = "Не указан"
-    commentary: Optional[str] = None
+    commentary: str | None = None
 
     is_active: bool = True
     is_paid: bool = False
     is_canceled: bool = False
     is_shipped: bool = False
 
-    status: Optional[str] = None
-    yandex_request_id: Optional[str] = None
+    status: str | None = None
+    yandex_request_id: str | None = None
 
     @field_validator("sum", "delivery_sum", "promo_gains", mode="before")
     @classmethod
@@ -57,29 +51,27 @@ class CartCreate(BaseModel):
         return Decimal(str(v).replace(",", "."))
 
 class CartUpdate(BaseModel):
-    # PATCH-style: everything optional, so you don't accidentally reset fields
-    name: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
+    name: str | None = None
+    phone: str | None = None
+    email: str | None = None
 
-    sum: Optional[Decimal] = None
-    delivery_sum: Optional[Decimal] = None
+    sum: Decimal | None = None
+    delivery_sum: Decimal | None = None
 
-    promo_code: Optional[str] = None
-    promo_gains: Optional[Decimal] = None
-    promo_gains_given: Optional[bool] = None
+    promo_code: str | None = None
+    promo_gains: Decimal | None = None
+    promo_gains_given: bool | None = None
 
-    delivery_string: Optional[str] = None
-    commentary: Optional[str] = None
+    delivery_string: str | None = None
+    commentary: str | None = None
 
-    is_active: Optional[bool] = None
-    is_paid: Optional[bool] = None
-    is_canceled: Optional[bool] = None
-    is_shipped: Optional[bool] = None
+    is_active: bool | None = None
+    is_paid: bool | None = None
+    is_canceled: bool | None = None
+    is_shipped: bool | None = None
 
-    status: Optional[str] = None
-    yandex_request_id: Optional[str] = None
-
+    status: str | None = None
+    yandex_request_id: str | None = None
 
 class CartRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -89,28 +81,27 @@ class CartRead(BaseModel):
     phone: str
     email: str
 
-    name: Optional[str] = None
+    name: str | None = None
 
     sum: Decimal
     delivery_sum: Decimal
 
-    promo_code: Optional[str] = None
+    promo_code: str | None = None
     promo_gains: Decimal
     promo_gains_given: bool
 
-    # nested promo if relationship is loaded; else None
-    promo: Optional[PromoCodeRef] = None
+    promo: PromoCodeRef | None = None
 
     delivery_string: str
-    commentary: Optional[str] = None
+    commentary: str | None = None
 
     is_active: bool
     is_paid: bool
     is_canceled: bool
     is_shipped: bool
 
-    status: Optional[str] = None
-    yandex_request_id: Optional[str] = None
+    status: str | None = None
+    yandex_request_id: str | None = None
 
     created_at: datetime
     updated_at: datetime

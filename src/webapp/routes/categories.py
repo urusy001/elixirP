@@ -12,7 +12,4 @@ router = APIRouter(prefix="/tg-categories", tags=["tg-categories"])
 @router.get("/")
 async def list_categories(db: AsyncSession = Depends(get_db)):
     rows = (await db.execute(select(TgCategory).order_by(TgCategory.name.asc()))).scalars().all()
-    return [
-        {"id": c.id, "name": c.name, "description": c.description}
-        for c in rows
-    ]
+    return [{"id": c.id, "name": c.name, "description": c.description} for c in rows]

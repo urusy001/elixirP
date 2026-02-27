@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional, Any
+from typing import Any
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,7 +8,6 @@ from sqlalchemy.future import select
 from ..models import Feature, Product
 from ..schemas import FeatureCreate, FeatureUpdate
 
-
 async def create_feature(db: AsyncSession, feature: FeatureCreate) -> Feature | None:
     """
     Creates or updates a feature.
@@ -16,12 +15,12 @@ async def create_feature(db: AsyncSession, feature: FeatureCreate) -> Feature | 
     Never raises, never aborts the sync.
     """
     try:
-        # 🧩 1️⃣ Check that feature has a valid product_onec_id
+                                                              
         if not feature.product_onec_id:
             logging.debug(f"⚠️ Skipping feature '{feature.name}' — no product_onec_id provided")
             return None
 
-        # 🧩 2️⃣ Check that referenced product exists in DB
+                                                          
         exists = await db.scalar(
             select(Product.id).filter_by(onec_id=feature.product_onec_id)
         )
@@ -29,10 +28,10 @@ async def create_feature(db: AsyncSession, feature: FeatureCreate) -> Feature | 
             logging.debug(f"⚠️ Skipping feature '{feature.name}' — product not found: {feature.product_onec_id}")
             return None
 
-        # 🧩 3️⃣ Build base insert statement
+                                           
         base_insert = insert(Feature).values(**feature.dict())
 
-        # 🧩 4️⃣ Add ON CONFLICT clause referencing the base insert
+                                                                  
         stmt = base_insert.on_conflict_do_update(
             index_elements=["onec_id"],
             set_={
@@ -45,38 +44,31 @@ async def create_feature(db: AsyncSession, feature: FeatureCreate) -> Feature | 
             },
         ).returning(Feature)
 
-        # 🧩 5️⃣ Execute safely
         result = await db.execute(stmt)
         await db.commit()
 
         created = result.scalar_one_or_none()
-        if created:
-            logging.debug(f"✅ Synced feature '{feature.name}' for product {feature.product_onec_id}")
+        if created: logging.debug(f"✅ Synced feature '{feature.name}' for product {feature.product_onec_id}")
         return created
 
     except IntegrityError:
         await db.rollback()
         return None
 
-
-async def get_features(db: AsyncSession) -> List[Feature]:
+async def get_features(db: AsyncSession) -> list[Feature]:
     result = await db.execute(select(Feature))
     return result.scalars().all()
 
-
-async def get_feature(db: AsyncSession, attr_name: str, value: Any) -> Optional[Feature]:
-    if not hasattr(Feature, attr_name):
-        raise AttributeError(f"Feature has no attribute '{attr_name}'")
+async def get_feature(db: AsyncSession, attr_name: str, value: Any) -> Feature | None:
+    if not hasattr(Feature, attr_name): raise AttributeError(f"Feature has no attribute '{attr_name}'")
     column = getattr(Feature, attr_name)
     result = await db.execute(select(Feature).where(column == value))
     return result.scalars().first()
 
-
-async def update_feature(db: AsyncSession, feature_id: int, feature_data: FeatureUpdate) -> Optional[Feature]:
+async def update_feature(db: AsyncSession, feature_id: int, feature_data: FeatureUpdate) -> Feature | None:
     result = await db.execute(select(Feature).where(Feature.id == feature_id))
     db_feature = result.scalars().first()
-    if db_feature is None:
-        return None
+    if db_feature is None: return None
 
     for field, value in feature_data.dict().items():
         setattr(db_feature, field, value)
